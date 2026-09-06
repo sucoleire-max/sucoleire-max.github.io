@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Trading Monitor</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
+  --border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --green:#3fb950;--red:#f85149;--gold:#e3b341;--accent:#58a6ff;
+  --purple:#bc8cff;--orange:#d29922;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:'SF Mono','Consolas',monospace;
+  --nav-h:85px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+
+/* APP SHELL */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.status-bar{height:env(safe-area-inset-top,0);background:var(--bg)}
+
+/* HEADER */
+.header{padding:12px 16px 10px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0}
+.header-row{display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:22px;font-weight:700;color:var(--text)}
+.header-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.refresh-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  color:var(--text2);padding:6px 10px;font-size:13px;cursor:pointer}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 8px}
+
+/* BOTTOM NAV */
+.nav{height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--border);
+  display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0);
+  position:relative;z-index:9999}
+/* Hide Netlify badge */
+[data-netlify-deploy-id],[data-netlify-identity-menu],
+.netlify-identity-menu,.netlify-badge{display:none!important}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;cursor:pointer;padding:8px 0;transition:all .15s}
+.nav-icon{font-size:22px;line-height:1}
+.nav-label{font-size:10px;color:var(--text3);font-weight:500}
+.nav-item.active .nav-label{color:var(--accent)}
+
+/* ACCOUNT CARDS */
+.acc-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  padding:14px;margin-bottom:10px;position:relative;overflow:hidden;
+  transition:transform .1s}
+.acc-card:active{transform:scale(.98)}
+.acc-stripe{position:absolute;top:0;left:0;width:4px;height:100%;border-radius:4px 0 0 4px}
+.acc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.acc-name{font-size:15px;font-weight:700;color:var(--text)}
+.acc-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.badge-ok{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+.badge-warn{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.3)}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.metric{background:var(--bg3);border-radius:10px;padding:9px 10px}
+.metric-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.metric-val{font-size:14px;font-weight:700;font-family:var(--mono)}
+.pnl-row{display:flex;justify-content:space-between;align-items:center}
+.pnl-lbl{font-size:11px;color:var(--text3)}
+.pnl-val{font-size:17px;font-weight:700;font-family:var(--mono)}
+
+/* COLORS */
+.pos{color:var(--green)}.neg{color:var(--red)}.gold{color:var(--gold)}.blue{color:var(--accent)}
+
+/* RESUMEN MENSUAL */
+.month-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  margin-bottom:10px;overflow:hidden}
+.month-hdr{padding:11px 14px;background:var(--bg3);display:flex;justify-content:space-between;align-items:center}
+.month-hdr-name{font-size:13px;font-weight:700;color:var(--text)}
+.month-rows{padding:6px 8px}
+.month-row{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 6px;border-radius:8px}
+.month-row:active{background:var(--bg3)}
+.month-lbl{font-size:12px;color:var(--text2)}
+.month-val{font-size:12px;font-weight:700;font-family:var(--mono)}
+
+/* RANKING */
+.rank-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:12px;margin-bottom:8px}
+.rank-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rank-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.r1{background:#f0c000;color:#000}.r2{background:#9ba3a6;color:#000}
+.r3{background:#cd7f32;color:#fff}.rn{background:var(--bg3);color:var(--text3)}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-size:12px;font-weight:700;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-sym{display:inline-block;font-size:9px;color:var(--accent);font-family:var(--mono);
+  background:var(--bg3);padding:1px 5px;border-radius:3px;margin-top:2px}
+.rank-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rank-m{text-align:center;background:var(--bg3);border-radius:8px;padding:6px}
+.rank-m .l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.rank-m .v{font-size:12px;font-weight:700;font-family:var(--mono)}
+
+/* AJUSTES */
+.settings-section{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  margin-bottom:14px;overflow:hidden}
+.settings-title{padding:11px 14px;background:var(--bg3);font-size:11px;font-weight:700;
+  color:var(--text2);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)}
+.settings-row{padding:12px 14px;border-bottom:1px solid rgba(48,54,61,.5);display:flex;
+  align-items:center;justify-content:space-between}
+.settings-row:last-child{border:none}
+.settings-lbl{font-size:13px;color:var(--text)}
+.settings-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.settings-val{font-size:12px;color:var(--accent);font-family:var(--mono)}
+.btn-primary{width:100%;background:var(--accent);color:#0d1117;border:none;
+  border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:var(--font);margin-bottom:8px}
+.btn-secondary{width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text2);border-radius:10px;padding:13px;font-size:14px;cursor:pointer;
+  font-family:var(--font)}
+
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:200px;gap:12px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:13px;color:var(--text3)}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty-sub{font-size:12px;line-height:1.5}
+
+/* SUMMARY STATS */
+.summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:10px;text-align:center}
+.stat-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.stat-val{font-size:15px;font-weight:700;font-family:var(--mono)}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--nav-h) + 10px);left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:10px 18px;font-size:12px;color:var(--text);z-index:999;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="status-bar"></div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1 id="pageTitle">Trading Monitor</h1>
+        <div class="header-sub" id="lastUpdate">Conecta con Google Drive para empezar</div>
+      </div>
+      <button class="refresh-btn" onclick="refreshData()">🔄</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+    <div class="empty">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">Trading Monitor</div>
+      <div class="empty-sub">Ve a ⚙️ Ajustes y conecta<br>con Google Drive para ver tus cuentas</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="nav">
+    <div class="nav-item active" onclick="showTab('cuentas',this)">
+      <div class="nav-icon">🏦</div>
+      <div class="nav-label">Cuentas</div>
+    </div>
+    <div class="nav-item" onclick="showTab('resumen',this)">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Resumen</div>
+    </div>
+    <div class="nav-item" onclick="showTab('ranking',this)">
+      <div class="nav-icon">🏆</div>
+      <div class="nav-label">Ranking</div>
+    </div>
+    <div class="nav-item" onclick="showTab('ajustes',this)">
+      <div class="nav-icon">⚙️</div>
+      <div class="nav-label">Ajustes</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──
+var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
+var SCOPES    = 'https://www.googleapis.com/auth/drive.readonly';
+var FOLDER_NAME = '';
+var FOLDER_ID   = '';
+var ALERT_DAYS  = 7;
+
+// ── STATE ──
+var accounts    = {};
+var currentTab  = 'cuentas';
+var tokenClient = null;
+var accessToken = null;
+var accentColors = ['#3fb950','#58a6ff','#e3b341','#bc8cff','#f85149',
+  '#48cae4','#d29922','#ff8c42','#00f5c4','#f72585','#79c0ff','#7209b7'];
+
+// ── INIT ──
+window.onload = function(){
+  // Load saved config
+  FOLDER_ID   = localStorage.getItem('tm_folder_id')   || '';
+  FOLDER_NAME = localStorage.getItem('tm_folder_name') || '';
+  ALERT_DAYS  = parseInt(localStorage.getItem('tm_alert_days')) || 7;
+  accessToken = localStorage.getItem('tm_token') || null;
+
+  // Unregister any old service workers to avoid cache issues
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister(); });
+    });
+  }
+
+  // Load Google Identity Services
+  var s=document.createElement('script');
+  s.src='https://accounts.google.com/gsi/client';
+  s.onload=initGoogleAuth;
+  document.head.appendChild(s);
+};
+
+function initGoogleAuth(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: function(resp){
+      if(resp.error) return;
+      accessToken = resp.access_token;
+      localStorage.setItem('tm_token', accessToken);
+      showToast('✅ Conectado a Google Drive');
+      loadCSVs();
+    }
+  });
+  // Auto-load if we have folder configured
+  if(FOLDER_ID && accessToken) loadCSVs();
+}
+
+function connectDrive(){
+  if(!tokenClient){ showToast('Cargando...'); return; }
+  tokenClient.requestAccessToken();
+}
+
+// ── LOAD DATA ──
+async function loadCSVs(){
+  if(!accessToken || !FOLDER_ID){
+    showToast('Configura Google Drive primero');
+    showTab('ajustes', document.querySelector('.nav-item:last-child'));
+    return;
+  }
+
+  showLoading('Cargando cuentas...');
+
+  try {
+    // List CSV files in folder
+    var url = 'https://www.googleapis.com/drive/v3/files?'
+      + 'q='+encodeURIComponent("'"+FOLDER_ID+"' in parents and name contains 'EA_Trades_' and mimeType='text/plain'")
+      + '&fields=files(id,name,modifiedTime)&pageSize=50';
+
+    var resp = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+    if(resp.status === 401){
+      accessToken = null;
+      localStorage.removeItem('tm_token');
+      showToast('Sesión expirada — reconecta');
+      renderAjustes(); return;
+    }
+    var data = await resp.json();
+    var files = data.files || [];
+
+    if(!files.length){
+      showEmpty('Sin archivos CSV','Asegúrate de que los EA Exporters están activos y la carpeta es correcta');
+      return;
+    }
+
+    accounts = {};
+    var idx = 0;
+    for(var f of files){
+      var content = await fetchFileContent(f.id);
+      var acc = parseCSV(content, f.name, idx, f.modifiedTime);
+      if(acc) { accounts[acc.name] = acc; idx++; }
+    }
+
+    updateLastUpdate();
+    renderCurrentTab();
+    showToast('✅ '+Object.keys(accounts).length+' cuentas cargadas');
+  } catch(e){
+    console.error(e);
+    showToast('❌ Error: '+e.message);
+    showEmpty('Error al cargar','Comprueba la conexión y vuelve a intentarlo');
+  }
+}
+
+async function fetchFileContent(fileId){
+  var resp = await fetch(
+    'https://www.googleapis.com/drive/v3/files/'+fileId+'?alt=media',
+    {headers:{Authorization:'Bearer '+accessToken}}
+  );
+  return resp.text();
+}
+
+// ── PARSE CSV ──
+function parseCSV(txt, filename, colorIdx, modifiedTime){
+  var lines = txt.split(/\r?\n/).filter(function(l){return l.trim();});
+  if(!lines.length) return null;
+
+  var sep = lines[0].indexOf(';')>-1 ? ';' : ',';
+  var accountName = filename.replace(/^EA_Trades_/i,'').replace(/\.csv$/i,'').replace(/_/g,' ').trim();
+
+  if(lines[0].startsWith('#ACCOUNT')){
+    var parts = lines[0].split(sep);
+    if(parts[1]) accountName = parts[1].trim();
+    lines = lines.slice(1);
+  }
+
+  var hdr = lines[0].split(sep).map(function(h){return h.replace(/"/g,'').trim().toLowerCase();});
+  var iEA=1, iMagic=2, iSymbol=3, iType=4, iOpenT=5, iCloseT=6;
+  var iOpenP=7, iCloseP=8, iLots=9, iPnl=10, iComm=11, iSwap=12;
+
+  var trades=[];
+  for(var i=1;i<lines.length;i++){
+    var cols=lines[i].split(sep).map(function(c){return c.replace(/"/g,'').trim();});
+    if(cols.length<10) continue;
+    try{
+      var pnl=(parseFloat(cols[iPnl])||0)+(parseFloat(cols[iComm])||0)+(parseFloat(cols[iSwap])||0);
+      function pd(s){
+        if(!s) return null;
+        var d=new Date(s.replace(/\./g,'-').replace(' ','T'));
+        return isNaN(d)?null:d;
+      }
+      var closeDate=pd(cols[iCloseT]);
+      var openDate=pd(cols[iOpenT]);
+      if(!closeDate) continue;
+      trades.push({
+        ea:cols[iEA]||'EA_'+(cols[iMagic]||'?'),
+        magic:cols[iMagic]||'',
+        symbol:cols[iSymbol]||'',
+        type:cols[iType]||'',
+        pnl:pnl, open:openDate||closeDate, close:closeDate
+      });
+    }catch(e){}
+  }
+  if(!trades.length) return null;
+
+  // Group by EA
+  var byEA={};
+  trades.forEach(function(t){
+    var k=t.ea;
+    if(!byEA[k]) byEA[k]={name:t.ea,symbol:t.symbol,trades:[]};
+    byEA[k].trades.push(t);
+  });
+
+  var eas=Object.values(byEA).map(function(e){return calcEA(e);});
+  eas.sort(function(a,b){return b.net-a.net;});
+
+  var allPnl=trades.map(function(t){return t.pnl;});
+  var net=allPnl.reduce(function(s,v){return s+v;},0);
+  var bal=0,peak=0,maxdd=0;
+  allPnl.forEach(function(p){bal+=p;if(bal>peak)peak=bal;var dd=peak-bal;if(dd>maxdd)maxdd=dd;});
+  var wins=allPnl.filter(function(p){return p>0;});
+  var wr=allPnl.length?wins.length/allPnl.length:0;
+
+  // Monthly by account
+  var byMonth={};
+  trades.forEach(function(t){
+    var mk=t.close.getFullYear()+'-'+String(t.close.getMonth()+1).padStart(2,'0');
+    byMonth[mk]=(byMonth[mk]||0)+t.pnl;
+  });
+
+  // Alerts
+  var alerts=[];
+  eas.forEach(function(e){
+    if(e.daysSince>(ALERT_DAYS||7)) alerts.push({ea:e.name,days:e.daysSince});
+  });
+
+  return{
+    name:accountName, filename:filename,
+    color:accentColors[colorIdx%accentColors.length],
+    trades:trades, eas:eas, alerts:alerts,
+    net:net, maxdd:maxdd, rdd:maxdd>0?net/maxdd:0,
+    wr:wr, totalTrades:trades.length, byMonth:byMonth,
+    modifiedTime:modifiedTime
+  };
+}
+
+function calcEA(ea){
+  var profits=ea.trades.map(function(t){return t.pnl;});
+  var wins=profits.filter(function(p){return p>0;});
+  var losses=profits.filter(function(p){return p<=0;});
+  var net=profits.reduce(function(s,v){return s+v;},0);
+  var gp=wins.reduce(function(s,v){return s+v;},0);
+  var gl=Math.abs(losses.reduce(function(s,v){return s+v;},0));
+  var wr=profits.length?wins.length/profits.length:0;
+  var pf=gl>0?gp/gl:999;
+  var bal=0,peak=0,maxdd=0;
+  profits.forEach(function(p){bal+=p;if(bal>peak)peak=bal;var dd=peak-bal;if(dd>maxdd)maxdd=dd;});
+  var rdd=maxdd>0?net/maxdd:0;
+  var last=ea.trades[ea.trades.length-1].close;
+  var daysSince=Math.floor((new Date()-last)/86400000);
+  var byMonth={};
+  ea.trades.forEach(function(t){
+    var mk=t.close.getFullYear()+'-'+String(t.close.getMonth()+1).padStart(2,'0');
+    byMonth[mk]=(byMonth[mk]||0)+t.pnl;
+  });
+  return{name:ea.name,symbol:ea.symbol,trades:profits.length,
+    net:net,maxdd:maxdd,rdd:rdd,wr:wr,pf:pf,byMonth:byMonth,daysSince:daysSince};
+}
+
+// ── TABS ──
+function showTab(tab, el){
+  currentTab=tab;
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  if(el) el.classList.add('active');
+  renderCurrentTab();
+}
+
+function renderCurrentTab(){
+  var titles={cuentas:'Trading Monitor',resumen:'Resumen Mensual',ranking:'Ranking EAs',ajustes:'Ajustes'};
+  document.getElementById('pageTitle').textContent=titles[currentTab]||'Trading Monitor';
+  if(currentTab==='cuentas')  renderCuentas();
+  if(currentTab==='resumen')  renderResumen();
+  if(currentTab==='ranking')  renderRanking();
+  if(currentTab==='ajustes')  renderAjustes();
+}
+
+// ── CUENTAS ──
+function renderCuentas(){
+  var accs=Object.values(accounts);
+  if(!accs.length){ showEmpty('Sin cuentas','Conecta Google Drive en ⚙️ Ajustes'); return; }
+
+  var totalNet=accs.reduce(function(s,a){return s+a.net;},0);
+  var totalAlerts=accs.reduce(function(s,a){return s+a.alerts.length;},0);
+
+  var html='';
+  // Summary stats
+  html+='<div class="summary-stats">';
+  html+=statCard('Cuentas',accs.length,'var(--accent)');
+  html+=statCard('Net Total',(totalNet>=0?'+':'')+' $'+Math.round(totalNet),totalNet>=0?'var(--green)':'var(--red)');
+  html+=statCard('Alertas',totalAlerts,totalAlerts?'var(--red)':'var(--green)');
+  html+='</div>';
+
+  accs.forEach(function(acc){
+    var alertBadge=acc.alerts.length
+      ?'<span class="badge badge-warn">⚠️ '+acc.alerts.length+' EA'+(acc.alerts.length>1?'s':'')+'</span>'
+      :'<span class="badge badge-ok">✅ OK</span>';
+    html+='<div class="acc-card">'
+      +'<div class="acc-stripe" style="background:'+acc.color+'"></div>'
+      +'<div class="acc-top">'
+        +'<div><div class="acc-name">'+acc.name+'</div>'
+        +'<div class="acc-sub">'+acc.eas.length+' EAs · '+acc.totalTrades+' trades</div></div>'
+        +alertBadge
+      +'</div>'
+      +'<div class="metrics-grid">'
+        +metricBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
+        +metricBox('Max DD','$'+Math.round(acc.maxdd),'var(--red)')
+        +metricBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
+        +metricBox('Win Rate',(acc.wr*100).toFixed(1)+'%',acc.wr>=0.5?'var(--green)':'var(--red)')
+      +'</div>'
+      +(acc.alerts.length?'<div style="font-size:10px;color:var(--red);margin-top:6px">⚠️ '+acc.alerts.map(function(a){return a.ea.split(' ')[0]+' ('+a.days+'d)';}).join(' · ')+'</div>':'')
+      +'</div>';
+  });
+  document.getElementById('content').innerHTML=html;
+}
+
+function metricBox(lbl,val,clr){
+  return'<div class="metric"><div class="metric-lbl">'+lbl+'</div>'
+    +'<div class="metric-val" style="color:'+clr+'">'+val+'</div></div>';
+}
+function statCard(lbl,val,clr){
+  return'<div class="stat-card"><div class="stat-lbl">'+lbl+'</div>'
+    +'<div class="stat-val" style="color:'+clr+'">'+val+'</div></div>';
+}
+
+// ── RESUMEN MENSUAL ──
+function renderResumen(){
+  var accs=Object.values(accounts);
+  if(!accs.length){ showEmpty('Sin datos','Conecta Google Drive en ⚙️ Ajustes'); return; }
+
+  var html='';
+  accs.forEach(function(acc){
+    var months=Object.keys(acc.byMonth).sort().slice(-12);
+    var total=Object.values(acc.byMonth).reduce(function(s,v){return s+v;},0);
+    var mNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    html+='<div class="month-card">'
+      +'<div class="month-hdr">'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<div style="width:10px;height:10px;border-radius:50%;background:'+acc.color+';flex-shrink:0"></div>'
+          +'<span class="month-hdr-name">'+acc.name+'</span>'
+        +'</div>'
+        +'<span class="month-val '+(total>=0?'pos':'neg')+'">'+(total>=0?'+':'')+' $'+Math.round(total)+'</span>'
+      +'</div>'
+      +'<div class="month-rows">';
+
+    months.slice().reverse().forEach(function(m){
+      var v=acc.byMonth[m];
+      var parts=m.split('-');
+      var lbl=mNames[parseInt(parts[1])-1]+' '+parts[0].slice(2);
+      html+='<div class="month-row">'
+        +'<span class="month-lbl">'+lbl+'</span>'
+        +'<span class="month-val '+(v>=0?'pos':'neg')+'">'+(v>=0?'+':'')+' $'+Math.round(v)+'</span>'
+        +'</div>';
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('content').innerHTML=html;
+}
+
+// ── RANKING ──
+function renderRanking(){
+  var accs=Object.values(accounts);
+  if(!accs.length){ showEmpty('Sin datos','Conecta Google Drive en ⚙️ Ajustes'); return; }
+
+  // Collect all EAs across all accounts
+  var allEAs=[];
+  accs.forEach(function(acc){
+    acc.eas.forEach(function(e){
+      allEAs.push(Object.assign({},e,{account:acc.name,accountColor:acc.color}));
+    });
+  });
+  allEAs.sort(function(a,b){return b.net-a.net;});
+
+  var now=new Date();
+  var monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+  var curMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+
+  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Todas las cuentas · '+allEAs.length+' EAs</div>';
+
+  allEAs.forEach(function(e,i){
+    var r=i+1, rc=r===1?'r1':r===2?'r2':r===3?'r3':'rn';
+    var monthPnl=e.byMonth[curMonth]||0;
+    var pfs=isFinite(e.pf)&&e.pf<900?e.pf.toFixed(2):'∞';
+    html+='<div class="rank-card">'
+      +'<div class="rank-hdr">'
+        +'<div class="rank-num '+rc+'">'+r+'</div>'
+        +'<div class="rank-info">'
+          +'<div class="rank-name">'+e.name+'</div>'
+          +'<span class="rank-sym">'+(e.symbol||'—')+'</span>'
+          +' <span style="font-size:9px;color:var(--text3)">· '+e.account+'</span>'
+        +'</div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+(e.net>=0?'var(--green)':'var(--red)')+'">'+(e.net>=0?'+':'')+' $'+Math.round(e.net)+'</div>'
+          +'<div style="font-size:10px;color:var(--text3)">Mes: '+(monthPnl>=0?'+':'')+' $'+Math.round(monthPnl)+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="rank-metrics">'
+        +'<div class="rank-m"><div class="l">Trades</div><div class="v blue">'+e.trades+'</div></div>'
+        +'<div class="rank-m"><div class="l">Win Rate</div><div class="v '+(e.wr>=0.5?'pos':'neg')+'">'+(e.wr*100).toFixed(0)+'%</div></div>'
+        +'<div class="rank-m"><div class="l">Ret/DD</div><div class="v gold">'+e.rdd.toFixed(2)+'</div></div>'
+      +'</div>'
+      +'</div>';
+  });
+  document.getElementById('content').innerHTML=html;
+}
+
+// ── AJUSTES ──
+function renderAjustes(){
+  var connected=!!accessToken;
+  var html='';
+
+  html+='<div class="settings-section">'
+    +'<div class="settings-title">Google Drive</div>'
+    +'<div class="settings-row">'
+      +'<div><div class="settings-lbl">Estado</div>'
+      +'<div class="settings-sub">'+(connected?'Conectado':'No conectado')+'</div></div>'
+      +'<div class="settings-val">'+(connected?'✅':'❌')+'</div>'
+    +'</div>'
+    +'<div class="settings-row">'
+      +'<div><div class="settings-lbl">Carpeta CSV</div>'
+      +'<div class="settings-sub">'+(FOLDER_NAME||'Sin configurar')+'</div></div>'
+    +'</div>'
+    +'</div>';
+
+  html+='<button class="btn-primary" onclick="connectDrive()">'+(connected?'🔄 Reconectar':'🔗 Conectar con Google Drive')+'</button>';
+
+  if(connected){
+    html+='<div class="settings-section">'
+      +'<div class="settings-title">Seleccionar carpeta</div>'
+      +'<div class="settings-row">'
+        +'<div><input id="folderInput" type="text" placeholder="Nombre de la carpeta (ej: CSV Cuentas)" '
+        +'value="'+FOLDER_NAME+'" style="background:var(--bg3);border:1px solid var(--border);'
+        +'border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;width:100%;outline:none">'
+        +'</div>'
+      +'</div>'
+      +'</div>';
+    html+='<button class="btn-secondary" onclick="saveFolder()" style="margin-bottom:8px">💾 Guardar carpeta</button>';
+  }
+
+  html+='<div class="settings-section">'
+    +'<div class="settings-title">Alertas</div>'
+    +'<div class="settings-row">'
+      +'<div><div class="settings-lbl">Días sin operar</div>'
+      +'<div class="settings-sub">Alerta si un EA lleva más de X días</div></div>'
+      +'<input type="number" id="alertDaysInput" value="'+ALERT_DAYS+'" min="1" max="90" '
+      +'style="width:60px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;'
+      +'color:var(--text);padding:5px 8px;font-size:13px;text-align:center;outline:none" '
+      +'onchange="ALERT_DAYS=parseInt(this.value);localStorage.setItem(\'tm_alert_days\',ALERT_DAYS)">'
+    +'</div>'
+    +'</div>';
+
+  if(Object.keys(accounts).length){
+    html+='<button class="btn-secondary" onclick="refreshData()">🔄 Actualizar datos</button>';
+  }
+
+  document.getElementById('content').innerHTML=html;
+}
+
+async function saveFolder(){
+  var name=document.getElementById('folderInput').value.trim();
+  if(!name){ showToast('Escribe el nombre de la carpeta'); return; }
+  showLoading('Buscando carpeta...');
+  try{
+    var url='https://www.googleapis.com/drive/v3/files?'
+      +'q='+encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='"+name+"' and trashed=false")
+      +'&fields=files(id,name)';
+    var resp=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});
+    var data=await resp.json();
+    if(!data.files||!data.files.length){
+      showToast('❌ Carpeta "'+name+'" no encontrada');
+      renderAjustes(); return;
+    }
+    FOLDER_ID=data.files[0].id;
+    FOLDER_NAME=name;
+    localStorage.setItem('tm_folder_id',FOLDER_ID);
+    localStorage.setItem('tm_folder_name',FOLDER_NAME);
+    showToast('✅ Carpeta configurada');
+    loadCSVs();
+  }catch(e){
+    showToast('❌ Error: '+e.message);
+    renderAjustes();
+  }
+}
+
+function refreshData(){
+  if(!accessToken||!FOLDER_ID){ showToast('Configura Google Drive primero'); return; }
+  loadCSVs();
+}
+
+// ── HELPERS ──
+function showLoading(msg){
+  document.getElementById('content').innerHTML=
+    '<div class="loading"><div class="spinner"></div><div class="loading-txt">'+(msg||'Cargando...')+'</div></div>';
+}
+
+function showEmpty(title,sub){
+  document.getElementById('content').innerHTML=
+    '<div class="empty"><div class="empty-icon">📂</div>'
+    +'<div class="empty-title">'+title+'</div>'
+    +'<div class="empty-sub">'+sub+'</div></div>';
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+function updateLastUpdate(){
+  document.getElementById('lastUpdate').textContent=
+    'Actualizado '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+}
+</script>
+</body>
+</html>
