@@ -148,6 +148,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -391,14 +392,25 @@ function parseCSV(txt, filename, colorIdx, modifiedTime){
     if(e.daysSince>(ALERT_DAYS||7)) alerts.push({ea:e.name,days:e.daysSince});
   });
 
+  var dayPnl = calcDayPnl(trades);
   return{
     name:accountName, filename:filename,
     color:accentColors[colorIdx%accentColors.length],
     trades:trades, eas:eas, alerts:alerts,
     net:net, maxdd:maxdd, rdd:maxdd>0?net/maxdd:0,
     wr:wr, totalTrades:trades.length, byMonth:byMonth,
-    modifiedTime:modifiedTime
+    modifiedTime:modifiedTime, dayPnl:dayPnl
   };
+}
+
+function calcDayPnl(trades){
+  var today = new Date();
+  var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  return trades.filter(function(t){
+    var d = t.close;
+    var ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    return ds === todayStr;
+  }).reduce(function(s,t){return s+t.pnl;},0);
 }
 
 function calcEA(ea){
@@ -450,23 +462,31 @@ function renderCuentas(){
   var totalAlerts=accs.reduce(function(s,a){return s+a.alerts.length;},0);
 
   var html='';
+  var totalDayPnl=accs.reduce(function(s,a){return s+a.dayPnl;},0);
+  // P&L del día - tarjeta grande
+  html+='<div style="background:var(--bg2);border:1px solid '+(totalDayPnl>=0?'rgba(63,185,80,.3)':'rgba(248,81,73,.3)')+';border-radius:16px;padding:16px;margin-bottom:12px;text-align:center">'
+    +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">P&L Total Hoy</div>'
+    +'<div style="font-size:32px;font-weight:700;font-family:var(--mono);color:'+(totalDayPnl>=0?'var(--green)':'var(--red)')+'">'+(totalDayPnl>=0?'+':'')+' $'+totalDayPnl.toFixed(2)+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})+'</div>'
+    +'</div>';
   // Summary stats
   html+='<div class="summary-stats">';
   html+=statCard('Cuentas',accs.length,'var(--accent)');
   html+=statCard('Net Total',(totalNet>=0?'+':'')+' $'+Math.round(totalNet),totalNet>=0?'var(--green)':'var(--red)');
-  html+=statCard('Alertas',totalAlerts,totalAlerts?'var(--red)':'var(--green)');
+  html+=statCard('EAs',accs.reduce(function(s,a){return s+a.eas.length;},0),'var(--purple)');
   html+='</div>';
 
   accs.forEach(function(acc){
-    var alertBadge=acc.alerts.length
-      ?'<span class="badge badge-warn">⚠️ '+acc.alerts.length+' EA'+(acc.alerts.length>1?'s':'')+'</span>'
-      :'<span class="badge badge-ok">✅ OK</span>';
-    html+='<div class="acc-card">'
+    var alertBadge='';
+    html+='<div class="acc-card" onclick="showAccountDetail(''+acc.name+'')" style="cursor:pointer">'
       +'<div class="acc-stripe" style="background:'+acc.color+'"></div>'
       +'<div class="acc-top">'
         +'<div><div class="acc-name">'+acc.name+'</div>'
         +'<div class="acc-sub">'+acc.eas.length+' EAs · '+acc.totalTrades+' trades</div></div>'
-        +alertBadge
+        +'<div style="text-align:right">'
+          +'<div style="font-size:10px;color:var(--text3)">Hoy</div>'
+          +'<div style="font-size:16px;font-weight:700;font-family:var(--mono);color:'+(acc.dayPnl>=0?'var(--green)':'var(--red)')+'">'+(acc.dayPnl>=0?'+':'')+acc.dayPnl.toFixed(0)+'</div>'
+        +'</div>'
       +'</div>'
       +'<div class="metrics-grid">'
         +metricBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
@@ -474,7 +494,6 @@ function renderCuentas(){
         +metricBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
         +metricBox('Win Rate',(acc.wr*100).toFixed(1)+'%',acc.wr>=0.5?'var(--green)':'var(--red)')
       +'</div>'
-      +(acc.alerts.length?'<div style="font-size:10px;color:var(--red);margin-top:6px">⚠️ '+acc.alerts.map(function(a){return a.ea.split(' ')[0]+' ('+a.days+'d)';}).join(' · ')+'</div>':'')
       +'</div>';
   });
   document.getElementById('content').innerHTML=html;
@@ -524,37 +543,129 @@ function renderResumen(){
   document.getElementById('content').innerHTML=html;
 }
 
-// ── RANKING ──
-function renderRanking(){
-  var accs=Object.values(accounts);
-  if(!accs.length){ showEmpty('Sin datos','Conecta Google Drive en ⚙️ Ajustes'); return; }
+// ── DETALLE CUENTA ──
+function showAccountDetail(name){
+  var acc=accounts[name];
+  if(!acc) return;
 
-  // Collect all EAs across all accounts
-  var allEAs=[];
-  accs.forEach(function(acc){
-    acc.eas.forEach(function(e){
-      allEAs.push(Object.assign({},e,{account:acc.name,accountColor:acc.color}));
-    });
-  });
-  allEAs.sort(function(a,b){return b.net-a.net;});
+  var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+    +'<button onclick="showTab('cuentas',document.querySelector('.nav-item'))" '
+    +'style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:6px 12px;font-size:12px;cursor:pointer">← Volver</button>'
+    +'<div style="width:12px;height:12px;border-radius:50%;background:'+acc.color+'"></div>'
+    +'<div style="font-size:18px;font-weight:700">'+acc.name+'</div>'
+    +'</div>';
 
-  var now=new Date();
-  var monthStart=new Date(now.getFullYear(),now.getMonth(),1);
-  var curMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  // Métricas
+  html+='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">'
+    +metricBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
+    +metricBox('P&L Hoy',(acc.dayPnl>=0?'+':'')+' $'+acc.dayPnl.toFixed(2),acc.dayPnl>=0?'var(--green)':'var(--red)')
+    +metricBox('Max DD','$'+Math.round(acc.maxdd),'var(--red)')
+    +metricBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
+    +metricBox('Win Rate',(acc.wr*100).toFixed(1)+'%',acc.wr>=0.5?'var(--green)':'var(--red)')
+    +metricBox('EAs',acc.eas.length,'var(--accent)')
+    +'</div>';
 
-  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Todas las cuentas · '+allEAs.length+' EAs</div>';
+  // Equity chart
+  html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">'
+    +'<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📈 Curva de Equity</div>'
+    +'<canvas id="eqChart" height="140"></canvas>'
+    +'</div>';
 
-  allEAs.forEach(function(e,i){
-    var r=i+1, rc=r===1?'r1':r===2?'r2':r===3?'r3':'rn';
-    var monthPnl=e.byMonth[curMonth]||0;
-    var pfs=isFinite(e.pf)&&e.pf<900?e.pf.toFixed(2):'∞';
+  // Ranking EAs de esta cuenta
+  html+='<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text)">🏆 EAs de esta cuenta</div>';
+  acc.eas.forEach(function(e,i){
+    var r=i+1,rc=r===1?'r1':r===2?'r2':r===3?'r3':'rn';
     html+='<div class="rank-card">'
       +'<div class="rank-hdr">'
         +'<div class="rank-num '+rc+'">'+r+'</div>'
         +'<div class="rank-info">'
           +'<div class="rank-name">'+e.name+'</div>'
           +'<span class="rank-sym">'+(e.symbol||'—')+'</span>'
-          +' <span style="font-size:9px;color:var(--text3)">· '+e.account+'</span>'
+        +'</div>'
+        +'<div style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+(e.net>=0?'var(--green)':'var(--red)')+'">'+(e.net>=0?'+':'')+' $'+Math.round(e.net)+'</div>'
+      +'</div>'
+      +'<div class="rank-metrics">'
+        +'<div class="rank-m"><div class="l">Trades</div><div class="v blue">'+e.trades+'</div></div>'
+        +'<div class="rank-m"><div class="l">Win Rate</div><div class="v '+(e.wr>=0.5?'pos':'neg')+'">'+(e.wr*100).toFixed(0)+'%</div></div>'
+        +'<div class="rank-m"><div class="l">Ret/DD</div><div class="v gold">'+e.rdd.toFixed(2)+'</div></div>'
+      +'</div>'
+      +'</div>';
+  });
+
+  document.getElementById('content').innerHTML=html;
+
+  // Draw equity chart
+  setTimeout(function(){
+    var ctx=document.getElementById('eqChart');
+    if(!ctx) return;
+    var sorted=[...acc.trades].sort(function(a,b){return a.close-b.close;});
+    var equity=[0];
+    sorted.forEach(function(t){equity.push(equity[equity.length-1]+t.pnl);});
+    var labels=equity.map(function(_,i){return i;});
+    if(window._eqChart) window._eqChart.destroy();
+    window._eqChart=new Chart(ctx,{
+      type:'line',
+      data:{labels:labels,datasets:[{
+        data:equity,
+        borderColor:acc.color,
+        backgroundColor:acc.color+'20',
+        borderWidth:2,pointRadius:0,fill:true,tension:0.3
+      }]},
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{display:false},
+          y:{ticks:{color:'#6e7681',callback:function(v){return'$'+Math.round(v);}},grid:{color:'rgba(48,54,61,.4)'}}
+        },
+        animation:{duration:400}
+      }
+    });
+  },100);
+}
+
+// ── RANKING ──
+var rankFilter = 'global';
+
+function renderRanking(){
+  var accs=Object.values(accounts);
+  if(!accs.length){ showEmpty('Sin datos','Conecta Google Drive en ⚙️ Ajustes'); return; }
+
+  var curMonth=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+
+  // Selector global/por cuenta
+  var html='<div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px">'
+    +'<button onclick="setRankFilter('global')" style="white-space:nowrap;padding:6px 12px;border-radius:20px;border:1px solid '+(rankFilter==='global'?'var(--accent)':'var(--border)')+';background:'+(rankFilter==='global'?'rgba(88,166,255,.15)':'var(--bg3)')+';color:'+(rankFilter==='global'?'var(--accent)':'var(--text2)')+';font-size:11px;cursor:pointer">🌐 Global</button>';
+
+  accs.forEach(function(acc){
+    html+='<button onclick="setRankFilter(''+acc.name+'')" style="white-space:nowrap;padding:6px 12px;border-radius:20px;border:1px solid '+(rankFilter===acc.name?'var(--accent)':'var(--border)')+';background:'+(rankFilter===acc.name?'rgba(88,166,255,.15)':'var(--bg3)')+';color:'+(rankFilter===acc.name?'var(--accent)':'var(--text2)')+';font-size:11px;cursor:pointer">'+acc.name+'</button>';
+  });
+  html+='</div>';
+
+  // Get EAs based on filter
+  var allEAs=[];
+  accs.forEach(function(acc){
+    if(rankFilter==='global'||rankFilter===acc.name){
+      acc.eas.forEach(function(e){
+        allEAs.push(Object.assign({},e,{account:acc.name,accountColor:acc.color}));
+      });
+    }
+  });
+  allEAs.sort(function(a,b){return b.net-a.net;});
+
+  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+allEAs.length+' EAs'+( rankFilter==='global'?' · Todas las cuentas':' · '+rankFilter)+'</div>';
+
+  allEAs.forEach(function(e,i){
+    var r=i+1, rc=r===1?'r1':r===2?'r2':r===3?'r3':'rn';
+    var monthPnl=e.byMonth[curMonth]||0;
+    html+='<div class="rank-card">'
+      +'<div class="rank-hdr">'
+        +'<div class="rank-num '+rc+'">'+r+'</div>'
+        +'<div class="rank-info">'
+          +'<div class="rank-name">'+e.name+'</div>'
+          +'<div style="display:flex;align-items:center;gap:4px;margin-top:2px">'
+            +'<span class="rank-sym">'+(e.symbol||'—')+'</span>'
+            +(rankFilter==='global'?'<span style="font-size:9px;color:var(--text3)">· '+e.account+'</span>':'')
+          +'</div>'
         +'</div>'
         +'<div style="text-align:right">'
           +'<div style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+(e.net>=0?'var(--green)':'var(--red)')+'">'+(e.net>=0?'+':'')+' $'+Math.round(e.net)+'</div>'
@@ -569,6 +680,11 @@ function renderRanking(){
       +'</div>';
   });
   document.getElementById('content').innerHTML=html;
+}
+
+function setRankFilter(filter){
+  rankFilter=filter;
+  renderRanking();
 }
 
 // ── AJUSTES ──
