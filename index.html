@@ -177,19 +177,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
   <!-- BOTTOM NAV -->
   <div class="nav">
-    <div class="nav-item active" onclick="showTab('cuentas',this)">
+    <div class="nav-item active" id="nav-cuentas" onclick="showTab('cuentas',this)">
       <div class="nav-icon">🏦</div>
       <div class="nav-label">Cuentas</div>
     </div>
-    <div class="nav-item" onclick="showTab('resumen',this)">
+    <div class="nav-item" id="nav-resumen" onclick="showTab('resumen',this)">
       <div class="nav-icon">📊</div>
       <div class="nav-label">Resumen</div>
     </div>
-    <div class="nav-item" onclick="showTab('ranking',this)">
+    <div class="nav-item" id="nav-ranking" onclick="showTab('ranking',this)">
       <div class="nav-icon">🏆</div>
       <div class="nav-label">Ranking</div>
     </div>
-    <div class="nav-item" onclick="showTab('ajustes',this)">
+    <div class="nav-item" id="nav-ajustes" onclick="showTab('ajustes',this)">
       <div class="nav-icon">⚙️</div>
       <div class="nav-label">Ajustes</div>
     </div>
@@ -870,6 +870,19 @@ function updateLastUpdate(){
   document.getElementById('lastUpdate').textContent=
     'Actualizado '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 }
+
+// ── INIT ──
+init();
+
+// Backup nav listeners
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.addEventListener('click', function(){
+      var id = el.id ? el.id.replace('nav-','') : '';
+      if(id) showTab(id, el);
+    });
+  });
+});
 </script>
 </body>
 </html>
