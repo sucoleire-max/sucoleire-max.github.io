@@ -631,8 +631,10 @@ async function loadFolderList(){
       el.innerHTML='<div style="padding:10px;color:var(--red);font-size:12px">No se encontraron carpetas</div>';
       return;
     }
-    el.innerHTML=data.files.map(function(f){
-      return'<div onclick="selectFolder(''+f.id+'',''+f.name+'')" style="padding:10px 12px;border-bottom:1px solid var(--border);'
+    // Store folders globally for selection
+    window._drFolders = data.files;
+    el.innerHTML=data.files.map(function(f,i){
+      return'<div onclick="selectFolderByIndex('+i+')" style="padding:10px 12px;border-bottom:1px solid var(--border);'
         +'cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px">'
         +'<span style="color:var(--gold)">📁</span>'
         +'<span>'+f.name+'</span>'
@@ -642,6 +644,18 @@ async function loadFolderList(){
   }catch(e){
     el.innerHTML='<div style="padding:10px;color:var(--red);font-size:12px">Error: '+e.message+'</div>';
   }
+}
+
+async function selectFolderByIndex(idx){
+  var f=window._drFolders[idx];
+  if(!f) return;
+  FOLDER_ID=f.id;
+  FOLDER_NAME=f.name;
+  localStorage.setItem('tm_folder_id',FOLDER_ID);
+  localStorage.setItem('tm_folder_name',FOLDER_NAME);
+  showToast('✅ Carpeta: '+f.name);
+  renderAjustes();
+  loadCSVs();
 }
 
 async function selectFolder(id, name){
