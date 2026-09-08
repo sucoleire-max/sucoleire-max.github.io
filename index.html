@@ -624,20 +624,31 @@ async function saveFolder(){
   if(!name){ showToast('Escribe el nombre de la carpeta'); return; }
   showLoading('Buscando carpeta...');
   try{
+    // Search all folders and match case-insensitively
     var url='https://www.googleapis.com/drive/v3/files?'
-      +'q='+encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='"+name+"' and trashed=false")
-      +'&fields=files(id,name)';
+      +'q='+encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false")
+      +'&fields=files(id,name)&pageSize=100';
     var resp=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});
     var data=await resp.json();
     if(!data.files||!data.files.length){
-      showToast('❌ Carpeta "'+name+'" no encontrada');
+      showToast('❌ No se encontraron carpetas en Drive');
       renderAjustes(); return;
     }
-    FOLDER_ID=data.files[0].id;
-    FOLDER_NAME=name;
+    // Find folder case-insensitively
+    var found=data.files.find(function(f){
+      return f.name.toLowerCase()===name.toLowerCase();
+    });
+    if(!found){
+      // Show available folders
+      var names=data.files.map(function(f){return f.name;}).join(', ');
+      showToast('❌ No encontrada. Carpetas disponibles: '+names);
+      renderAjustes(); return;
+    }
+    FOLDER_ID=found.id;
+    FOLDER_NAME=found.name;
     localStorage.setItem('tm_folder_id',FOLDER_ID);
     localStorage.setItem('tm_folder_name',FOLDER_NAME);
-    showToast('✅ Carpeta configurada');
+    showToast('✅ Carpeta configurada: '+found.name);
     loadCSVs();
   }catch(e){
     showToast('❌ Error: '+e.message);
