@@ -269,8 +269,8 @@ async function loadCSVs(){
   try {
     // List CSV files in folder
     var url = 'https://www.googleapis.com/drive/v3/files?'
-      + 'q='+encodeURIComponent("'"+FOLDER_ID+"' in parents and name contains 'EA_Trades_' and mimeType='text/plain'")
-      + '&fields=files(id,name,modifiedTime)&pageSize=50';
+      + 'q='+encodeURIComponent("'"+FOLDER_ID+"' in parents and name contains 'EA_Trades_' and trashed=false")
+      + '&fields=files(id,name,modifiedTime,mimeType)&pageSize=50';
 
     var resp = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
     if(resp.status === 401){
@@ -282,15 +282,16 @@ async function loadCSVs(){
     var data = await resp.json();
     var files = data.files || [];
 
+    console.log('Files found:', files.length, files.map(function(f){return f.name+' ('+f.mimeType+')'}));
     if(!files.length){
-      showEmpty('Sin archivos CSV','Asegúrate de que los EA Exporters están activos y la carpeta es correcta');
+      showEmpty('Sin archivos CSV','Asegúrate de que los EA Exporters están activos y la carpeta es correcta. Carpeta ID: '+FOLDER_ID);
       return;
     }
 
     accounts = {};
     var idx = 0;
     for(var f of files){
-      var content = await fetchFileContent(f.id);
+      var content = await fetchFileContent(f.id, f.mimeType);
       var acc = parseCSV(content, f.name, idx, f.modifiedTime);
       if(acc) { accounts[acc.name] = acc; idx++; }
     }
@@ -305,11 +306,14 @@ async function loadCSVs(){
   }
 }
 
-async function fetchFileContent(fileId){
-  var resp = await fetch(
-    'https://www.googleapis.com/drive/v3/files/'+fileId+'?alt=media',
-    {headers:{Authorization:'Bearer '+accessToken}}
-  );
+async function fetchFileContent(fileId, mimeType){
+  var url = 'https://www.googleapis.com/drive/v3/files/'+fileId+'?alt=media';
+  // If it's a Google Sheet, export as CSV
+  if(mimeType && mimeType.includes('spreadsheet')){
+    url = 'https://www.googleapis.com/drive/v3/files/'+fileId+'/export?mimeType=text/csv';
+  }
+  var resp = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+  if(!resp.ok) throw new Error('Error descargando archivo: '+resp.status);
   return resp.text();
 }
 
