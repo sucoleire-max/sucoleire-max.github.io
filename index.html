@@ -589,15 +589,14 @@ function renderAjustes(){
 
   if(connected){
     html+='<div class="settings-section">'
-      +'<div class="settings-title">Seleccionar carpeta</div>'
-      +'<div class="settings-row">'
-        +'<div><input id="folderInput" type="text" placeholder="Nombre de la carpeta (ej: CSV Cuentas)" '
-        +'value="'+FOLDER_NAME+'" style="background:var(--bg3);border:1px solid var(--border);'
-        +'border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;width:100%;outline:none">'
-        +'</div>'
+      +'<div class="settings-title">Seleccionar carpeta CSV</div>'
+      +'<div class="settings-row" id="folderPickerRow">'
+        +'<button onclick="loadFolderList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);'
+        +'border-radius:8px;color:var(--accent);padding:10px;font-size:13px;cursor:pointer;font-family:var(--font)">'
+        +'📂 Seleccionar carpeta de Drive</button>'
       +'</div>'
+      +'<div id="folderList" style="padding:0 8px 8px"></div>'
       +'</div>';
-    html+='<button class="btn-secondary" onclick="saveFolder()" style="margin-bottom:8px">💾 Guardar carpeta</button>';
   }
 
   html+='<div class="settings-section">'
@@ -617,6 +616,42 @@ function renderAjustes(){
   }
 
   document.getElementById('content').innerHTML=html;
+}
+
+async function loadFolderList(){
+  var el=document.getElementById('folderList');
+  el.innerHTML='<div style="padding:10px;text-align:center;color:var(--text3);font-size:12px">Cargando carpetas...</div>';
+  try{
+    var url='https://www.googleapis.com/drive/v3/files?'
+      +'q='+encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false")
+      +'&fields=files(id,name)&pageSize=100&orderBy=name';
+    var resp=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});
+    var data=await resp.json();
+    if(!data.files||!data.files.length){
+      el.innerHTML='<div style="padding:10px;color:var(--red);font-size:12px">No se encontraron carpetas</div>';
+      return;
+    }
+    el.innerHTML=data.files.map(function(f){
+      return'<div onclick="selectFolder(''+f.id+'',''+f.name+'')" style="padding:10px 12px;border-bottom:1px solid var(--border);'
+        +'cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px">'
+        +'<span style="color:var(--gold)">📁</span>'
+        +'<span>'+f.name+'</span>'
+        +(FOLDER_ID===f.id?'<span style="margin-left:auto;color:var(--green)">✅</span>':'')
+        +'</div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="padding:10px;color:var(--red);font-size:12px">Error: '+e.message+'</div>';
+  }
+}
+
+async function selectFolder(id, name){
+  FOLDER_ID=id;
+  FOLDER_NAME=name;
+  localStorage.setItem('tm_folder_id',FOLDER_ID);
+  localStorage.setItem('tm_folder_name',FOLDER_NAME);
+  showToast('✅ Carpeta seleccionada: '+name);
+  renderAjustes();
+  loadCSVs();
 }
 
 async function saveFolder(){
