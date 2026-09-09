@@ -216,8 +216,13 @@ function parseCSV(txt, filename, idx, modTime){
   if(!lines.length) return null;
   var sep = lines[0].indexOf(';')>-1?';':',';
   var name = filename.replace(/^EA_Trades_/i,'').replace(/\.csv$/i,'').replace(/_/g,' ').trim();
+  var balance=0, equity=0;
   if(lines[0].startsWith('#ACCOUNT')){
-    var p=lines[0].split(sep); if(p[1]) name=p[1].trim(); lines=lines.slice(1);
+    var p=lines[0].split(sep);
+    if(p[1]) name=p[1].trim();
+    if(p[6]) balance=parseFloat(p[6])||0;
+    if(p[7]) equity=parseFloat(p[7])||0;
+    lines=lines.slice(1);
   }
   var iEA=1,iMagic=2,iSymbol=3,iType=4,iOpenT=5,iCloseT=6,iPnl=10,iComm=11,iSwap=12;
   var trades=[];
@@ -254,7 +259,7 @@ function parseCSV(txt, filename, idx, modTime){
     var ds=t.close.getFullYear()+'-'+String(t.close.getMonth()+1).padStart(2,'0')+'-'+String(t.close.getDate()).padStart(2,'0');
     return ds===todayStr;
   }).reduce(function(s,t){return s+t.pnl;},0);
-  return{name:name,filename:filename,color:accentColors[idx%accentColors.length],trades:trades,eas:eas,net:net,maxdd:maxdd,rdd:maxdd>0?net/maxdd:0,wr:wr,totalTrades:trades.length,byMonth:byMonth,dayPnl:dayPnl,modifiedTime:modTime};
+  return{name:name,filename:filename,color:accentColors[idx%accentColors.length],trades:trades,eas:eas,net:net,maxdd:maxdd,rdd:maxdd>0?net/maxdd:0,wr:wr,totalTrades:trades.length,byMonth:byMonth,dayPnl:dayPnl,modifiedTime:modTime,balance:balance,equity:equity};
 }
 
 function parseDate(s){
@@ -304,7 +309,7 @@ function renderCuentas(){
   html+='<div class="summary-stats">';
   html+=sCard('Cuentas',accs.length,'var(--accent)');
   html+=sCard('Net Total',(totalNet>=0?'+':'')+' $'+Math.round(totalNet),totalNet>=0?'var(--green)':'var(--red)');
-  html+=sCard('EAs',accs.reduce(function(s,a){return s+a.eas.length;},0),'var(--purple)');
+  html+=sCard('P&L Hoy',(totalDay>=0?'+':'')+' $'+totalDay.toFixed(0),totalDay>=0?'var(--green)':'var(--red)');
   html+='</div>';
   // Account cards
   accs.forEach(function(acc,i){
@@ -312,17 +317,17 @@ function renderCuentas(){
       +'<div class="acc-stripe" style="background:'+acc.color+'"></div>'
       +'<div class="acc-top">'
         +'<div><div class="acc-name">'+acc.name+'</div>'
-        +'<div class="acc-sub">'+acc.eas.length+' EAs · '+acc.totalTrades+' trades</div></div>'
+        +'<div class="acc-sub">'+acc.totalTrades+' trades</div></div>'
         +'<div style="text-align:right">'
           +'<div style="font-size:10px;color:var(--text3)">Hoy</div>'
           +'<div style="font-size:16px;font-weight:700;font-family:var(--mono);color:'+(acc.dayPnl>=0?'var(--green)':'var(--red)')+'">'+(acc.dayPnl>=0?'+':'')+acc.dayPnl.toFixed(0)+'</div>'
         +'</div>'
       +'</div>'
       +'<div class="metrics-grid">'
+        +(acc.balance>0?mBox('Balance','$'+Math.round(acc.balance),'var(--accent)'):'')
         +mBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
         +mBox('Max DD','$'+Math.round(acc.maxdd),'var(--red)')
         +mBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
-        +mBox('Win Rate',(acc.wr*100).toFixed(1)+'%',acc.wr>=0.5?'var(--green)':'var(--red)')
       +'</div>'
       +'</div>';
   });
@@ -345,12 +350,12 @@ function showAccDetail(acc){
     +'<div style="font-size:18px;font-weight:700">'+acc.name+'</div>'
     +'</div>';
   html+='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">'
+    +(acc.balance>0?mBox('Balance','$'+Math.round(acc.balance),'var(--accent)'):'')
     +mBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
     +mBox('P&L Hoy',(acc.dayPnl>=0?'+':'')+' $'+acc.dayPnl.toFixed(2),acc.dayPnl>=0?'var(--green)':'var(--red)')
     +mBox('Max DD','$'+Math.round(acc.maxdd),'var(--red)')
     +mBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
     +mBox('Win Rate',(acc.wr*100).toFixed(1)+'%',acc.wr>=0.5?'var(--green)':'var(--red)')
-    +mBox('EAs',acc.eas.length,'var(--accent)')
     +'</div>';
   html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">'
     +'<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📈 Equity</div>'
