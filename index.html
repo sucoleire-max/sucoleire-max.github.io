@@ -91,6 +91,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px}
 .empty-sub{font-size:12px;line-height:1.5}
+.int-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+.int-tab{flex:1;padding:10px;text-align:center;font-size:11px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.int-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.ea-monthly-row{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.ea-monthly-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg3)}
+.ea-monthly-name{font-size:11px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.year-divider{background:rgba(88,166,255,.08);border-top:1px solid rgba(88,166,255,.2);padding:5px 10px;font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between}
+.month-cells{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)}
+.month-cell{background:var(--bg2);padding:6px 4px;text-align:center}
+.month-cell .ml{font-size:8px;color:var(--text3);margin-bottom:2px}
+.month-cell .mv{font-size:10px;font-weight:700;font-family:var(--mono)}
 .toast{position:fixed;bottom:calc(var(--nav-h) + 10px);left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12px;color:var(--text);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -343,13 +354,50 @@ function renderCuentas(){
 }
 
 // ── ACCOUNT DETAIL ──
-function showAccDetail(acc){
-  var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+function showAccDetail(acc, tab){
+  tab = tab || 'rendimiento';
+  var header = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:0;padding:12px 16px 0;background:var(--bg)">'
     +'<button class="btn-back" id="backBtn">← Volver</button>'
     +'<div style="width:12px;height:12px;border-radius:50%;background:'+acc.color+'"></div>'
-    +'<div style="font-size:18px;font-weight:700">'+acc.name+'</div>'
+    +'<div style="font-size:16px;font-weight:700">'+acc.name+'</div>'
+    +'</div>'
+    +'<div class="int-tabs">'
+      +'<div class="int-tab'+(tab==='rendimiento'?' active':'')+'" id="tab-rend">📈 Rendimiento</div>'
+      +'<div class="int-tab'+(tab==='mensual'?' active':'')+'" id="tab-mens">📅 Mensual EAs</div>'
     +'</div>';
-  html+='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">'
+
+  // Inject header before content
+  document.querySelector('.header').style.display='none';
+  document.getElementById('content').innerHTML='';
+
+  // Create wrapper
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText='display:flex;flex-direction:column;height:100%';
+  wrapper.innerHTML=header+'<div id="accTabContent" style="flex:1;overflow-y:auto;padding:12px"></div>';
+  document.getElementById('content').parentNode.insertBefore(wrapper, document.getElementById('content'));
+  document.getElementById('content').style.display='none';
+
+  function renderTab(t){
+    var el=document.getElementById('accTabContent');
+    document.querySelectorAll('.int-tab').forEach(function(x){x.classList.remove('active');});
+    document.getElementById(t==='rendimiento'?'tab-rend':'tab-mens').classList.add('active');
+    if(t==='rendimiento') renderRendimiento(el, acc);
+    else renderMensualEAs(el, acc);
+  }
+
+  document.getElementById('backBtn').addEventListener('click', function(){
+    wrapper.remove();
+    document.querySelector('.header').style.display='';
+    document.getElementById('content').style.display='';
+    renderCuentas();
+  });
+  document.getElementById('tab-rend').addEventListener('click', function(){ renderTab('rendimiento'); });
+  document.getElementById('tab-mens').addEventListener('click', function(){ renderTab('mensual'); });
+  renderTab(tab);
+}
+
+function renderRendimiento(el, acc){
+  var html='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">'
     +(acc.balance>0?mBox('Balance','$'+Math.round(acc.balance),'var(--accent)'):'')
     +mBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
     +mBox('P&L Hoy',(acc.dayPnl>=0?'+':'')+' $'+acc.dayPnl.toFixed(2),acc.dayPnl>=0?'var(--green)':'var(--red)')
@@ -357,29 +405,26 @@ function showAccDetail(acc){
     +mBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
     +mBox('Win Rate',(acc.wr*100).toFixed(1)+'%',acc.wr>=0.5?'var(--green)':'var(--red)')
     +'</div>';
-  html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">'
-    +'<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📈 Equity</div>'
-    +'<canvas id="eqChart" height="130"></canvas>'
+  html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">'
+    +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📈 Equity</div>'
+    +'<canvas id="eqChart" height="120"></canvas>'
     +'</div>';
-  html+='<div style="font-size:12px;font-weight:700;margin-bottom:8px">🏆 EAs</div>';
+  html+='<div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--text)">🏆 Ranking EAs</div>';
   acc.eas.forEach(function(e,i){
     var rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
     html+='<div class="rank-card">'
       +'<div class="rank-hdr">'
         +'<div class="rank-num '+rc+'">'+(i+1)+'</div>'
         +'<div class="rank-info"><div class="rank-name">'+e.name+'</div><span class="rank-sym">'+(e.symbol||'—')+'</span></div>'
-        +'<div class="'+(e.net>=0?'pos':'neg')+'" style="font-size:14px;font-weight:700;font-family:var(--mono)">'+(e.net>=0?'+':'')+' $'+Math.round(e.net)+'</div>'
+        +'<div class="'+(e.net>=0?'pos':'neg')+'" style="font-size:13px;font-weight:700;font-family:var(--mono)">'+(e.net>=0?'+':'')+' $'+Math.round(e.net)+'</div>'
       +'</div>'
       +'<div class="rank-metrics">'
         +'<div class="rank-m"><div class="l">Trades</div><div class="v blue">'+e.trades+'</div></div>'
         +'<div class="rank-m"><div class="l">Win Rate</div><div class="v '+(e.wr>=0.5?'pos':'neg')+'">'+(e.wr*100).toFixed(0)+'%</div></div>'
         +'<div class="rank-m"><div class="l">Ret/DD</div><div class="v gold">'+e.rdd.toFixed(2)+'</div></div>'
-      +'</div>'
-      +'</div>';
+      +'</div></div>';
   });
-  document.getElementById('content').innerHTML=html;
-  document.getElementById('backBtn').addEventListener('click', function(){ renderCuentas(); });
-  // Draw chart
+  el.innerHTML=html;
   setTimeout(function(){
     var ctx=document.getElementById('eqChart'); if(!ctx) return;
     var sorted=[...acc.trades].sort(function(a,b){return a.close-b.close;});
@@ -391,6 +436,51 @@ function showAccDetail(acc){
       options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{ticks:{color:'#6e7681',callback:function(v){return'$'+Math.round(v);}},grid:{color:'rgba(48,54,61,.4)'}}},animation:{duration:300}}
     });
   },50);
+}
+
+function renderMensualEAs(el, acc){
+  var mNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  
+  // Collect all months grouped by year
+  var allMonths=[];
+  acc.eas.forEach(function(e){ Object.keys(e.byMonth).forEach(function(m){ if(!allMonths.includes(m)) allMonths.push(m); }); });
+  allMonths.sort();
+  
+  // Group by year
+  var years={};
+  allMonths.forEach(function(m){ var y=m.split('-')[0]; if(!years[y]) years[y]=[]; years[y].push(m); });
+  var yearKeys=Object.keys(years).sort();
+
+  var html='';
+  acc.eas.forEach(function(e){
+    var grandTotal=Object.values(e.byMonth).reduce(function(s,v){return s+v;},0);
+    html+='<div class="ea-monthly-row">'
+      +'<div class="ea-monthly-hdr">'
+        +'<span class="ea-monthly-name">'+e.name+'</span>'
+        +'<span style="font-size:11px;font-weight:700;font-family:var(--mono);color:'+(grandTotal>=0?'var(--green)':'var(--red)')+'">'+(grandTotal>=0?'+':'')+' $'+Math.round(grandTotal)+'</span>'
+      +'</div>';
+    
+    yearKeys.forEach(function(yr){
+      var yearTotal=years[yr].reduce(function(s,m){return s+(e.byMonth[m]||0);},0);
+      // Year divider
+      html+='<div class="year-divider"><span>'+yr+'</span><span style="color:'+(yearTotal>=0?'var(--green)':'var(--red)')+'">'+(yearTotal>=0?'+':'')+' $'+Math.round(yearTotal)+'</span></div>';
+      // Month cells
+      html+='<div class="month-cells">';
+      years[yr].forEach(function(m){
+        var v=e.byMonth[m]||null;
+        var parts=m.split('-');
+        var lbl=mNames[parseInt(parts[1])-1]+' '+parts[0].slice(2);
+        if(v===null){
+          html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv" style="color:var(--text3)">—</div></div>';
+        } else {
+          html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv '+(v>=0?'pos':'neg')+'">'+(v>=0?'+':'')+Math.round(v)+'</div></div>';
+        }
+      });
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html || '<div style="text-align:center;padding:40px;color:var(--text3)">Sin datos mensuales</div>';
 }
 
 // ── RESUMEN ──
