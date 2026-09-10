@@ -473,7 +473,8 @@ function renderMensualEAs(el, acc){
         if(v===null){
           html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv" style="color:var(--text3)">—</div></div>';
         } else {
-          html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv '+(v>=0?'pos':'neg')+'">'+(v>=0?'+':'')+Math.round(v)+'</div></div>';
+          var clr=v>=0?'#3fb950':'#f85149';
+          html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv" style="color:'+clr+'">'+(v>=0?'+':'')+Math.round(v)+'</div></div>';
         }
       });
       html+='</div>';
