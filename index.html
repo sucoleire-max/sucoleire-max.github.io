@@ -237,9 +237,12 @@ async function loadSQXFolder(folderId){
     var result = {};
     for(var i=0;i<files.length;i++){
       // Extract strategy ID from filename: 1790003154806_3_6_503.csv → 3_6_503
-      var m = files[i].name.match(/(\d+[_]\d+[_]\d+)\.csv$/i)
+      // Accept both 1_34_495.csv and 1.34.495.csv formats
+      var fname = files[i].name;
+      var m = fname.match(/(\d+[\._]\d+[\._]\d+)\.csv$/i);
       if(!m) continue;
-      var stratId = m[1];
+      // Normalize to underscores
+      var stratId = m[1].replace(/\./g, '_');
       var txt = await fetchFile(files[i].id);
       var sqx = parseSQX(txt, stratId);
       if(sqx) result[stratId] = sqx;
@@ -981,4 +984,3 @@ function showToast(msg){ var t=document.getElementById('toast'); t.textContent=m
 </script>
 </body>
 </html>
-
