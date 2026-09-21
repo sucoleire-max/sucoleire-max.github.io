@@ -145,6 +145,7 @@ var accounts   = {};
 var accounts2  = {};
 var sqxData    = {};
 var currentTab = 'cuentas';
+var rachaView  = 'cuentas';
 var rankFilter = 'global';
 var tokenClient = null;
 var accentColors = ['#3fb950','#58a6ff','#e3b341','#bc8cff','#f85149','#48cae4','#d29922','#ff8c42','#00f5c4','#f72585'];
@@ -756,6 +757,12 @@ function renderRachas(){
   _rachaAccs = [];
   var totalEAs=0, totalHot=0, totalWarn=0;
 
+  // Toggle buttons
+  var toggleHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
+    +'<button onclick="rachaView='cuentas';renderRachas()" style="flex:1;padding:8px;border-radius:10px;border:1px solid '+(rachaView==='cuentas'?'var(--accent)':'var(--border)')+';background:'+(rachaView==='cuentas'?'rgba(88,166,255,.15)':'var(--bg3)')+';color:'+(rachaView==='cuentas'?'var(--accent)':'var(--text2)')+';font-size:12px;cursor:pointer;font-family:var(--font)">🏦 Por cuentas</button>'
+    +'<button onclick="rachaView='ranking';renderRachas()" style="flex:1;padding:8px;border-radius:10px;border:1px solid '+(rachaView==='ranking'?'var(--accent)':'var(--border)')+';background:'+(rachaView==='ranking'?'rgba(88,166,255,.15)':'var(--bg3)')+';color:'+(rachaView==='ranking'?'var(--accent)':'var(--text2)')+';font-size:12px;cursor:pointer;font-family:var(--font)">🎯 Ranking prob.</button>'
+    +'</div>';
+
   accs.forEach(function(acc){
     var normal=0,warn=0,hot=0,nodata=0;
     acc.eas.forEach(function(ea){
@@ -772,11 +779,88 @@ function renderRachas(){
     _rachaAccs.push({acc:acc,normal:normal,warn:warn,hot:hot,nodata:nodata});
   });
 
-  var html='<div class="summary-stats">';
+  var html=toggleHtml;
+  html+='<div class="summary-stats">';
   html+=sCard('Con datos',totalEAs,'var(--accent)');
   html+=sCard('🔥 Cerca',totalHot,'var(--purple)');
   html+=sCard('⚠️ Racha',totalWarn,'var(--red)');
   html+='</div>';
+
+  // RANKING VIEW
+  if(rachaView==='ranking'){
+    // Collect all EAs with SQX data across all accounts
+    var allEAsRanked=[];
+    accs.forEach(function(acc){
+      acc.eas.forEach(function(ea){
+        var sid=extractSID(ea.name);
+        var sqx=sid?sqxData[sid]:null;
+        if(!sqx) return;
+        var pct=sqx.maxStreak>0?sqx.curStreak/sqx.maxStreak*100:0;
+        var pctM=sqx.maxMonthStreak>0?sqx.curMonthStreak/sqx.maxMonthStreak*100:0;
+        var avgPct=(pct+pctM)/2;
+        allEAsRanked.push({ea:ea,sqx:sqx,pct:pct,pctM:pctM,avgPct:avgPct,acc:acc});
+      });
+    });
+    // Sort by avgPct descending
+    allEAsRanked.sort(function(a,b){return b.avgPct-a.avgPct;});
+
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+allEAsRanked.length+' EAs ordenados por probabilidad</div>';
+
+    allEAsRanked.forEach(function(item,i){
+      var ea=item.ea, sqx=item.sqx, pct=item.pct, pctM=item.pctM;
+      var dir=getDir(ea);
+      var dirClr=dir==='LARGO'?'#3fb950':dir==='CORTO'?'#f85149':'#e3b341';
+      var sid=extractSID(ea.name);
+      var barClr=pct>=85?'linear-gradient(90deg,#e3b341,#f85149)':pct>=50?'#e3b341':'#3fb950';
+      var valClr=pct>=85?'var(--purple)':pct>=50?'var(--gold)':'var(--green)';
+      var badge=pct>=85?'🔥 ¡Toca!':pct>=50?'⚠️ '+Math.round(pct)+'%':'✅ '+Math.round(pct)+'%';
+      var badgeClr=pct>=85?'#bc8cff':pct>=50?'#e3b341':'#3fb950';
+      var rankNum=i+1;
+      var rankClr=rankNum===1?'#f0c000':rankNum===2?'#9ba3a6':rankNum===3?'#cd7f32':'var(--text3)';
+
+      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+          +'<div style="width:24px;height:24px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:'+rankClr+';flex-shrink:0">'+rankNum+'</div>'
+          +'<div style="min-width:0;flex:1">'
+            +'<div style="font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ea.name+'</div>'
+            +'<div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">'
+              +(sid?'<span style="font-size:8px;color:#6e7681;background:#21262d;padding:1px 4px;border-radius:3px;font-family:monospace">'+sid+'</span>':'')
+              +'<span style="font-size:8px;color:#58a6ff;background:rgba(88,166,255,.1);padding:1px 4px;border-radius:3px;font-family:monospace">'+(ea.symbol||'—')+'</span>'
+              +'<span style="font-size:8px;color:'+dirClr+';background:rgba(0,0,0,.2);padding:1px 4px;border-radius:3px;font-family:monospace">'+dir+'</span>'
+              +'<span style="font-size:8px;color:var(--text3);background:var(--bg3);padding:1px 4px;border-radius:3px">'+item.acc.name+'</span>'
+            +'</div>'
+          +'</div>'
+          +'<div style="text-align:right;flex-shrink:0">'
+            +'<div style="font-size:13px;font-weight:700;color:'+badgeClr+'">'+badge+'</div>'
+            +'<div style="font-size:9px;color:var(--text3)">'+Math.round(item.avgPct)+'% media</div>'
+          +'</div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+          +'<div>'
+            +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+              +'<span style="font-size:8px;color:var(--text3)">Trades</span>'
+              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+sqx.curStreak+'/'+sqx.maxStreak+'</span>'
+            +'</div>'
+            +'<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
+              +'<div style="height:5px;border-radius:3px;width:'+Math.min(pct,100)+'%;background:'+barClr+'"></div>'
+            +'</div>'
+          +'</div>'
+          +'<div>'
+            +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+              +'<span style="font-size:8px;color:var(--text3)">Meses</span>'
+              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+sqx.curMonthStreak+'/'+sqx.maxMonthStreak+'</span>'
+            +'</div>'
+            +'<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
+              +'<div style="height:5px;border-radius:3px;width:'+Math.min(pctM,100)+'%;background:'+(pctM>=85?'linear-gradient(90deg,#e3b341,#f85149)':pctM>=50?'#e3b341':'#3fb950')+'"></div>'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+        +'</div>';
+    });
+
+    document.getElementById('content').innerHTML=html;
+    return;
+  }
 
   _rachaAccs.forEach(function(s,i){
     var acc=s.acc;
