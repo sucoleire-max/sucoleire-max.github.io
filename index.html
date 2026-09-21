@@ -694,7 +694,8 @@ function renderRachas(){
 
   var totalEAs=0, totalHot=0, totalWarn=0;
   var html='';
-  var accSummaries=[];
+  window._rachaAccSummaries=[];
+  var accSummaries=window._rachaAccSummaries;
 
   accs.forEach(function(acc){
     var normal=0, warn=0, hot=0, nodata=0;
@@ -742,9 +743,9 @@ function renderRachas(){
 
   document.querySelectorAll('.acc-card[data-racha-acc]').forEach(function(el){
     el.addEventListener('click', function(){
-      var idx=parseInt(el.dataset.rachaAcc);
-      var acc=accSummaries[idx].acc;
-      showRachasDetail(acc);
+      var idx=parseInt(el.getAttribute('data-racha-acc'));
+      var s=window._rachaAccSummaries[idx];
+      if(s) showRachasDetail(s.acc);
     });
   });
 }
