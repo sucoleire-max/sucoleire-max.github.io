@@ -197,14 +197,27 @@ async function loadCSVs(){
   if(!accessToken){ showToast('Conecta Google Drive primero'); return; }
   showLoading('Cargando cuentas...');
   try{
+    console.log('Loading VPS accounts from folder:', FOLDER_ID);
     accounts  = await loadFolder(FOLDER_ID);
+    console.log('VPS accounts loaded:', Object.keys(accounts).length);
+    
+    console.log('Loading Demo PC accounts from folder:', FOLDER2_ID);
     accounts2 = await loadFolder(FOLDER2_ID);
+    console.log('Demo accounts loaded:', Object.keys(accounts2).length);
+    
+    console.log('Loading SQX data from folder:', FOLDER_SQX_ID);
     sqxData   = await loadSQXFolder(FOLDER_SQX_ID);
+    console.log('SQX data loaded:', Object.keys(sqxData).length, 'strategies:', Object.keys(sqxData));
+    
     document.getElementById('lastUpdate').textContent='Actualizado '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
     renderTab(currentTab);
     var total = Object.keys(accounts).length + Object.keys(accounts2).length;
     showToast('✅ '+total+' cuentas · '+Object.keys(sqxData).length+' SQX');
-  }catch(e){ showToast('❌ '+e.message); showEmpty('Error',''+e.message); }
+  }catch(e){ 
+    console.error('loadCSVs error:', e);
+    showToast('❌ '+e.message); 
+    showEmpty('Error',''+e.message); 
+  }
 }
 
 async function loadSQXFolder(folderId){
