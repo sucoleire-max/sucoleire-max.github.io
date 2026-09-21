@@ -137,7 +137,7 @@ var FOLDER_NAME = localStorage.getItem('tm_folder_name') || 'Csv sistemas app mo
 var FOLDER2_ID   = localStorage.getItem('tm_folder2_id')   || '1SWfvkkglqVgVSMoNzCIrnAgUbPkD0DlG';
 var FOLDER2_NAME = localStorage.getItem('tm_folder2_name') || 'Csv demo pc';
 var FOLDER_SQX_ID   = localStorage.getItem('tm_folder_sqx_id')   || '1rt6pDQqsMpTiCUzrmyYfv2CMKPKq9h2r';
-var FOLDER_SQX_NAME = localStorage.getItem('tm_folder_sqx_name') || 'CSV SQX Historicos';
+var FOLDER_SQX_NAME = localStorage.getItem('tm_folder_sqx_name') || 'CSV SQX HISTORICOS';
 var ALERT_DAYS  = parseInt(localStorage.getItem('tm_alert_days')) || 7;
 var accessToken = localStorage.getItem('tm_token') || null;
 
@@ -689,15 +689,11 @@ function renderDemo(){
 var _rachaAccs = [];
 
 function extractSID(name){
-  // Extract strategy ID: digits_digits_digits before [ or end
+  // Extract strategy ID: find pattern digits_digits_digits in name
   var clean = name.replace(/\[.*$/, '').trim();
-  var parts = clean.split(/[\s_]+/);
-  // Find last group matching N_N_N or N_N_NN etc
-  for(var i=parts.length-1;i>=0;i--){
-    if(/^\d+$/.test(parts[i]) && i>=2 && /^\d+$/.test(parts[i-1]) && /^\d+$/.test(parts[i-2])){
-      return parts[i-2]+'_'+parts[i-1]+'_'+parts[i];
-    }
-  }
+  // Match last occurrence of N_N_N pattern
+  var matches = clean.match(/\d+_\d+_\d+/g);
+  if(matches && matches.length > 0) return matches[matches.length-1];
   return null;
 }
 
