@@ -689,11 +689,18 @@ function renderDemo(){
 var _rachaAccs = [];
 
 function extractSID(name){
-  // Extract strategy ID: find pattern digits_digits_digits in name
+  // Remove [sl],[tp] etc
   var clean = name.replace(/\[.*$/, '').trim();
-  // Match last occurrence of N_N_N pattern
-  var matches = clean.match(/\d+_\d+_\d+/g);
-  if(matches && matches.length > 0) return matches[matches.length-1];
+  // Find WF position
+  var idx = clean.toUpperCase().indexOf('WF');
+  if(idx < 0) return null;
+  var afterWF = clean.slice(idx+2).replace(/^[_ ]+/, '');
+  // Match N_N_N at end (1-3 digits each)
+  var m = afterWF.match(/(\d{1,3})_(\d{1,3})_(\d{1,3})$/);
+  if(m) return m[1]+'_'+m[2]+'_'+m[3];
+  // Match anywhere in afterWF
+  var all = afterWF.match(/\d{1,3}_\d{1,3}_\d{1,3}/g);
+  if(all && all.length > 0) return all[all.length-1];
   return null;
 }
 
