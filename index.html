@@ -214,6 +214,11 @@ async function loadSQXFolder(folderId){
       + 'q=' + encodeURIComponent("'"+folderId+"' in parents and trashed=false")
       + '&fields=files(id,name)&pageSize=500';
     var resp = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+    if(resp.status===401){
+      accessToken=null; localStorage.removeItem('tm_token');
+      showEmpty('Sesión expirada','Ve a ⚙️ Ajustes → Reconectar');
+      return {};
+    }
     var data = await resp.json();
     var files = data.files||[];
     var result = {};
@@ -337,6 +342,10 @@ async function loadFolder(folderId){
 
 async function fetchFile(id){
   var r = await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+accessToken}});
+  if(r.status===401){
+    accessToken=null; localStorage.removeItem('tm_token');
+    throw new Error('Sesión expirada — reconecta en Ajustes');
+  }
   return r.text();
 }
 
