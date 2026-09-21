@@ -393,10 +393,19 @@ function parseCSV(txt, filename, idx, modTime){
     }catch(e){}
   }
   if(!trades.length) return null;
+  // Group by strategy ID (N_N_N pattern) to merge [sl],[tp] variants
   var byEA={};
   trades.forEach(function(t){
-    if(!byEA[t.ea]) byEA[t.ea]={name:t.ea,symbol:t.symbol,trades:[]};
-    byEA[t.ea].trades.push(t);
+    var sid = extractSID(t.ea);
+    var key = sid || t.ea; // fallback to full name if no ID found
+    if(!byEA[key]){
+      // Use cleanest name: prefer the one without [sl]/[tp]
+      var cleanName = t.ea.replace(/\[.*$/, '').trim();
+      // Remove leading underscores, dots or single letters
+      cleanName = cleanName.replace(/^[^a-zA-Z0-9]*/, '').trim();
+      byEA[key]={name:cleanName, symbol:t.symbol, trades:[]};
+    }
+    byEA[key].trades.push(t);
   });
   var eas=Object.values(byEA).map(calcEA).sort(function(a,b){return b.net-a.net;});
   var profits=trades.map(function(t){return t.pnl;});
