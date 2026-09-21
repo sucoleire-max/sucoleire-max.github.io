@@ -728,7 +728,22 @@ function renderRachas(){
   var allAccs = Object.assign({}, accounts, accounts2);
   var accs = Object.values(allAccs);
   if(!accs.length){ showEmpty('Sin cuentas','Conecta Google Drive en ⚙️ Ajustes'); return; }
-  if(!Object.keys(sqxData).length){ showEmpty('Sin datos SQX','Sube los CSV de SQX a la carpeta CSV SQX Historicos en Drive'); return; }
+  if(!Object.keys(sqxData).length){
+    // Try to reload SQX data
+    document.getElementById('content').innerHTML='<div class="loading"><div class="spinner"></div><div class="loading-txt">Cargando datos SQX...</div></div>';
+    loadSQXFolder(FOLDER_SQX_ID).then(function(data){
+      var keys = Object.keys(data);
+      if(keys.length>0){
+        sqxData = data;
+        renderRachas();
+      } else {
+        showEmpty('Sin datos SQX','Carpeta ID: '+FOLDER_SQX_ID+' — '+keys.length+' archivos encontrados. Verifica que los CSV están en la carpeta CSV SQX HISTORICOS');
+      }
+    }).catch(function(e){
+      showEmpty('Error SQX',e.message);
+    });
+    return;
+  }
 
   _rachaAccs = [];
   var totalEAs=0, totalHot=0, totalWarn=0;
@@ -966,3 +981,4 @@ function showToast(msg){ var t=document.getElementById('toast'); t.textContent=m
 </script>
 </body>
 </html>
+
