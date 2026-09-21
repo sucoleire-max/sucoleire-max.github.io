@@ -721,10 +721,15 @@ function extractSID(name){
 }
 
 function getDir(ea){
+  if(!ea.trades || !Array.isArray(ea.trades)) return 'LARGO';
   var b=0,s=0;
-  ea.trades.forEach(function(t){ if(t.type==='BUY') b++; else s++; });
+  ea.trades.forEach(function(t){ 
+    if(t.type==='BUY') b++; 
+    else if(t.type==='SELL') s++; 
+  });
   if(b>0&&s>0) return 'L+C';
-  return b>0?'LARGO':'CORTO';
+  if(s>0) return 'CORTO';
+  return 'LARGO';
 }
 
 function renderRachas(){
