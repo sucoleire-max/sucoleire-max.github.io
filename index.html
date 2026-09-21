@@ -119,7 +119,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     <div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Trading Monitor</div><div class="empty-sub">Ve a ⚙️ Ajustes y conecta con Google Drive</div></div>
   </div>
   <div class="nav">
-    <div class="nav-item active" id="nav-cuentas"><div class="nav-icon">🏦</div><div class="nav-label">Cuentas</div></div>
+    <div class="nav-item active" id="nav-cuentas"><div class="nav-icon">☁️</div><div class="nav-label">Cuentas</div></div>
+    <div class="nav-item" id="nav-demo"><div class="nav-icon">🖥️</div><div class="nav-label">Demo</div></div>
     <div class="nav-item" id="nav-resumen"><div class="nav-icon">📊</div><div class="nav-label">Resumen</div></div>
     <div class="nav-item" id="nav-ranking"><div class="nav-icon">🏆</div><div class="nav-label">Ranking</div></div>
     <div class="nav-item" id="nav-ajustes"><div class="nav-icon">⚙️</div><div class="nav-label">Ajustes</div></div>
@@ -133,10 +134,13 @@ var CLIENT_ID   = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleuserc
 var SCOPES      = 'https://www.googleapis.com/auth/drive.readonly';
 var FOLDER_ID   = localStorage.getItem('tm_folder_id')   || '14v9ZVOKdgEXjOOto1XvmJxBl7Nq8ewUP';
 var FOLDER_NAME = localStorage.getItem('tm_folder_name') || 'Csv sistemas app monitor';
+var FOLDER2_ID   = localStorage.getItem('tm_folder2_id')   || '1SWfvkkglqVgVSMoNzCIrnAgUbPkD0DlG';
+var FOLDER2_NAME = localStorage.getItem('tm_folder2_name') || 'Csv demo pc';
 var ALERT_DAYS  = parseInt(localStorage.getItem('tm_alert_days')) || 7;
 var accessToken = localStorage.getItem('tm_token') || null;
 
 var accounts   = {};
+var accounts2  = {};
 var currentTab = 'cuentas';
 var rankFilter = 'global';
 var tokenClient = null;
@@ -149,7 +153,7 @@ document.querySelectorAll('.nav-item').forEach(function(el){
     document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
     el.classList.add('active');
     currentTab = tab;
-    var titles = {cuentas:'Trading Monitor',resumen:'Resumen Mensual',ranking:'Ranking EAs',ajustes:'Ajustes'};
+    var titles = {cuentas:'Cuentas VPS',demo:'Demo PC',resumen:'Resumen Mensual',ranking:'Ranking EAs',ajustes:'Ajustes'};
     document.getElementById('pageTitle').textContent = titles[tab] || 'Trading Monitor';
     renderTab(tab);
   });
@@ -190,28 +194,37 @@ async function loadCSVs(){
   if(!accessToken){ showToast('Conecta Google Drive primero'); return; }
   showLoading('Cargando cuentas...');
   try{
-    var url = 'https://www.googleapis.com/drive/v3/files?'
-      + 'q=' + encodeURIComponent("'"+FOLDER_ID+"' in parents and name contains 'EA_Trades_' and trashed=false")
-      + '&fields=files(id,name,modifiedTime,mimeType)&pageSize=50';
-    var resp = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
-    if(resp.status===401){
-      accessToken=null; localStorage.removeItem('tm_token');
-      showEmpty('Sesión expirada','Ve a ⚙️ Ajustes → Reconectar');
-      return;
-    }
-    var data = await resp.json();
-    var files = data.files||[];
-    if(!files.length){ showEmpty('Sin archivos CSV','El EA Exporter aún no ha exportado o la carpeta está vacía'); return; }
-    accounts={};
-    for(var i=0;i<files.length;i++){
-      var txt = await fetchFile(files[i].id);
-      var acc = parseCSV(txt, files[i].name, i, files[i].modifiedTime);
-      if(acc) accounts[acc.name]=acc;
-    }
+    // Load VPS accounts
+    accounts = await loadFolder(FOLDER_ID);
+    // Load PC demo accounts
+    accounts2 = await loadFolder(FOLDER2_ID);
     document.getElementById('lastUpdate').textContent='Actualizado '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
     renderTab(currentTab);
-    showToast('✅ '+Object.keys(accounts).length+' cuentas');
+    var total = Object.keys(accounts).length + Object.keys(accounts2).length;
+    showToast('✅ '+total+' cuentas cargadas');
   }catch(e){ showToast('❌ '+e.message); showEmpty('Error',''+e.message); }
+}
+
+async function loadFolder(folderId){
+  if(!folderId) return {};
+  var url = 'https://www.googleapis.com/drive/v3/files?'
+    + 'q=' + encodeURIComponent("'"+folderId+"' in parents and name contains 'EA_Trades_' and trashed=false")
+    + '&fields=files(id,name,modifiedTime,mimeType)&pageSize=100';
+  var resp = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+  if(resp.status===401){
+    accessToken=null; localStorage.removeItem('tm_token');
+    showEmpty('Sesión expirada','Ve a ⚙️ Ajustes → Reconectar');
+    return {};
+  }
+  var data = await resp.json();
+  var files = data.files||[];
+  var result = {};
+  for(var i=0;i<files.length;i++){
+    var txt = await fetchFile(files[i].id);
+    var acc = parseCSV(txt, files[i].name, i, files[i].modifiedTime);
+    if(acc) result[acc.name]=acc;
+  }
+  return result;
 }
 
 async function fetchFile(id){
@@ -298,6 +311,7 @@ function calcEA(ea){
 // ── RENDER TABS ──
 function renderTab(tab){
   if(tab==='cuentas')  renderCuentas();
+  if(tab==='demo')     renderDemo();
   if(tab==='resumen')  renderResumen();
   if(tab==='ranking')  renderRanking();
   if(tab==='ajustes')  renderAjustes();
@@ -509,6 +523,52 @@ function renderResumen(){
   document.getElementById('content').innerHTML=html;
 }
 
+// ── DEMO PC ──
+function renderDemo(){
+  var accs=Object.values(accounts2);
+  if(!accs.length){ showEmpty('Sin cuentas Demo PC','Asegúrate de que el script SyncToDrive está activo en el PC'); return; }
+  var totalNet=accs.reduce(function(s,a){return s+a.net;},0);
+  var totalDay=accs.reduce(function(s,a){return s+a.dayPnl;},0);
+  var html='';
+  html+='<div class="day-card" style="border-color:'+(totalDay>=0?'rgba(63,185,80,.3)':'rgba(248,81,73,.3)') +'">'
+    +'<div class="day-card-lbl">P&L Total Hoy — Demo PC</div>'
+    +'<div class="day-card-val '+(totalDay>=0?'pos':'neg')+'">'+(totalDay>=0?'+':'')+' $'+totalDay.toFixed(2)+'</div>'
+    +'<div class="day-card-date">'+new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})+'</div>'
+    +'</div>';
+  html+='<div class="summary-stats">';
+  html+=sCard('Cuentas',accs.length,'var(--accent)');
+  html+=sCard('Net Total',(totalNet>=0?'+':'')+' $'+Math.round(totalNet),totalNet>=0?'var(--green)':'var(--red)');
+  html+=sCard('P&L Hoy',(totalDay>=0?'+':'')+' $'+totalDay.toFixed(0),totalDay>=0?'var(--green)':'var(--red)');
+  html+='</div>';
+  accs.forEach(function(acc,i){
+    html+='<div class="acc-card" data-acc2="'+i+'" style="cursor:pointer">'
+      +'<div class="acc-stripe" style="background:'+acc.color+'"></div>'
+      +'<div class="acc-top">'
+        +'<div><div class="acc-name">'+acc.name+'</div>'
+        +'<div class="acc-sub">'+acc.totalTrades+' trades</div></div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-size:10px;color:var(--text3)">Hoy</div>'
+          +'<div style="font-size:16px;font-weight:700;font-family:var(--mono);color:'+(acc.dayPnl>=0?'var(--green)':'var(--red)')+'">'+(acc.dayPnl>=0?'+':'')+acc.dayPnl.toFixed(0)+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="metrics-grid">'
+        +(acc.balance>0?mBox('Balance','$'+Math.round(acc.balance),'var(--accent)'):'')
+        +mBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
+        +mBox('Max DD','$'+Math.round(acc.maxdd),'var(--red)')
+        +mBox('Ret/DD',acc.rdd.toFixed(2),'var(--gold)')
+      +'</div>'
+      +'</div>';
+  });
+  document.getElementById('content').innerHTML=html;
+  document.querySelectorAll('.acc-card[data-acc2]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var idx=parseInt(el.dataset.acc2);
+      var acc=Object.values(accounts2)[idx];
+      if(acc) showAccDetail(acc);
+    });
+  });
+}
+
 // ── RANKING ──
 function renderRanking(){
   var accs=Object.values(accounts);
@@ -559,10 +619,13 @@ function renderAjustes(){
     +'</div>';
   html+='<button class="btn-primary" id="connectBtn">'+(connected?'🔄 Reconectar':'🔗 Conectar con Google Drive')+'</button>';
   if(connected){
-    html+='<div class="settings-section"><div class="settings-title">ID de carpeta Drive</div>'
-      +'<div class="settings-row"><input id="folderIdInput" type="text" value="'+FOLDER_ID+'" placeholder="ID de carpeta" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:11px;outline:none;font-family:monospace"></div>'
+    html+='<div class="settings-section"><div class="settings-title">☁️ Carpeta VPS (Cuentas)</div>'
+      +'<div class="settings-row"><input id="folderIdInput" type="text" value="'+FOLDER_ID+'" placeholder="ID carpeta VPS" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:11px;outline:none;font-family:monospace"></div>'
       +'</div>';
-    html+='<button class="btn-secondary" id="saveFolderBtn">💾 Guardar carpeta</button>';
+    html+='<div class="settings-section"><div class="settings-title">🖥️ Carpeta Demo PC</div>'
+      +'<div class="settings-row"><input id="folder2IdInput" type="text" value="'+FOLDER2_ID+'" placeholder="ID carpeta Demo PC" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:11px;outline:none;font-family:monospace"></div>'
+      +'</div>';
+    html+='<button class="btn-secondary" id="saveFolderBtn">💾 Guardar carpetas</button>';
   }
   html+='<div class="settings-section"><div class="settings-title">Alertas</div>'
     +'<div class="settings-row"><div><div class="settings-lbl">Días sin operar</div></div>'
@@ -575,10 +638,9 @@ function renderAjustes(){
   if(connected && document.getElementById('saveFolderBtn')){
     document.getElementById('saveFolderBtn').addEventListener('click', function(){
       var id=document.getElementById('folderIdInput').value.trim();
-      if(!id) return;
-      FOLDER_ID=id; FOLDER_NAME='Csv sistemas app monitor';
-      localStorage.setItem('tm_folder_id',FOLDER_ID);
-      localStorage.setItem('tm_folder_name',FOLDER_NAME);
+      var id2=document.getElementById('folder2IdInput').value.trim();
+      if(id){ FOLDER_ID=id; FOLDER_NAME='Csv sistemas app monitor'; localStorage.setItem('tm_folder_id',FOLDER_ID); localStorage.setItem('tm_folder_name',FOLDER_NAME); }
+      if(id2){ FOLDER2_ID=id2; FOLDER2_NAME='Csv demo pc'; localStorage.setItem('tm_folder2_id',FOLDER2_ID); localStorage.setItem('tm_folder2_name',FOLDER2_NAME); }
       showToast('✅ Guardado');
       loadCSVs();
     });
