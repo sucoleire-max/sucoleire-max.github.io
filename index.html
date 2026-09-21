@@ -224,7 +224,7 @@ async function loadSQXFolder(folderId){
     var result = {};
     for(var i=0;i<files.length;i++){
       // Extract strategy ID from filename: 1790003154806_3_6_503.csv → 3_6_503
-      var m = files[i].name.match(/(\d+[_]\d+[_]\d+)\.csv$/i);
+      var m = files[i].name.match(/(\d+[_]\d+[_]\d+)\.csv$/i)
       if(!m) continue;
       var stratId = m[1];
       var txt = await fetchFile(files[i].id);
@@ -236,9 +236,7 @@ async function loadSQXFolder(folderId){
 }
 
 function parseSQX(txt, stratId){
-  var lines = txt.split(/
-?
-/).filter(function(l){return l.trim();});
+  var lines = txt.split(/\r?\n/).filter(function(l){return l.trim();});
   if(lines.length < 2) return null;
   var sep = lines[0].indexOf(';')>-1?';':',';
   var trades = [];
@@ -296,7 +294,7 @@ function parseSQX(txt, stratId){
 }
 
 function extractStratId(eaName){
-  var m = eaName.match(/(\d+[_]\d+[_]\d+)(?:\[|$)/);
+  var m = eaName.match(/(\d+[_]\d+[_]\d+)(?:\[|$)/)
   return m ? m[1] : null;
 }
 
