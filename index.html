@@ -521,7 +521,20 @@ function calcEA(ea){
   var daysSince=Math.floor((new Date()-last)/86400000);
   var byMonth={};
   ea.trades.forEach(function(t){var mk=t.close.getFullYear()+'-'+String(t.close.getMonth()+1).padStart(2,'0');byMonth[mk]=(byMonth[mk]||0)+t.pnl;});
-  return{name:ea.name,symbol:ea.symbol,trades:p.length,net:net,maxdd:maxdd,rdd:rdd,wr:wr,pf:pf,byMonth:byMonth,daysSince:daysSince,lastTrade:last};
+  // Current losing streak by months
+  var monthKeys=Object.keys(byMonth).sort();
+  var curMonthStreak=0;
+  for(var mi=monthKeys.length-1;mi>=0;mi--){
+    if(byMonth[monthKeys[mi]]<0) curMonthStreak++;
+    else break;
+  }
+  // Current losing streak by trades
+  var curTradeStreak=0;
+  for(var ti=ea.trades.length-1;ti>=0;ti--){
+    if(ea.trades[ti].pnl<0) curTradeStreak++;
+    else break;
+  }
+  return{name:ea.name,symbol:ea.symbol,trades:p.length,net:net,maxdd:maxdd,rdd:rdd,wr:wr,pf:pf,byMonth:byMonth,daysSince:daysSince,lastTrade:last,curMonthStreak:curMonthStreak,curTradeStreak:curTradeStreak};
 }
 
 // ── RENDER TABS ──
@@ -884,8 +897,10 @@ function renderRachas(){
         var sid=extractSID(ea.name);
         var sqx=sid?sqxData[sid]:null;
         if(!sqx) return;
-        var pct=sqx.maxStreak>0?sqx.curStreak/sqx.maxStreak*100:0;
-        var pctM=sqx.maxMonthStreak>0?sqx.curMonthStreak/sqx.maxMonthStreak*100:0;
+        var dts2=ea.curTradeStreak||0;
+        var dms2=ea.curMonthStreak||0;
+        var pct=sqx.maxStreak>0?dts2/sqx.maxStreak*100:0;
+        var pctM=sqx.maxMonthStreak>0?dms2/sqx.maxMonthStreak*100:0;
         var avgPct=(pct+pctM)/2;
         allEAsRanked.push({ea:ea,sqx:sqx,pct:pct,pctM:pctM,avgPct:avgPct,acc:acc});
       });
@@ -928,7 +943,7 @@ function renderRachas(){
           +'<div>'
             +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
               +'<span style="font-size:8px;color:var(--text3)">Trades</span>'
-              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+sqx.curStreak+'/'+sqx.maxStreak+'</span>'
+              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+(item.ea.curTradeStreak||0)+'/'+sqx.maxStreak+'</span>'
             +'</div>'
             +'<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
               +'<div style="height:5px;border-radius:3px;width:'+Math.min(pct,100)+'%;background:'+barClr+'"></div>'
@@ -937,7 +952,7 @@ function renderRachas(){
           +'<div>'
             +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
               +'<span style="font-size:8px;color:var(--text3)">Meses</span>'
-              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+sqx.curMonthStreak+'/'+sqx.maxMonthStreak+'</span>'
+              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+(item.ea.curMonthStreak||0)+'/'+sqx.maxMonthStreak+'</span>'
             +'</div>'
             +'<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
               +'<div style="height:5px;border-radius:3px;width:'+Math.min(pctM,100)+'%;background:'+(pctM>=85?'linear-gradient(90deg,#e3b341,#f85149)':pctM>=50?'#e3b341':'#3fb950')+'"></div>'
@@ -1042,7 +1057,7 @@ function showRachasDetail(acc){
       +'<div style="margin-bottom:7px">'
         +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
           +'<span style="font-size:8px;color:var(--text3);text-transform:uppercase">Trades consecutivos</span>'
-          +'<span style="font-size:9px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+sqx.curStreak+' / '+sqx.maxStreak+'</span>'
+          +'<span style="font-size:9px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+demoTradeStreak+' / '+sqx.maxStreak+'</span>'
         +'</div>'
         +'<div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden">'
           +'<div style="height:7px;border-radius:4px;width:'+pct+'%;background:'+barClr+'"></div>'
@@ -1052,7 +1067,7 @@ function showRachasDetail(acc){
       +'<div style="margin-bottom:8px">'
         +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
           +'<span style="font-size:8px;color:var(--text3);text-transform:uppercase">Meses consecutivos</span>'
-          +'<span style="font-size:9px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+sqx.curMonthStreak+' / '+sqx.maxMonthStreak+'</span>'
+          +'<span style="font-size:9px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+demoMonthStreak+' / '+sqx.maxMonthStreak+'</span>'
         +'</div>'
         +'<div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden">'
           +'<div style="height:7px;border-radius:4px;width:'+pctM+'%;background:'+barClrM+'"></div>'
@@ -1060,7 +1075,7 @@ function showRachasDetail(acc){
       +'</div>'
       // Stats
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-top:8px;border-top:1px solid var(--border)">'
-        +'<div style="text-align:center"><div style="font-size:7px;color:var(--text3);text-transform:uppercase;margin-bottom:1px">Actual</div><div style="font-size:10px;font-weight:700;font-family:var(--mono);color:var(--red)">'+sqx.curStreak+'</div></div>'
+        +'<div style="text-align:center"><div style="font-size:7px;color:var(--text3);text-transform:uppercase;margin-bottom:1px">Actual</div><div style="font-size:10px;font-weight:700;font-family:var(--mono);color:var(--red)">'+demoTradeStreak+'</div></div>'
         +'<div style="text-align:center"><div style="font-size:7px;color:var(--text3);text-transform:uppercase;margin-bottom:1px">Máx hist</div><div style="font-size:10px;font-weight:700;font-family:var(--mono)">'+sqx.maxStreak+'</div></div>'
         +'<div style="text-align:center"><div style="font-size:7px;color:var(--text3);text-transform:uppercase;margin-bottom:1px">Media</div><div style="font-size:10px;font-weight:700;font-family:var(--mono)">'+sqx.avgStreak.toFixed(1)+'</div></div>'
         +'<div style="text-align:center"><div style="font-size:7px;color:var(--text3);text-transform:uppercase;margin-bottom:1px">% compl</div><div style="font-size:10px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+Math.round(pct)+'%</div></div>'
