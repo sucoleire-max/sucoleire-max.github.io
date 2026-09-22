@@ -166,25 +166,25 @@ document.querySelectorAll('.nav-item').forEach(function(el){
 document.getElementById('refreshBtn').addEventListener('click', function(){ refreshData(); });
 
 // ── INIT ──
-window.onload = function(){
+function initGoogleAndLoad(){
+  if(window._googleLoaded){
+    if(FOLDER_ID && accessToken) loadCSVs();
+    return;
+  }
   var s = document.createElement('script');
   s.src = 'https://accounts.google.com/gsi/client';
   s.onload = function(){
+    window._googleLoaded = true;
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
       prompt: '',
       callback: function(resp){
-        if(resp.error){ 
-          if(resp.error === 'interaction_required' || resp.error === 'login_required'){
-            // Token expired - show message, don't auto popup
-            accessToken = null;
-            localStorage.removeItem('tm_token');
-            showEmpty('Sesión expirada','Ve a ⚙️ Ajustes y pulsa Reconectar');
-          } else {
-            showToast('Error: '+resp.error);
-          }
-          return; 
+        if(resp.error){
+          accessToken = null;
+          localStorage.removeItem('tm_token');
+          showEmpty('Sesión expirada','Ve a ⚙️ Ajustes y pulsa Reconectar');
+          return;
         }
         accessToken = resp.access_token;
         localStorage.setItem('tm_token', accessToken);
@@ -192,16 +192,52 @@ window.onload = function(){
         loadCSVs();
       }
     });
-    // Only auto-load if we have token saved - NO auto popup
     if(FOLDER_ID && accessToken) loadCSVs();
   };
   document.head.appendChild(s);
+}
+
+window.onload = function(){
+  // Don't load Google script automatically - only when user has valid token
+  // This prevents the automatic Google popup
+  if(FOLDER_ID && accessToken){
+    initGoogleAndLoad();
+  } else {
+    // No token - just show the welcome screen, wait for user to click connect
+    showEmpty('Trading Monitor','Ve a ⚙️ Ajustes y conecta con Google Drive para ver tus cuentas');
+  }
 };
 
 // ── CONNECT ──
 function connectDrive(){
-  if(!tokenClient){ showToast('Cargando...'); return; }
-  // Force consent screen for manual reconnect
+  if(!window._googleLoaded){
+    // Load Google script first then request token
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = function(){
+      window._googleLoaded = true;
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        prompt: '',
+        callback: function(resp){
+          if(resp.error){
+            accessToken = null;
+            localStorage.removeItem('tm_token');
+            showToast('Error al conectar');
+            return;
+          }
+          accessToken = resp.access_token;
+          localStorage.setItem('tm_token', accessToken);
+          showToast('✅ Conectado');
+          loadCSVs();
+        }
+      });
+      tokenClient.requestAccessToken({prompt: 'consent'});
+    };
+    document.head.appendChild(s);
+    return;
+  }
   tokenClient.requestAccessToken({prompt: 'consent'});
 }
 
@@ -779,11 +815,14 @@ function renderRachas(){
   var totalEAs=0, totalHot=0, totalWarn=0;
 
   // Toggle buttons
-  var toggleHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
-    +'<button onclick="rachaView='cuentas';renderRachas()" style="flex:1;padding:8px;border-radius:10px;border:1px solid '+(rachaView==='cuentas'?'var(--accent)':'var(--border)')+';background:'+(rachaView==='cuentas'?'rgba(88,166,255,.15)':'var(--bg3)')+';color:'+(rachaView==='cuentas'?'var(--accent)':'var(--text2)')+';font-size:12px;cursor:pointer;font-family:var(--font)">🏦 Por cuentas</button>'
-    +'<button onclick="rachaView='ranking';renderRachas()" style="flex:1;padding:8px;border-radius:10px;border:1px solid '+(rachaView==='ranking'?'var(--accent)':'var(--border)')+';background:'+(rachaView==='ranking'?'rgba(88,166,255,.15)':'var(--bg3)')+';color:'+(rachaView==='ranking'?'var(--accent)':'var(--text2)')+';font-size:12px;cursor:pointer;font-family:var(--font)">🎯 Ranking prob.</button>'
+  var isCuentas = rachaView==='cuentas';
+  var isRanking = rachaView==='ranking';
+  var btnA = 'flex:1;padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);border:1px solid var(--accent);background:rgba(88,166,255,.15);color:var(--accent)';
+  var btnI = 'flex:1;padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:var(--bg3);color:var(--text2)';
+  var toggleHtml='<div style="display:flex;gap:8px;margin-bottom:14px" id="rachaToggle">'
+    +'<button id="btnRachaCuentas" style="'+( isCuentas?btnA:btnI)+'">🏦 Por cuentas</button>'
+    +'<button id="btnRachaRanking" style="'+(isRanking?btnA:btnI)+'">🎯 Ranking prob.</button>'
     +'</div>';
-
   accs.forEach(function(acc){
     var normal=0,warn=0,hot=0,nodata=0;
     acc.eas.forEach(function(ea){
@@ -901,6 +940,11 @@ function renderRachas(){
   });
 
   document.getElementById('content').innerHTML=html;
+  // Add toggle listeners
+  var b1=document.getElementById('btnRachaCuentas');
+  var b2=document.getElementById('btnRachaRanking');
+  if(b1) b1.addEventListener('click', function(){ rachaView='cuentas'; renderRachas(); });
+  if(b2) b2.addEventListener('click', function(){ rachaView='ranking'; renderRachas(); });
 }
 
 function openRachaAcc(i){
