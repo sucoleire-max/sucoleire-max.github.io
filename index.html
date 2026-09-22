@@ -765,16 +765,18 @@ var _rachaAccs = [];
 function extractSID(name){
   // Remove [sl],[tp] etc
   var clean = name.replace(/\[.*$/, '').trim();
-  // Find WF position
-  var idx = clean.toUpperCase().indexOf('WF');
-  if(idx < 0) return null;
-  var afterWF = clean.slice(idx+2).replace(/^[_ ]+/, '');
-  // Match N_N_N at end (1-3 digits each)
-  var m = afterWF.match(/(\d{1,3})_(\d{1,3})_(\d{1,3})$/);
-  if(m) return m[1]+'_'+m[2]+'_'+m[3];
-  // Match anywhere in afterWF
-  var all = afterWF.match(/\d{1,3}_\d{1,3}_\d{1,3}/g);
-  if(all && all.length > 0) return all[all.length-1];
+  // Try after WF first
+  var wfIdx = clean.toUpperCase().indexOf('WF');
+  if(wfIdx >= 0){
+    var afterWF = clean.slice(wfIdx+2).replace(/^[_ ]+/, '');
+    var m = afterWF.match(/(\d{1,3})_(\d{1,3})_(\d{1,3})$/);
+    if(m) return m[1]+'_'+m[2]+'_'+m[3];
+    var all = afterWF.match(/\d{1,3}_\d{1,3}_\d{1,3}/g);
+    if(all && all.length > 0) return all[all.length-1];
+  }
+  // No WF - find any N_N_N pattern (handles y_4_27_126, _2_6_540 etc)
+  var all2 = clean.match(/\d{1,3}_\d{1,3}_\d{1,3}/g);
+  if(all2 && all2.length > 0) return all2[all2.length-1];
   return null;
 }
 
@@ -919,6 +921,11 @@ function renderRachas(){
     });
 
     document.getElementById('content').innerHTML=html;
+    // Add toggle listeners for ranking view
+    var rb1=document.getElementById('btnRachaCuentas');
+    var rb2=document.getElementById('btnRachaRanking');
+    if(rb1) rb1.addEventListener('click', function(){ rachaView='cuentas'; renderRachas(); });
+    if(rb2) rb2.addEventListener('click', function(){ rachaView='ranking'; renderRachas(); });
     return;
   }
 
