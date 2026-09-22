@@ -163,7 +163,14 @@ document.querySelectorAll('.nav-item').forEach(function(el){
   });
 });
 
-document.getElementById('refreshBtn').addEventListener('click', function(){ refreshData(); });
+document.getElementById('refreshBtn').addEventListener('click', function(){
+  if(!accessToken){
+    // Token expired - reconnect directly
+    connectDrive();
+  } else {
+    refreshData();
+  }
+});
 
 // ── INIT ──
 function initGoogleAndLoad(){
@@ -188,6 +195,7 @@ function initGoogleAndLoad(){
         }
         accessToken = resp.access_token;
         localStorage.setItem('tm_token', accessToken);
+        updateRefreshBtn(true);
         showToast('✅ Conectado');
         loadCSVs();
       }
@@ -203,8 +211,8 @@ window.onload = function(){
   if(FOLDER_ID && accessToken){
     initGoogleAndLoad();
   } else {
-    // No token - just show the welcome screen, wait for user to click connect
-    showEmpty('Trading Monitor','Ve a ⚙️ Ajustes y conecta con Google Drive para ver tus cuentas');
+    updateRefreshBtn(false);
+    showEmpty('Trading Monitor','Pulsa el botón 🔴 Reconectar arriba a la derecha');
   }
 };
 
@@ -259,6 +267,7 @@ async function loadCSVs(){
     console.log('SQX data loaded:', Object.keys(sqxData).length, 'strategies:', Object.keys(sqxData));
     
     document.getElementById('lastUpdate').textContent='Actualizado '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+    updateRefreshBtn(true);
     renderTab(currentTab);
     var total = Object.keys(accounts).length + Object.keys(accounts2).length;
     showToast('✅ '+total+' cuentas · '+Object.keys(sqxData).length+' SQX');
@@ -412,7 +421,25 @@ async function fetchFile(id){
   return r.text();
 }
 
-function refreshData(){ if(accessToken&&FOLDER_ID) loadCSVs(); else showToast('Conecta Google Drive primero'); }
+function refreshData(){ if(accessToken&&FOLDER_ID) loadCSVs(); else connectDrive(); }
+
+function updateRefreshBtn(connected){
+  var btn = document.getElementById('refreshBtn');
+  if(!btn) return;
+  if(connected){
+    btn.textContent = '🔄';
+    btn.style.background = 'var(--bg3)';
+    btn.style.color = 'var(--text2)';
+    btn.style.border = '1px solid var(--border)';
+    btn.title = 'Actualizar datos';
+  } else {
+    btn.textContent = '🔴 Reconectar';
+    btn.style.background = 'rgba(248,81,73,.15)';
+    btn.style.color = '#f85149';
+    btn.style.border = '1px solid rgba(248,81,73,.3)';
+    btn.title = 'Sesión expirada - pulsa para reconectar';
+  }
+}
 
 // ── PARSE ──
 function parseCSV(txt, filename, idx, modTime){
