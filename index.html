@@ -102,6 +102,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .month-cell{background:var(--bg2);padding:6px 4px;text-align:center}
 .month-cell .ml{font-size:8px;color:var(--text3);margin-bottom:2px}
 .month-cell .mv{font-size:10px;font-weight:700;font-family:var(--mono)}
+.ea-detail-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:12px;background:var(--bg)}
+.ea-detail-tab{flex:1;padding:9px;text-align:center;font-size:11px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent}
+.ea-detail-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 .toast{position:fixed;bottom:calc(var(--nav-h) + 10px);left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12px;color:var(--text);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -640,7 +643,9 @@ function showAccDetail(acc, tab){
   renderTab(tab);
 }
 
+var _currentRendAcc = null;
 function renderRendimiento(el, acc){
+  _currentRendAcc = acc;
   var html='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">'
     +(acc.balance>0?mBox('Balance','$'+Math.round(acc.balance),'var(--accent)'):'')
     +mBox('Net P&L',(acc.net>=0?'+':'')+' $'+Math.round(acc.net),acc.net>=0?'var(--green)':'var(--red)')
@@ -656,7 +661,7 @@ function renderRendimiento(el, acc){
   html+='<div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--text)">🏆 Ranking EAs</div>';
   acc.eas.forEach(function(e,i){
     var rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
-    html+='<div class="rank-card">'
+    html+='<div class="rank-card" style="cursor:pointer" onclick="openRendEA('+i+')">'
       +'<div class="rank-hdr">'
         +'<div class="rank-num '+rc+'">'+(i+1)+'</div>'
         +'<div class="rank-info"><div class="rank-name">'+e.name+'</div><span class="rank-sym">'+(e.symbol||'—')+'</span></div>'
@@ -1102,7 +1107,9 @@ function renderRanking(){
   allEAs.forEach(function(e,i){
     var rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
     var mp=e.byMonth[curMonth]||0;
-    html+='<div class="rank-card">'
+    var rNameEsc=e.name.replace(/'/g,"\\'");
+    var rAccEsc=e.account.replace(/'/g,"\\'");
+    html+='<div class="rank-card" style="cursor:pointer" onclick="showEADetail(''+rNameEsc+'',''+rAccEsc+'',renderRanking)">'
       +'<div class="rank-hdr">'
         +'<div class="rank-num '+rc+'">'+(i+1)+'</div>'
         +'<div class="rank-info"><div class="rank-name">'+e.name+'</div>'
@@ -1176,6 +1183,100 @@ function renderAjustes(){
   if(document.getElementById('refreshBtn2')){
     document.getElementById('refreshBtn2').addEventListener('click', refreshData);
   }
+}
+
+// ── EA DETAIL ──
+function openRendEA(idx){
+  if(!_currentRendAcc) return;
+  var ea = _currentRendAcc.eas[idx];
+  if(!ea) return;
+  _eaDetailCtx = {ea:ea, acc:_currentRendAcc, backFn:'showAccDetail(_eaDetailCtx.acc)'};
+  renderEADetail('mensual');
+}
+// ── EA DETAIL ──
+var _eaDetailCtx = null; // {ea, backFn}
+
+function showEADetail(eaName, accName, backFn){
+  // Find EA in accounts
+  var allAccs = Object.assign({}, accounts, accounts2);
+  var acc = allAccs[accName];
+  if(!acc) return;
+  var ea = acc.eas.find(function(e){ return e.name === eaName; });
+  if(!ea) return;
+  _eaDetailCtx = {ea:ea, acc:acc, backFn:backFn};
+  renderEADetail('mensual');
+}
+
+function renderEADetail(tab){
+  if(!_eaDetailCtx) return;
+  var ea = _eaDetailCtx.ea;
+  var acc = _eaDetailCtx.acc;
+  var backFn = _eaDetailCtx.backFn;
+
+  var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    +'<button onclick="('+backFn+')" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:5px 10px;font-size:12px;cursor:pointer">← Volver</button>'
+    +'<div style="min-width:0;flex:1"><div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ea.name+'</div>'
+    +'<div style="font-size:10px;color:var(--text3)">'+acc.name+' · '+(ea.symbol||'—')+'</div></div>'
+    +'</div>';
+
+  html+='<div class="ea-detail-tabs">'
+    +'<div class="ea-detail-tab'+(tab==='stats'?' active':'')+'" onclick="renderEADetail('stats')">📊 Stats</div>'
+    +'<div class="ea-detail-tab'+(tab==='mensual'?' active':'')+'" onclick="renderEADetail('mensual')">📅 Mensual</div>'
+    +'</div>';
+
+  if(tab==='stats'){
+    var buys=0,sells=0;
+    ea.trades.forEach(function(t){ if(t.type==='BUY') buys++; else sells++; });
+    var pf = isFinite(ea.pf)&&ea.pf<900 ? ea.pf.toFixed(2) : '∞';
+    html+='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">'
+      +mBox('Net P&L',(ea.net>=0?'+':'')+' $'+Math.round(ea.net),ea.net>=0?'var(--green)':'var(--red)')
+      +mBox('Trades',ea.trades,'var(--accent)')
+      +mBox('Win Rate',(ea.wr*100).toFixed(1)+'%',ea.wr>=0.5?'var(--green)':'var(--red)')
+      +mBox('Max DD','$'+Math.round(ea.maxdd),'var(--red)')
+      +mBox('Ret/DD',ea.rdd.toFixed(2),'var(--gold)')
+      +mBox('Prof.Factor',pf,'var(--purple)')
+      +mBox('Largos',buys,'var(--green)')
+      +mBox('Cortos',sells,'var(--red)')
+      +mBox('Días sin op.',ea.daysSince,ea.daysSince>7?'var(--red)':'var(--green)')
+      +'</div>';
+  }
+
+  if(tab==='mensual'){
+    var mNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var allMonths=Object.keys(ea.byMonth).sort();
+    var years={};
+    allMonths.forEach(function(m){ var y=m.split('-')[0]; if(!years[y]) years[y]=[]; years[y].push(m); });
+    var yearKeys=Object.keys(years).sort();
+    var grandTotal=Object.values(ea.byMonth).reduce(function(s,v){return s+v;},0);
+
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<span style="font-size:11px;color:var(--text3)">Total histórico</span>'
+      +'<span style="font-size:13px;font-weight:700;font-family:var(--mono);color:'+(grandTotal>=0?'var(--green)':'var(--red)')+'">'+(grandTotal>=0?'+':'')+' $'+Math.round(grandTotal)+'</span>'
+      +'</div>';
+
+    yearKeys.forEach(function(yr){
+      var yearTotal=years[yr].reduce(function(s,m){return s+(ea.byMonth[m]||0);},0);
+      html+='<div style="background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.15);border-radius:8px;padding:5px 10px;margin-bottom:4px;display:flex;justify-content:space-between">'
+        +'<span style="font-size:10px;font-weight:700;color:var(--accent)">'+yr+'</span>'
+        +'<span style="font-size:10px;font-weight:700;font-family:var(--mono);color:'+(yearTotal>=0?'var(--green)':'var(--red)')+'">'+(yearTotal>=0?'+':'')+' $'+Math.round(yearTotal)+'</span>'
+        +'</div>';
+      html+='<div class="month-cells" style="margin-bottom:8px">';
+      years[yr].forEach(function(m){
+        var v=ea.byMonth[m]||null;
+        var parts=m.split('-');
+        var lbl=mNames[parseInt(parts[1])-1]+' '+parts[0].slice(2);
+        if(v===null){
+          html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv" style="color:var(--text3)">—</div></div>';
+        } else {
+          var clr=v>=0?'#3fb950':'#f85149';
+          html+='<div class="month-cell"><div class="ml">'+lbl+'</div><div class="mv" style="color:'+clr+'">'+(v>=0?'+':'')+Math.round(v)+'</div></div>';
+        }
+      });
+      html+='</div>';
+    });
+  }
+
+  document.getElementById('content').innerHTML=html;
 }
 
 // ── HELPERS ──
