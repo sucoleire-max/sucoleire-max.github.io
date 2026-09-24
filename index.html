@@ -176,11 +176,8 @@ document.getElementById('refreshBtn').addEventListener('click', function(){
 });
 
 // ── INIT ──
-function initGoogleAndLoad(){
-  if(window._googleLoaded){
-    if(FOLDER_ID && accessToken) loadCSVs();
-    return;
-  }
+function initGoogleClient(callback){
+  if(window._googleLoaded){ if(callback) callback(); return; }
   var s = document.createElement('script');
   s.src = 'https://accounts.google.com/gsi/client';
   s.onload = function(){
@@ -193,7 +190,8 @@ function initGoogleAndLoad(){
         if(resp.error){
           accessToken = null;
           localStorage.removeItem('tm_token');
-          showEmpty('Sesión expirada','Ve a ⚙️ Ajustes y pulsa Reconectar');
+          updateRefreshBtn(false);
+          showEmpty('Sesión expirada','Pulsa 🔴 Reconectar arriba');
           return;
         }
         accessToken = resp.access_token;
@@ -203,53 +201,52 @@ function initGoogleAndLoad(){
         loadCSVs();
       }
     });
-    if(FOLDER_ID && accessToken) loadCSVs();
+    if(callback) callback();
   };
   document.head.appendChild(s);
 }
 
+function initGoogleAndLoad(){
+  // Verify token before loading Google script
+  if(!accessToken){
+    updateRefreshBtn(false);
+    showEmpty('Trading Monitor','Pulsa 🔴 Reconectar arriba para conectar');
+    return;
+  }
+  // Quick token check - if it fails, show red button without Google popup
+  fetch('https://www.googleapis.com/drive/v3/files?pageSize=1', {
+    headers:{Authorization:'Bearer '+accessToken}
+  }).then(function(r){
+    if(r.status===401){
+      accessToken=null;
+      localStorage.removeItem('tm_token');
+      updateRefreshBtn(false);
+      showEmpty('Sesión expirada','Pulsa 🔴 Reconectar arriba');
+    } else {
+      // Token valid - now safe to load Google client
+      initGoogleClient(loadCSVs);
+    }
+  }).catch(function(){
+    // Network error - try to load anyway
+    initGoogleClient(loadCSVs);
+  });
+}
+
 window.onload = function(){
-  // Don't load Google script automatically - only when user has valid token
-  // This prevents the automatic Google popup
   if(FOLDER_ID && accessToken){
+    // Verify token first before loading Google script
     initGoogleAndLoad();
   } else {
     updateRefreshBtn(false);
-    showEmpty('Trading Monitor','Pulsa el botón 🔴 Reconectar arriba a la derecha');
+    showEmpty('Trading Monitor','Pulsa 🔴 Reconectar arriba para empezar');
   }
 };
 
 // ── CONNECT ──
 function connectDrive(){
-  if(!window._googleLoaded){
-    // Load Google script first then request token
-    var s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = function(){
-      window._googleLoaded = true;
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        prompt: '',
-        callback: function(resp){
-          if(resp.error){
-            accessToken = null;
-            localStorage.removeItem('tm_token');
-            showToast('Error al conectar');
-            return;
-          }
-          accessToken = resp.access_token;
-          localStorage.setItem('tm_token', accessToken);
-          showToast('✅ Conectado');
-          loadCSVs();
-        }
-      });
-      tokenClient.requestAccessToken({prompt: 'consent'});
-    };
-    document.head.appendChild(s);
-    return;
-  }
-  tokenClient.requestAccessToken({prompt: 'consent'});
+  initGoogleClient(function(){
+    tokenClient.requestAccessToken({prompt: 'consent'});
+  });
 }
 
 // ── LOAD DATA ──
@@ -897,6 +894,7 @@ function renderRachas(){
   if(rachaView==='ranking'){
     // Collect all EAs with SQX data across all accounts
     var allEAsRanked=[];
+  window._rankEAs=allEAsRanked;
     accs.forEach(function(acc){
       acc.eas.forEach(function(ea){
         var sid=extractSID(ea.name);
@@ -978,7 +976,7 @@ function renderRachas(){
 
   _rachaAccs.forEach(function(s,i){
     var acc=s.acc;
-    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="openRachaAcc('+i+')">'
+    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="openRachaAcc('+i+')">';
       +'<div style="position:absolute;top:0;left:0;width:4px;height:100%;background:'+acc.color+';border-radius:4px 0 0 4px"></div>'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
         +'<div><div style="font-size:15px;font-weight:700">'+acc.name+'</div>'
@@ -1107,9 +1105,7 @@ function renderRanking(){
   allEAs.forEach(function(e,i){
     var rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
     var mp=e.byMonth[curMonth]||0;
-    var rNameEsc=e.name.replace(/'/g,"\\'");
-    var rAccEsc=e.account.replace(/'/g,"\\'");
-    html+='<div class="rank-card" style="cursor:pointer" onclick="showEADetail(''+rNameEsc+'',''+rAccEsc+'',renderRanking)">'
+    html+='<div class="rank-card" style="cursor:pointer" data-rankidx="'+i+'" onclick="openRankEA(parseInt(this.dataset.rankidx))">'
       +'<div class="rank-hdr">'
         +'<div class="rank-num '+rc+'">'+(i+1)+'</div>'
         +'<div class="rank-info"><div class="rank-name">'+e.name+'</div>'
@@ -1186,6 +1182,13 @@ function renderAjustes(){
 }
 
 // ── EA DETAIL ──
+function openRankEA(idx){
+  if(!window._rankEAs || !window._rankEAs[idx]) return;
+  var item=window._rankEAs[idx];
+  _eaDetailCtx={ea:item.ea, acc:item.acc, backFn:'renderRanking()'};
+  renderEADetail('mensual');
+}
+
 function openRendEA(idx){
   if(!_currentRendAcc) return;
   var ea = _currentRendAcc.eas[idx];
@@ -1214,14 +1217,14 @@ function renderEADetail(tab){
   var backFn = _eaDetailCtx.backFn;
 
   var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-    +'<button onclick="('+backFn+')" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:5px 10px;font-size:12px;cursor:pointer">← Volver</button>'
+    +'<button id="eaDetailBack" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:5px 10px;font-size:12px;cursor:pointer">← Volver</button>'
     +'<div style="min-width:0;flex:1"><div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ea.name+'</div>'
     +'<div style="font-size:10px;color:var(--text3)">'+acc.name+' · '+(ea.symbol||'—')+'</div></div>'
     +'</div>';
 
   html+='<div class="ea-detail-tabs">'
-    +'<div class="ea-detail-tab'+(tab==='stats'?' active':'')+'" onclick="renderEADetail('stats')">📊 Stats</div>'
-    +'<div class="ea-detail-tab'+(tab==='mensual'?' active':'')+'" onclick="renderEADetail('mensual')">📅 Mensual</div>'
+    +'<div class="ea-detail-tab'+(tab==='stats'?' active':'')+'" id="eaTabStats">📊 Stats</div>'
+    +'<div class="ea-detail-tab'+(tab==='mensual'?' active':'')+'" id="eaTabMensual">📅 Mensual</div>'
     +'</div>';
 
   if(tab==='stats'){
@@ -1277,6 +1280,15 @@ function renderEADetail(tab){
   }
 
   document.getElementById('content').innerHTML=html;
+  var t1=document.getElementById('eaTabStats');
+  var t2=document.getElementById('eaTabMensual');
+  var tb=document.getElementById('eaDetailBack');
+  if(t1) t1.addEventListener('click',function(){ renderEADetail('stats'); });
+  if(t2) t2.addEventListener('click',function(){ renderEADetail('mensual'); });
+  if(tb && _eaDetailCtx && _eaDetailCtx.backFn){
+    var bfn=_eaDetailCtx.backFn;
+    tb.addEventListener('click',function(){ eval(bfn); });
+  }
 }
 
 // ── HELPERS ──
