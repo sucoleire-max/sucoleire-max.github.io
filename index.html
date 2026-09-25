@@ -977,8 +977,9 @@ function renderRachas(){
 }
 
 function openRachaAcc(i){
+  i=parseInt(i);
   var s=_rachaAccs[i];
-  if(!s) return;
+  if(!s){ showToast('Error: cuenta '+i+' no encontrada (total: '+_rachaAccs.length+')'); return; }
   showRachasDetail(s.acc);
 }
 
@@ -992,8 +993,8 @@ function showRachasDetail(acc){
   // Sort EAs: most at risk first
   var sorted=[].concat(acc.eas).sort(function(a,b){
     var sa=sqxData[extractSID(a.name)], sb=sqxData[extractSID(b.name)];
-    var pa=sa&&sa.maxStreak>0?sa.curStreak/sa.maxStreak:0;
-    var pb=sb&&sb.maxStreak>0?sb.curStreak/sb.maxStreak:0;
+    var pa=sa&&sa.maxStreak>0?(a.curTradeStreak||0)/sa.maxStreak:0;
+    var pb=sb&&sb.maxStreak>0?(b.curTradeStreak||0)/sb.maxStreak:0;
     return pb-pa;
   });
 
@@ -1256,7 +1257,9 @@ function renderEADetail(tab){
     });
   }
 
-  document.getElementById('content').innerHTML=html;
+  // Write to accTabContent if inside showAccDetail, otherwise to content
+  var target = document.getElementById('accTabContent') || document.getElementById('content');
+  target.innerHTML=html;
   var t1=document.getElementById('eaTabStats');
   var t2=document.getElementById('eaTabMensual');
   var tb=document.getElementById('eaDetailBack');
