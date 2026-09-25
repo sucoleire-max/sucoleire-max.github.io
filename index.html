@@ -29,7 +29,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .nav{height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:8px 0}
 .nav-icon{font-size:22px;line-height:1}
-.nav-label{font-size:10px;color:var(--text3);font-weight:500}
+    renderTab(tab);
 .nav-item.active .nav-label{color:var(--accent)}
 /* CARDS */
 .day-card{background:var(--bg2);border:1px solid rgba(63,185,80,.3);border-radius:16px;padding:16px;margin-bottom:12px;text-align:center}
@@ -621,7 +621,7 @@ function showAccDetail(acc, tab){
   document.getElementById('content').parentNode.insertBefore(wrapper, document.getElementById('content'));
   document.getElementById('content').style.display='none';
 
-  function renderTab(t){
+  function renderDetailTab(t){
     var el=document.getElementById('accTabContent');
     document.querySelectorAll('.int-tab').forEach(function(x){x.classList.remove('active');});
     document.getElementById(t==='rendimiento'?'tab-rend':'tab-mens').classList.add('active');
@@ -635,9 +635,9 @@ function showAccDetail(acc, tab){
     document.getElementById('content').style.display='';
     renderCuentas();
   });
-  document.getElementById('tab-rend').addEventListener('click', function(){ renderTab('rendimiento'); });
-  document.getElementById('tab-mens').addEventListener('click', function(){ renderTab('mensual'); });
-  renderTab(tab);
+  document.getElementById('tab-rend').addEventListener('click', function(){ renderDetailTab('rendimiento'); });
+  document.getElementById('tab-mens').addEventListener('click', function(){ renderDetailTab('mensual'); });
+  renderDetailTab(tab);
 }
 
 var _currentRendAcc = null;
@@ -839,41 +839,25 @@ function renderRachas(){
   var accs = Object.values(allAccs);
   if(!accs.length){ showEmpty('Sin cuentas','Conecta Google Drive en ⚙️ Ajustes'); return; }
   if(!Object.keys(sqxData).length){
-    // Try to reload SQX data
     document.getElementById('content').innerHTML='<div class="loading"><div class="spinner"></div><div class="loading-txt">Cargando datos SQX...</div></div>';
     loadSQXFolder(FOLDER_SQX_ID).then(function(data){
-      var keys = Object.keys(data);
-      if(keys.length>0){
-        sqxData = data;
-        renderRachas();
-      } else {
-        showEmpty('Sin datos SQX','Carpeta ID: '+FOLDER_SQX_ID+' — '+keys.length+' archivos encontrados. Verifica que los CSV están en la carpeta CSV SQX HISTORICOS');
-      }
-    }).catch(function(e){
-      showEmpty('Error SQX',e.message);
-    });
+      if(Object.keys(data).length>0){ sqxData=data; renderRachas(); }
+      else { showEmpty('Sin datos SQX','Sube los CSV de SQX a la carpeta CSV SQX HISTORICOS en Drive'); }
+    }).catch(function(e){ showEmpty('Error SQX',e.message); });
     return;
   }
 
   _rachaAccs = [];
   var totalEAs=0, totalHot=0, totalWarn=0;
 
-  // Toggle buttons
-  var isCuentas = rachaView==='cuentas';
-  var isRanking = rachaView==='ranking';
-  var btnA = 'flex:1;padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);border:1px solid var(--accent);background:rgba(88,166,255,.15);color:var(--accent)';
-  var btnI = 'flex:1;padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:var(--bg3);color:var(--text2)';
-  var toggleHtml='<div style="display:flex;gap:8px;margin-bottom:14px" id="rachaToggle">'
-    +'<button id="btnRachaCuentas" style="'+( isCuentas?btnA:btnI)+'">🏦 Por cuentas</button>'
-    +'<button id="btnRachaRanking" style="'+(isRanking?btnA:btnI)+'">🎯 Ranking prob.</button>'
-    +'</div>';
   accs.forEach(function(acc){
     var normal=0,warn=0,hot=0,nodata=0;
     acc.eas.forEach(function(ea){
       var sid=extractSID(ea.name);
       if(!sid||!sqxData[sid]){nodata++;return;}
       var sqx=sqxData[sid];
-      var pct=sqx.maxStreak>0?sqx.curStreak/sqx.maxStreak*100:0;
+      var dts=ea.curTradeStreak||0;
+      var pct=sqx.maxStreak>0?dts/sqx.maxStreak*100:0;
       if(pct>=85)hot++;
       else if(pct>=50)warn++;
       else normal++;
@@ -883,6 +867,15 @@ function renderRachas(){
     _rachaAccs.push({acc:acc,normal:normal,warn:warn,hot:hot,nodata:nodata});
   });
 
+  var isCuentas=rachaView==='cuentas';
+  var isRanking=rachaView==='ranking';
+  var btnA='flex:1;padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);border:1px solid var(--accent);background:rgba(88,166,255,.15);color:var(--accent)';
+  var btnI='flex:1;padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:var(--bg3);color:var(--text2)';
+  var toggleHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
+    +'<button id="btnRachaCuentas" style="'+(isCuentas?btnA:btnI)+'">🏦 Por cuentas</button>'
+    +'<button id="btnRachaRanking" style="'+(isRanking?btnA:btnI)+'">🎯 Ranking prob.</button>'
+    +'</div>';
+
   var html=toggleHtml;
   html+='<div class="summary-stats">';
   html+=sCard('Con datos',totalEAs,'var(--accent)');
@@ -890,51 +883,44 @@ function renderRachas(){
   html+=sCard('⚠️ Racha',totalWarn,'var(--red)');
   html+='</div>';
 
-  // RANKING VIEW
-  if(rachaView==='ranking'){
-    // Collect all EAs with SQX data across all accounts
+  if(isRanking){
     var allEAsRanked=[];
-  window._rankEAs=allEAsRanked;
+    window._rankEAs=allEAsRanked;
     accs.forEach(function(acc){
       acc.eas.forEach(function(ea){
         var sid=extractSID(ea.name);
         var sqx=sid?sqxData[sid]:null;
         if(!sqx) return;
-        var dts2=ea.curTradeStreak||0;
-        var dms2=ea.curMonthStreak||0;
-        var pct=sqx.maxStreak>0?dts2/sqx.maxStreak*100:0;
-        var pctM=sqx.maxMonthStreak>0?dms2/sqx.maxMonthStreak*100:0;
+        var dts=ea.curTradeStreak||0;
+        var dms=ea.curMonthStreak||0;
+        var pct=sqx.maxStreak>0?dts/sqx.maxStreak*100:0;
+        var pctM=sqx.maxMonthStreak>0?dms/sqx.maxMonthStreak*100:0;
         var avgPct=(pct+pctM)/2;
         allEAsRanked.push({ea:ea,sqx:sqx,pct:pct,pctM:pctM,avgPct:avgPct,acc:acc});
       });
     });
-    // Sort by avgPct descending
     allEAsRanked.sort(function(a,b){return b.avgPct-a.avgPct;});
-
-    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+allEAsRanked.length+' EAs ordenados por probabilidad</div>';
-
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+allEAsRanked.length+' EAs por probabilidad</div>';
     allEAsRanked.forEach(function(item,i){
-      var ea=item.ea, sqx=item.sqx, pct=item.pct, pctM=item.pctM;
+      var ea=item.ea,sqx=item.sqx,pct=item.pct,pctM=item.pctM;
       var dir=getDir(ea);
-      var dirClr=dir==='LARGO'?'#3fb950':dir==='CORTO'?'#f85149':'#e3b341';
       var sid=extractSID(ea.name);
+      var dirClr=dir==='LARGO'?'#3fb950':dir==='CORTO'?'#f85149':'#e3b341';
       var barClr=pct>=85?'linear-gradient(90deg,#e3b341,#f85149)':pct>=50?'#e3b341':'#3fb950';
       var valClr=pct>=85?'var(--purple)':pct>=50?'var(--gold)':'var(--green)';
       var badge=pct>=85?'🔥 ¡Toca!':pct>=50?'⚠️ '+Math.round(pct)+'%':'✅ '+Math.round(pct)+'%';
       var badgeClr=pct>=85?'#bc8cff':pct>=50?'#e3b341':'#3fb950';
-      var rankNum=i+1;
-      var rankClr=rankNum===1?'#f0c000':rankNum===2?'#9ba3a6':rankNum===3?'#cd7f32':'var(--text3)';
-
-      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">'
+      var rankClr=i===0?'#f0c000':i===1?'#9ba3a6':i===2?'#cd7f32':'var(--text3)';
+      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer" data-rankidx="'+i+'" onclick="openRankEA(parseInt(this.dataset.rankidx))">'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-          +'<div style="width:24px;height:24px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:'+rankClr+';flex-shrink:0">'+rankNum+'</div>'
+          +'<div style="width:24px;height:24px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:'+rankClr+';flex-shrink:0">'+(i+1)+'</div>'
           +'<div style="min-width:0;flex:1">'
             +'<div style="font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ea.name+'</div>'
             +'<div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">'
               +(sid?'<span style="font-size:8px;color:#6e7681;background:#21262d;padding:1px 4px;border-radius:3px;font-family:monospace">'+sid+'</span>':'')
-              +'<span style="font-size:8px;color:#58a6ff;background:rgba(88,166,255,.1);padding:1px 4px;border-radius:3px;font-family:monospace">'+(ea.symbol||'—')+'</span>'
-              +'<span style="font-size:8px;color:'+dirClr+';background:rgba(0,0,0,.2);padding:1px 4px;border-radius:3px;font-family:monospace">'+dir+'</span>'
-              +'<span style="font-size:8px;color:var(--text3);background:var(--bg3);padding:1px 4px;border-radius:3px">'+item.acc.name+'</span>'
+              +'<span style="font-size:8px;color:#58a6ff;padding:1px 4px;border-radius:3px;font-family:monospace">'+(ea.symbol||'—')+'</span>'
+              +'<span style="font-size:8px;color:'+dirClr+';padding:1px 4px;border-radius:3px;font-family:monospace">'+dir+'</span>'
+              +'<span style="font-size:8px;color:var(--text3);padding:1px 4px;border-radius:3px">'+item.acc.name+'</span>'
             +'</div>'
           +'</div>'
           +'<div style="text-align:right;flex-shrink:0">'
@@ -943,40 +929,32 @@ function renderRachas(){
           +'</div>'
         +'</div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
-          +'<div>'
-            +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
-              +'<span style="font-size:8px;color:var(--text3)">Trades</span>'
-              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+(item.ea.curTradeStreak||0)+'/'+sqx.maxStreak+'</span>'
-            +'</div>'
-            +'<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
-              +'<div style="height:5px;border-radius:3px;width:'+Math.min(pct,100)+'%;background:'+barClr+'"></div>'
-            +'</div>'
-          +'</div>'
-          +'<div>'
-            +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
-              +'<span style="font-size:8px;color:var(--text3)">Meses</span>'
-              +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+(item.ea.curMonthStreak||0)+'/'+sqx.maxMonthStreak+'</span>'
-            +'</div>'
-            +'<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
-              +'<div style="height:5px;border-radius:3px;width:'+Math.min(pctM,100)+'%;background:'+(pctM>=85?'linear-gradient(90deg,#e3b341,#f85149)':pctM>=50?'#e3b341':'#3fb950')+'"></div>'
-            +'</div>'
-          +'</div>'
+          +'<div><div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+            +'<span style="font-size:8px;color:var(--text3)">Trades</span>'
+            +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:'+valClr+'">'+(ea.curTradeStreak||0)+'/'+sqx.maxStreak+'</span>'
+          +'</div><div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
+            +'<div style="height:5px;border-radius:3px;width:'+Math.min(pct,100)+'%;background:'+barClr+'"></div>'
+          +'</div></div>'
+          +'<div><div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+            +'<span style="font-size:8px;color:var(--text3)">Meses</span>'
+            +'<span style="font-size:8px;font-weight:700;font-family:var(--mono);color:var(--text2)">'+(ea.curMonthStreak||0)+'/'+sqx.maxMonthStreak+'</span>'
+          +'</div><div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">'
+            +'<div style="height:5px;border-radius:3px;width:'+Math.min(pctM,100)+'%;background:'+(pctM>=85?'linear-gradient(90deg,#e3b341,#f85149)':pctM>=50?'#e3b341':'#3fb950')+'"></div>'
+          +'</div></div>'
         +'</div>'
         +'</div>';
     });
-
     document.getElementById('content').innerHTML=html;
-    // Add toggle listeners for ranking view
     var rb1=document.getElementById('btnRachaCuentas');
     var rb2=document.getElementById('btnRachaRanking');
-    if(rb1) rb1.addEventListener('click', function(){ rachaView='cuentas'; renderRachas(); });
-    if(rb2) rb2.addEventListener('click', function(){ rachaView='ranking'; renderRachas(); });
+    if(rb1) rb1.addEventListener('click',function(){rachaView='cuentas';renderRachas();});
+    if(rb2) rb2.addEventListener('click',function(){rachaView='ranking';renderRachas();});
     return;
   }
 
   _rachaAccs.forEach(function(s,i){
     var acc=s.acc;
-    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="openRachaAcc('+i+')">';
+    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="openRachaAcc('+i+')">'
       +'<div style="position:absolute;top:0;left:0;width:4px;height:100%;background:'+acc.color+';border-radius:4px 0 0 4px"></div>'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
         +'<div><div style="font-size:15px;font-weight:700">'+acc.name+'</div>'
@@ -992,11 +970,10 @@ function renderRachas(){
   });
 
   document.getElementById('content').innerHTML=html;
-  // Add toggle listeners
   var b1=document.getElementById('btnRachaCuentas');
   var b2=document.getElementById('btnRachaRanking');
-  if(b1) b1.addEventListener('click', function(){ rachaView='cuentas'; renderRachas(); });
-  if(b2) b2.addEventListener('click', function(){ rachaView='ranking'; renderRachas(); });
+  if(b1) b1.addEventListener('click',function(){rachaView='cuentas';renderRachas();});
+  if(b2) b2.addEventListener('click',function(){rachaView='ranking';renderRachas();});
 }
 
 function openRachaAcc(i){
