@@ -535,7 +535,7 @@ function calcEA(ea){
     if(ea.trades[ti].pnl<0) curTradeStreak++;
     else break;
   }
-  return{name:ea.name,symbol:ea.symbol,trades:p.length,net:net,maxdd:maxdd,rdd:rdd,wr:wr,pf:pf,byMonth:byMonth,daysSince:daysSince,lastTrade:last,curMonthStreak:curMonthStreak,curTradeStreak:curTradeStreak};
+  return{name:ea.name,symbol:ea.symbol,trades:p.length,rawTrades:ea.trades,net:net,maxdd:maxdd,rdd:rdd,wr:wr,pf:pf,byMonth:byMonth,daysSince:daysSince,lastTrade:last,curMonthStreak:curMonthStreak,curTradeStreak:curTradeStreak};
 }
 
 // ── RENDER TABS ──
@@ -696,20 +696,24 @@ function renderOperaciones(el, acc){
   // Collect ALL trades from all EAs for today
   var todayTrades = [];
   acc.eas.forEach(function(ea){
-    ea.trades.forEach(function(t){
-      var d = t.close || t.open;
-      if(!d) return;
-      var ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      if(ds === todayStr){
-        todayTrades.push({
-          ea: ea.name,
-          symbol: t.symbol,
-          type: t.type,
-          pnl: t.pnl,
-          open: t.open,
-          close: t.close || t.open
-        });
-      }
+    var tradeList = ea.rawTrades || [];
+    if(!Array.isArray(tradeList)) return;
+    tradeList.forEach(function(t){
+      try {
+        var d = t.close || t.open;
+        if(!d || !(d instanceof Date)) return;
+        var ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        if(ds === todayStr){
+          todayTrades.push({
+            ea: ea.name,
+            symbol: t.symbol||'—',
+            type: t.type||'—',
+            pnl: t.pnl||0,
+            open: t.open,
+            close: t.close || t.open
+          });
+        }
+      } catch(e){}
     });
   });
 
