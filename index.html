@@ -945,7 +945,7 @@ function renderRachas(){
         var dms=ea.curMonthStreak||0;
         var pct=sqx.maxStreak>0?dts/sqx.maxStreak*100:0;
         var pctM=sqx.maxMonthStreak>0?dms/sqx.maxMonthStreak*100:0;
-        var avgPct=(pct+pctM)/2;
+        var avgPct=Math.max(pct,pctM);
         allEAsRanked.push({ea:ea,sqx:sqx,pct:pct,pctM:pctM,avgPct:avgPct,acc:acc});
       });
     });
