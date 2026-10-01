@@ -375,7 +375,7 @@ function extractStratId(eaName){
 
 function getDirection(ea){
   var buys=0, sells=0;
-  ea.trades.forEach(function(t){
+  if(ea.rawTrades && Array.isArray(ea.rawTrades)) ea.rawTrades.forEach(function(t){
     if(t.type==='BUY') buys++;
     else sells++;
   });
@@ -873,9 +873,9 @@ function extractSID(name){
 }
 
 function getDir(ea){
-  if(!ea.trades || !Array.isArray(ea.trades)) return 'LARGO';
+  if(!ea.rawTrades || !Array.isArray(ea.rawTrades)) return 'LARGO';
   var b=0,s=0;
-  ea.trades.forEach(function(t){ 
+  ea.rawTrades.forEach(function(t){ 
     if(t.type==='BUY') b++; 
     else if(t.type==='SELL') s++; 
   });
@@ -1257,7 +1257,7 @@ function renderEADetail(tab){
 
   if(tab==='stats'){
     var buys=0,sells=0;
-    ea.trades.forEach(function(t){ if(t.type==='BUY') buys++; else sells++; });
+    if(ea.rawTrades) ea.rawTrades.forEach(function(t){ if(t.type==='BUY') buys++; else sells++; });
     var pf = isFinite(ea.pf)&&ea.pf<900 ? ea.pf.toFixed(2) : '∞';
     html+='<div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">'
       +mBox('Net P&L',(ea.net>=0?'+':'')+' $'+Math.round(ea.net),ea.net>=0?'var(--green)':'var(--red)')
