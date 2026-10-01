@@ -609,6 +609,7 @@ function showAccDetail(acc, tab){
     +'<div class="int-tabs">'
       +'<div class="int-tab'+(tab==='rendimiento'?' active':'')+'" id="tab-rend">📈 Rendimiento</div>'
       +'<div class="int-tab'+(tab==='mensual'?' active':'')+'" id="tab-mens">📅 Mensual EAs</div>'
+      +'<div class="int-tab'+(tab==='operaciones'?' active':'')+'" id="tab-ops">📋 Operaciones</div>'
     +'</div>';
 
   // Inject header before content
@@ -689,72 +690,48 @@ function renderRendimiento(el, acc){
 }
 
 function renderOperaciones(el, acc){
-  // Get today's trades
   var today = new Date();
-  var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  
-  // Collect ALL trades from all EAs for today
+  var yy=today.getFullYear(), mm=today.getMonth(), dd=today.getDate();
   var todayTrades = [];
   acc.eas.forEach(function(ea){
-    var tradeList = ea.rawTrades || [];
-    if(!Array.isArray(tradeList)) return;
-    tradeList.forEach(function(t){
-      try {
-        var d = t.close || t.open;
-        if(!d || !(d instanceof Date)) return;
-        var ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-        if(ds === todayStr){
-          todayTrades.push({
-            ea: ea.name,
-            symbol: t.symbol||'—',
-            type: t.type||'—',
-            pnl: t.pnl||0,
-            open: t.open,
-            close: t.close || t.open
-          });
-        }
-      } catch(e){}
+    var raw = ea.rawTrades;
+    if(!raw || !raw.length) return;
+    raw.forEach(function(t){
+      var d = t.close;
+      if(!d || !(d instanceof Date)) return;
+      if(d.getFullYear()===yy && d.getMonth()===mm && d.getDate()===dd){
+        todayTrades.push({name:ea.name, symbol:t.symbol||'—', type:t.type||'—', pnl:t.pnl||0, close:d});
+      }
     });
   });
-
-  // Sort by close time chronologically
-  todayTrades.sort(function(a,b){ return a.close - b.close; });
-
-  var totalPnl = todayTrades.reduce(function(s,t){return s+t.pnl;},0);
-
-  var html = '';
-
-  // Header with total
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">'
-    +'<div style="font-size:12px;color:var(--text3)">'+todayTrades.length+' operaciones hoy</div>'
-    +'<div style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+(totalPnl>=0?'var(--green)':'var(--red)')+'">'+(totalPnl>=0?'+':'')+' $'+totalPnl.toFixed(2)+'</div>'
+  todayTrades.sort(function(a,b){ return a.close-b.close; });
+  var total = todayTrades.reduce(function(s,t){return s+t.pnl;},0);
+  var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">'
+    +'<span style="font-size:12px;color:var(--text3)">'+todayTrades.length+' operaciones hoy</span>'
+    +'<span style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+(total>=0?'var(--green)':'var(--red)')+'">'+(total>=0?'+':'')+' $'+total.toFixed(2)+'</span>'
     +'</div>';
-
   if(!todayTrades.length){
-    html += '<div style="text-align:center;padding:40px 0;color:var(--text3);font-size:13px">Sin operaciones hoy</div>';
+    html+='<div style="text-align:center;padding:40px 0;color:var(--text3);font-size:13px">Sin operaciones hoy</div>';
   } else {
-    todayTrades.forEach(function(t, i){
-      var h = t.close.getHours().toString().padStart(2,'0');
-      var m = t.close.getMinutes().toString().padStart(2,'0');
-      var isBuy = t.type==='BUY';
-      var isPos = t.pnl >= 0;
-      var cleanName = t.ea.replace(/\[.*$/, '').trim();
-
-      html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px">'
+    todayTrades.forEach(function(t){
+      var h=t.close.getHours().toString().padStart(2,'0');
+      var m=t.close.getMinutes().toString().padStart(2,'0');
+      var isBuy=t.type==='BUY', isPos=t.pnl>=0;
+      var cleanName=t.name.replace(/\[.*$/,'').trim();
+      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
           +'<div style="display:flex;align-items:center;gap:6px">'
             +'<span style="font-size:9px;color:var(--text3);font-family:var(--mono)">'+h+':'+m+'</span>'
-            +'<span style="font-size:9px;padding:1px 5px;border-radius:3px;font-family:var(--mono);font-weight:700;'+(isBuy?'color:#3fb950;background:rgba(63,185,80,.15)':'color:#f85149;background:rgba(248,81,73,.15)')+'">'+t.type+'</span>'
+            +'<span style="font-size:9px;padding:1px 5px;border-radius:3px;font-family:var(--mono);font-weight:700;'+(isBuy?'color:#3fb950;background:rgba(63,185,80,.15)':'color:#f85149;background:rgba(248,81,73,.15)')+'">'+(isBuy?'BUY':'SELL')+'</span>'
             +'<span style="font-size:9px;color:#58a6ff;font-family:var(--mono)">'+t.symbol+'</span>'
           +'</div>'
-          +'<div style="font-size:13px;font-weight:700;font-family:var(--mono);color:'+(isPos?'var(--green)':'var(--red)')+'">'+(isPos?'+':'')+t.pnl.toFixed(2)+'</div>'
+          +'<span style="font-size:13px;font-weight:700;font-family:var(--mono);color:'+(isPos?'var(--green)':'var(--red)')+'">'+(isPos?'+':'')+t.pnl.toFixed(2)+'</span>'
         +'</div>'
         +'<div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+cleanName+'</div>'
         +'</div>';
     });
   }
-
-  el.innerHTML = html;
+  el.innerHTML=html;
 }
 
 function renderMensualEAs(el, acc){
