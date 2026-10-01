@@ -1269,7 +1269,9 @@ function renderEADetail(tab){
       +mBox('Largos',buys,'var(--green)')
       +mBox('Cortos',sells,'var(--red)')
       +mBox('Días sin op.',ea.daysSince,ea.daysSince>7?'var(--red)':'var(--green)')
-      +'</div>';
+      +'</div>'
+      +'<div style="margin-top:12px"><div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Curva de Equity</div>'
+      +'<canvas id="eaEqChart" height="110"></canvas></div>';
   }
 
   if(tab==='mensual'){
@@ -1310,6 +1312,44 @@ function renderEADetail(tab){
   // Write to accTabContent if inside showAccDetail, otherwise to content
   var target = document.getElementById('accTabContent') || document.getElementById('content');
   target.innerHTML=html;
+  // Draw EA equity chart if on stats tab
+  if(tab==='stats'){
+    var eaCtx=document.getElementById('eaEqChart');
+    if(eaCtx && ea.rawTrades && ea.rawTrades.length){
+      var sorted=[].concat(ea.rawTrades).sort(function(a,b){return (a.close||a.open)-(b.close||b.open);});
+      var cumPnl=0;
+      var eqData=sorted.map(function(t){ cumPnl+=t.pnl||0; return Math.round(cumPnl*100)/100; });
+      var labels=sorted.map(function(t,i){ return i+1; });
+      if(window._eaEqChart) window._eaEqChart.destroy();
+      window._eaEqChart=new Chart(eaCtx,{
+        type:'line',
+        data:{
+          labels:labels,
+          datasets:[{
+            data:eqData,
+            borderColor:'#58a6ff',
+            backgroundColor:'rgba(88,166,255,0.08)',
+            borderWidth:1.5,
+            pointRadius:0,
+            fill:true,
+            tension:0.3
+          }]
+        },
+        options:{
+          responsive:true,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' $'+c.raw.toFixed(2);}}}},
+          scales:{
+            x:{display:false},
+            y:{
+              grid:{color:'rgba(255,255,255,0.05)'},
+              ticks:{color:'#6e7681',font:{size:9},callback:function(v){return '$'+v;}}
+            }
+          }
+        }
+      });
+    }
+  }
+
   var t1=document.getElementById('eaTabStats');
   var t2=document.getElementById('eaTabMensual');
   var tb=document.getElementById('eaDetailBack');
