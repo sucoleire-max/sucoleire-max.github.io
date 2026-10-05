@@ -505,8 +505,11 @@ function parseCSV(txt, filename, idx, modTime){
 
 function parseDate(s){
   if(!s) return null;
-  var d=new Date(s.replace(/\./g,'-').replace(' ','T')+(s.length<=16?':00':''));
-  return isNaN(d)?null:d;
+  // Parse manually to avoid UTC timezone issues: "2026.10.05 14:35" 
+  var m=s.match(/(\d{4})[.\-](\d{2})[.\-](\d{2})[ T](\d{2}):(\d{2})/);
+  if(!m) return null;
+  // Use local time (not UTC) so date comparisons work correctly
+  return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], 0);
 }
 
 function calcEA(ea){
