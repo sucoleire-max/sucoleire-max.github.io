@@ -1,0 +1,13 @@
+FGX Trading Monitor v1.0.0 (app móvil, solo lectura)
+
+CÓMO ACTUALIZARLA EN GITHUB (https://github.com/sucoleire-max/sucoleire-max.github.io)
+1. Abre el repositorio en GitHub -> "Add file" -> "Upload files".
+2. Arrastra estos 6 archivos (sustituyen a los antiguos): index.html, sw.js, manifest.json, logo.png, icon-192.png, icon-512.png
+3. "Commit changes". Espera 1-2 minutos a que GitHub Pages publique.
+4. En el móvil abre la app y recárgala una vez (o ciérrala del todo y vuelve a abrir).
+   Si ves la versión vieja: Ajustes del navegador -> borrar datos del sitio, o quita el icono y vuelve a instalar.
+5. La primera vez puede pedir "Reconectar" (toca el botón de arriba a la derecha).
+
+NOMBRES DE LOS CSV DE SQX (carpeta CSV SQX HISTORICOS): vale 2_51_576.csv, 2.51.576.csv o 2_51_576__2025-06-30.csv.
+Si hay varios de la misma estrategia, usa el más reciente.
+La app solo lee de Drive (permiso drive.readonly): no escribe ni borra nada.
