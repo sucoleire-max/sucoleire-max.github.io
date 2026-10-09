@@ -166,9 +166,13 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 .set input:focus{border-color:var(--blue)}
 .set input.n{width:64px;text-align:center;font-size:13px}
 
+/* ===== estrella de favorito ===== */
+.star{background:none;border:0;font-size:22px;line-height:1;color:var(--dimmer);cursor:pointer;padding:4px 2px 4px 6px;flex-shrink:0;transition:transform .15s,color .2s}
+.star.on{color:var(--gold);text-shadow:0 0 12px rgba(230,184,74,.7)}
+.star:active{transform:scale(1.3)}
 /* ===== barra inferior ===== */
-.nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));padding:8px 10px calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;background:rgba(2,6,14,.94);border-top:1px solid var(--line);flex-shrink:0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.nav .it{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;letter-spacing:.1em;color:var(--dimmer);text-transform:uppercase;padding:6px 8px;border-radius:12px;cursor:pointer;min-width:58px;border:1px solid transparent;position:relative;overflow:hidden}
+.nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));gap:2px;padding:8px 6px calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;background:rgba(2,6,14,.94);border-top:1px solid var(--line);flex-shrink:0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav .it{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:8px;letter-spacing:.05em;color:var(--dimmer);text-transform:uppercase;padding:6px 2px;border-radius:12px;cursor:pointer;flex:1;min-width:0;border:1px solid transparent;position:relative;overflow:hidden}
 .nav .it i{font-style:normal;font-size:18px;line-height:1}
 .nav .it.on{color:var(--blue);background:rgba(24,180,255,.1);border-color:rgba(24,180,255,.35);animation:glowp 3s ease-in-out infinite}
 .nav .it.on::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 38%,rgba(150,225,255,.28) 50%,transparent 62%);background-size:260% 100%;animation:tabsweep 4s ease-in-out infinite;pointer-events:none}
@@ -190,6 +194,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
     <div class="it on" data-tab="cuentas"><i>☁</i>Cuentas</div>
     <div class="it" data-tab="demo"><i>🖥</i>Demo</div>
     <div class="it" data-tab="rachas"><i>🎯</i>Rachas</div>
+    <div class="it" data-tab="favs"><i>⭐</i>Favoritos</div>
     <div class="it" data-tab="ranking"><i>🏆</i>Ranking</div>
     <div class="it" data-tab="ajustes"><i>⚙</i>Ajustes</div>
   </nav>
@@ -200,7 +205,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.0.1';
+var VERSION = '1.1.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
@@ -512,6 +517,21 @@ function allAccs() { return D.vps.concat(D.demo); }
 function accBy(id) { return allAccs().filter(function (a) { return a.id === id; })[0]; }
 function eaBy(acc, key) { return acc && acc.eas.filter(function (e) { return e.key === key; })[0]; }
 
+/* ---------- favoritos (se guardan en el móvil) ---------- */
+var FAVS = (function () { try { var v = JSON.parse(ls('tm_favs', '[]')); return Array.isArray(v) ? v : []; } catch (e) { return []; } })();
+function favKey(x) { return x.sid || ('n:' + x.name); }
+function isFav(x) { return FAVS.indexOf(favKey(x)) >= 0; }
+function toggleFav(k) { var i = FAVS.indexOf(k); if (i >= 0) FAVS.splice(i, 1); else FAVS.push(k); lsSet('tm_favs', JSON.stringify(FAVS)); }
+function starHtml(x) { var on = isFav(x); return '<button class="star' + (on ? ' on' : '') + '" data-a="fav" data-k="' + enc(favKey(x)) + '" aria-label="Favorito">' + (on ? '★' : '☆') + '</button>'; }
+function spark(pts, color) {
+  if (pts.length < 2) return '';
+  var step = Math.max(1, Math.ceil(pts.length / 120)), v = [];
+  for (var i = 0; i < pts.length; i += step) v.push(pts[i]); v.push(pts[pts.length - 1]);
+  var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v); if (mx === mn) mx = mn + 1;
+  var d = v.map(function (x, i) { return (i ? 'L' : 'M') + (i * 320 / (v.length - 1)).toFixed(1) + ' ' + (4 + 36 * (1 - (x - mn) / (mx - mn))).toFixed(1); }).join(' ');
+  return '<svg viewBox="0 0 320 44" preserveAspectRatio="none" style="display:block;width:100%;height:44px"><path d="' + d + ' L320 44 L0 44Z" fill="' + color + '" opacity=".14"/><path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.8" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 3px ' + color + ')"/></svg>';
+}
+
 /* ---------- componentes ---------- */
 function mBox(l, v, c) { return '<div class="m"><div class="lbl">' + l + '</div><div class="v ' + (c || '') + '">' + v + '</div></div>'; }
 function chip(t, c) { return '<span class="chip ' + (c || '') + '">' + t + '</span>'; }
@@ -520,9 +540,9 @@ function emptyHtml(ic, t, s, btn) { return '<div class="empty"><div class="ic">'
 function noteHtml() { return (S.live === 'cache' || S.live === 'off') && (D.vps.length || D.demo.length) ? '<div class="note">Sesión de Google caducada: se muestran los datos guardados. Toca <b>Reconectar</b> arriba para actualizar.</div>' : ''; }
 function gauge(p, c, txt) { var R = 29, C = 2 * Math.PI * R; return '<div class="gauge"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="' + R + '" fill="none" stroke="rgba(140,190,255,.12)" stroke-width="6"/><circle cx="35" cy="35" r="' + R + '" fill="none" stroke="' + c + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(p, 100) / 100) + ' ' + C + '" style="filter:drop-shadow(0 0 5px ' + c + ')"/></svg><b style="color:' + c + '">' + txt + '</b></div>'; }
 function barHtml(p, c) { return '<div class="bar"><i style="width:' + Math.min(Math.max(p, 0), 100) + '%;background:linear-gradient(90deg,' + c + '88,' + c + ')"></i></div>'; }
-function backBar(title, sub, color) {
+function backBar(title, sub, color, extra) {
   return '<div class="back"><button class="btn" data-a="back">← Volver</button>' + (color ? '<span class="dot" style="color:' + color + ';background:' + color + '"></span>' : '') +
-    '<div style="min-width:0;flex:1"><div class="nm">' + esc(title) + '</div>' + (sub ? '<div class="lbl" style="margin-top:2px;text-transform:none;letter-spacing:.06em">' + sub + '</div>' : '') + '</div></div>';
+    '<div style="min-width:0;flex:1"><div class="nm">' + esc(title) + '</div>' + (sub ? '<div class="lbl" style="margin-top:2px;text-transform:none;letter-spacing:.06em">' + sub + '</div>' : '') + '</div>' + (extra || '') + '</div>';
 }
 function segHtml(items, cur, act) { return '<div class="seg">' + items.map(function (i) { return '<button class="' + (i[0] === cur ? 'on' : '') + '" data-a="' + act + '" data-k="' + enc(i[0]) + '">' + i[1] + '</button>'; }).join('') + '</div>'; }
 
@@ -619,7 +639,7 @@ function vAcc(e) {
 }
 function eaRow(a, x, i) {
   return '<div class="ea" data-a="ea" data-k="' + enc([a.id, x.key]) + '"><div class="rk ' + (i < 3 ? 'rk' + (i + 1) : '') + '">' + (i + 1) + '</div><div class="in"><div class="t">' + esc(x.name) + '</div><div style="margin-top:3px"><span class="tag b">' + esc(x.symbol || '—') + '</span><span class="tag">' + x.n + ' trades</span><span class="tag">WR ' + (x.wr * 100).toFixed(0) + '%</span></div></div>' +
-    '<div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:14px">' + money(x.net) + '</div></div>';
+    '<div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:14px">' + money(x.net) + '</div>' + starHtml(x) + '</div>';
 }
 function monthsBlock(byMonth, allMonths) {
   var years = {}; allMonths.forEach(function (m) { var y = m.split('-')[0]; (years[y] = years[y] || []).push(m); });
@@ -644,7 +664,7 @@ function mensualEAs(a) {
 function vEA(e) {
   var a = accBy(e.acc), x = eaBy(a, e.ea);
   if (!x) return backBar('EA', '') + emptyHtml('❓', 'EA no encontrado', 'Puede que ya no aparezca en el CSV. Vuelve atrás.');
-  var h = backBar(x.name, esc(a.name) + ' · ' + esc(x.symbol || '—') + ' · ' + dirOf(x), a.color) + segHtml([['stats', 'Stats'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
+  var h = backBar(x.name, esc(a.name) + ' · ' + esc(x.symbol || '—') + ' · ' + dirOf(x), a.color, starHtml(x)) + segHtml([['stats', 'Stats'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
   if (e.tab === 'stats') {
     var di = idle(x), pf = isFinite(x.pf) ? x.pf.toFixed(2).replace('.', ',') : '∞';
     h += '<div class="card hero' + (x.net < 0 ? ' neg' : '') + '"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(x.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(x.net) + '</div>' + chartHtml(equity(x.raw), x.net < 0 ? '#ff5d78' : '#2ee6a0', span(x.raw)) + '</div>' +
@@ -672,7 +692,7 @@ function rachaCard(x, sq, a, noClick) {
   var r = rachaOf(x, sq), lv = level(r.p), lm = level(r.pm);
   return '<div class="card' + (noClick ? '' : ' click') + '" style="--ac:' + lv.c + '"' + (noClick ? '' : ' data-a="ea" data-k="' + enc([a.id, x.key]) + '"') + '><div class="row" style="align-items:center;gap:12px">' + gauge(r.p, lv.c, Math.round(r.p) + '%') +
     '<div style="flex:1;min-width:0"><div class="sub">' + esc(a.name) + '</div><div class="nm" style="font-size:14px">' + esc(x.name) + '</div><div style="margin-top:4px">' + (x.sid ? '<span class="tag">' + x.sid + '</span>' : '') + '<span class="tag b">' + esc(x.symbol || '—') + '</span><span class="tag ' + (dirOf(x) === 'LARGO' ? 'g' : dirOf(x) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(x) + '</span></div></div>' +
-    chip(lv.t, lv.k) + '</div>' +
+    chip(lv.t, lv.k) + (noClick ? '' : starHtml(x)) + '</div>' +
     '<div style="margin-top:12px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Trades seguidos en negativo</span><span class="mono" style="font-size:11px;color:' + lv.c + '">' + x.curTradeStreak + ' / ' + sq.maxStreak + '</span></div>' + barHtml(r.p, lv.c) + '</div>' +
     '<div style="margin-top:9px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Meses seguidos en negativo</span><span class="mono" style="font-size:11px;color:' + lm.c + '">' + x.curMonthStreak + ' / ' + sq.maxMonthStreak + '</span></div>' + barHtml(r.pm, lm.c) + '</div>' +
     '<div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:6px">' + mBox('Actual', x.curTradeStreak, x.curTradeStreak ? 'r' : '') + mBox('Máx hist.', sq.maxStreak) + mBox('Media', sq.avgStreak.toFixed(1).replace('.', ',')) + mBox('% compl.', Math.round(r.p) + '%') + '</div></div>';
@@ -710,6 +730,29 @@ function vRachaAcc(e) {
   }).join('');
 }
 
+/* ---------- favoritos ---------- */
+function vFavs() {
+  var accs = allAccs();
+  var h = '<h1 class="pt">Favoritos</h1>' + noteHtml();
+  var items = []; accs.forEach(function (a) { a.eas.forEach(function (x) { if (isFav(x)) items.push({ a: a, x: x }); }); });
+  if (!items.length) return h + emptyHtml('⭐', 'Aún no tienes favoritos', 'Toca la estrella ☆ en cualquier EA (Ranking, cuentas, Rachas o detalle) y aparecerá aquí con todos sus datos y su curva de equity.');
+  var today = new Date(), tot = 0; items.forEach(function (i) { i.day = dayPnl(i.x.raw, today); tot += i.day; });
+  items.sort(function (p, q) { return q.x.net - p.x.net; });
+  h += '<div class="card hero' + (tot < 0 ? ' neg' : '') + '"><div class="lbl">Favoritos · P&amp;L de hoy</div><div class="big ' + cl(tot) + '" style="font-size:30px;margin:5px 0 2px">' + money(tot, 2) + '</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + items.length + ' EAs', 'a') + '</div></div>';
+  items.forEach(function (i) {
+    var x = i.x, a = i.a, sq = x.sid && D.sqx[x.sid], di = idle(x), col = x.net < 0 ? '#ff5d78' : '#2ee6a0';
+    var rc = '';
+    if (sq) { var r = rachaOf(x, sq), lv = level(r.p); rc = chip(lv.t, lv.k) + chip('Racha ' + x.curTradeStreak + '/' + sq.maxStreak, lv.k); }
+    h += '<div class="card click" data-a="ea" data-k="' + enc([a.id, x.key]) + '" style="--ac:' + a.color + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="sub">' + esc(a.name) + '</div><div class="nm" style="white-space:normal;line-height:1.2">' + esc(x.name) + '</div>' +
+      '<div style="margin-top:4px">' + (x.sid ? '<span class="tag">' + x.sid + '</span>' : '') + '<span class="tag b">' + esc(x.symbol || '—') + '</span><span class="tag ' + (dirOf(x) === 'LARGO' ? 'g' : dirOf(x) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(x) + '</span></div></div>' +
+      '<div style="text-align:right"><div class="lbl">Hoy</div><div class="mono ' + cl(i.day) + '" style="font-weight:600;font-size:15px">' + money(i.day, 0) + '</div><div class="lbl" style="margin-top:4px">Net</div><div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:15px">' + money(x.net) + '</div></div>' + starHtml(x) + '</div>' +
+      '<div style="margin:10px 0 4px">' + spark(equity(x.raw), col) + '</div>' +
+      '<div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">' + mBox('Win rate', (x.wr * 100).toFixed(0) + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(x.maxdd), 'r') + mBox('Sin op.', di > 9000 ? '—' : di + 'd', di > ALERT_DAYS ? 'r' : 'g') + '</div>' +
+      '<div class="chips">' + chip(x.n + ' trades') + rc + '</div></div>';
+  });
+  return h;
+}
+
 /* ---------- ranking ---------- */
 function vRanking() {
   var accs = allAccs();
@@ -723,7 +766,7 @@ function vRanking() {
   list.forEach(function (i, n) {
     var x = i.x, mp = x.byMonth[cm] || 0;
     h += '<div class="card click" data-a="ea" data-k="' + enc([i.a.id, x.key]) + '" style="--ac:' + i.a.color + ';padding:12px"><div class="row" style="align-items:center"><div class="rk ' + (n < 3 ? 'rk' + (n + 1) : '') + '">' + (n + 1) + '</div><div style="flex:1;min-width:0"><div class="nm" style="font-size:13px">' + esc(x.name) + '</div><div style="margin-top:3px"><span class="tag b">' + esc(x.symbol || '—') + '</span>' + (S.rankFilter === 'global' ? '<span class="tag">' + esc(i.a.name) + '</span>' : '') + '</div></div>' +
-      '<div style="text-align:right"><div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:15px">' + money(x.net) + '</div><div class="lbl" style="margin-top:2px">Mes ' + money(mp) + '</div></div></div>' +
+      '<div style="text-align:right"><div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:15px">' + money(x.net) + '</div><div class="lbl" style="margin-top:2px">Mes ' + money(mp) + '</div></div>' + starHtml(x) + '</div>' +
       '<div class="grid3" style="margin-top:10px">' + mBox('Trades', x.n, 'b') + mBox('Win rate', (x.wr * 100).toFixed(0) + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') + '</div></div>';
   });
   return h;
@@ -755,7 +798,7 @@ function render() {
   CH = [];
   try {
     if (top) h = top.t === 'acc' ? vAcc(top) : top.t === 'ea' ? vEA(top) : vRachaAcc(top);
-    else h = S.tab === 'cuentas' ? vAccounts('vps') : S.tab === 'demo' ? vAccounts('demo') : S.tab === 'rachas' ? vRachas() : S.tab === 'ranking' ? vRanking() : vAjustes();
+    else h = S.tab === 'cuentas' ? vAccounts('vps') : S.tab === 'demo' ? vAccounts('demo') : S.tab === 'rachas' ? vRachas() : S.tab === 'favs' ? vFavs() : S.tab === 'ranking' ? vRanking() : vAjustes();
   } catch (err) { console.error(err); h = emptyHtml('⚠️', 'Algo falló al mostrar esta pantalla', esc(err.message), '<button class="btn pri" data-a="back">Volver</button>'); }
   var id = viewId(); el.innerHTML = h; drawCharts();
   el.scrollTop = scrollMem[id] || 0;
@@ -765,6 +808,7 @@ document.getElementById('content').addEventListener('scroll', function () { scro
 var ACT = {
   back: function () { if (S.stack.length) pop(); else render(); },
   connect: connect, refresh: refresh,
+  fav: function (k) { toggleFav(JSON.parse(k)); render(); },
   acc: function (k) { push({ t: 'acc', id: JSON.parse(k), tab: 'rend' }); },
   ea: function (k) { var p = JSON.parse(k); push({ t: 'ea', acc: p[0], ea: p[1], tab: 'stats' }); },
   racha: function (k) { push({ t: 'racha', id: JSON.parse(k) }); },
