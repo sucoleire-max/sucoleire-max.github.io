@@ -170,6 +170,8 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 .star{background:none;border:0;font-size:22px;line-height:1;color:var(--dimmer);cursor:pointer;padding:4px 2px 4px 6px;flex-shrink:0;transition:transform .15s,color .2s}
 .star.on{color:var(--gold);text-shadow:0 0 12px rgba(230,184,74,.7)}
 .star:active{transform:scale(1.3)}
+.card.favc{border-color:rgba(230,184,74,.5);box-shadow:0 0 22px rgba(230,184,74,.16),inset 0 0 30px rgba(230,184,74,.05)}
+.card.favc::before{background:linear-gradient(90deg,transparent,rgba(230,184,74,.95),transparent);background-size:60% 100%;background-repeat:no-repeat}
 /* ===== barra inferior ===== */
 .nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));gap:2px;padding:8px 6px calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;background:rgba(2,6,14,.94);border-top:1px solid var(--line);flex-shrink:0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .nav .it{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:8px;letter-spacing:.05em;color:var(--dimmer);text-transform:uppercase;padding:6px 2px;border-radius:12px;cursor:pointer;flex:1;min-width:0;border:1px solid transparent;position:relative;overflow:hidden}
@@ -205,7 +207,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.1.0';
+var VERSION = '1.2.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
@@ -532,6 +534,18 @@ function spark(pts, color) {
   return '<svg viewBox="0 0 320 44" preserveAspectRatio="none" style="display:block;width:100%;height:44px"><path d="' + d + ' L320 44 L0 44Z" fill="' + color + '" opacity=".14"/><path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.8" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 3px ' + color + ')"/></svg>';
 }
 
+/* grupo de favorito: el mismo EA (misma estrategia) en todas las cuentas */
+function favGroup(k) {
+  var inst = []; allAccs().forEach(function (a) { a.eas.forEach(function (x) { if (favKey(x) === k) inst.push({ a: a, x: x }); }); });
+  if (!inst.length) return null;
+  var raw = []; inst.forEach(function (i) { raw = raw.concat(i.x.raw); });
+  raw.sort(function (p, q) { return p.close - q.close; });
+  var g = { key: k, sid: inst[0].x.sid, name: inst[0].x.name, symbol: inst[0].x.symbol, raw: raw, inst: inst };
+  var m = calc(raw); for (var z in m) g[z] = m[z];
+  return g;
+}
+function favGroups() { return FAVS.map(favGroup).filter(Boolean); }
+
 /* ---------- componentes ---------- */
 function mBox(l, v, c) { return '<div class="m"><div class="lbl">' + l + '</div><div class="v ' + (c || '') + '">' + v + '</div></div>'; }
 function chip(t, c) { return '<span class="chip ' + (c || '') + '">' + t + '</span>'; }
@@ -671,6 +685,7 @@ function vEA(e) {
       '<div class="grid3" style="margin:0">' + mBox('Trades', x.n, 'b') + mBox('Win rate', (x.wr * 100).toFixed(1).replace('.', ',') + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') +
       mBox('Max DD', '-$' + fmt(x.maxdd), 'r') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Días sin op.', di > 9000 ? '—' : di, di > ALERT_DAYS ? 'r' : 'g') +
       mBox('Largos', x.buys, 'g') + mBox('Cortos', x.sells, 'r') + mBox('Racha actual', x.curTradeStreak + ' ✗', x.curTradeStreak ? 'r' : 'g') + '</div>';
+    if (isFav(x)) { var gg = favGroup(favKey(x)); if (gg && gg.inst.length > 1) h += '<div class="card click favc" data-a="fav2" data-k="' + enc(gg.key) + '" style="padding:12px"><div class="row" style="align-items:center"><div><div class="nm">⭐ Ver en las ' + gg.inst.length + ' cuentas</div><div class="lbl" style="margin-top:2px">Resumen junto y comparativa</div></div><span class="d" style="font-size:20px">›</span></div></div>'; }
     var sq = x.sid && D.sqx[x.sid];
     if (sq) { h += '<div class="sec">Racha vs SQX</div>' + rachaCard(x, sq, a, true); }
   } else if (e.tab === 'mens') {
@@ -732,24 +747,75 @@ function vRachaAcc(e) {
 
 /* ---------- favoritos ---------- */
 function vFavs() {
-  var accs = allAccs();
   var h = '<h1 class="pt">Favoritos</h1>' + noteHtml();
-  var items = []; accs.forEach(function (a) { a.eas.forEach(function (x) { if (isFav(x)) items.push({ a: a, x: x }); }); });
-  if (!items.length) return h + emptyHtml('⭐', 'Aún no tienes favoritos', 'Toca la estrella ☆ en cualquier EA (Ranking, cuentas, Rachas o detalle) y aparecerá aquí con todos sus datos y su curva de equity.');
-  var today = new Date(), tot = 0; items.forEach(function (i) { i.day = dayPnl(i.x.raw, today); tot += i.day; });
-  items.sort(function (p, q) { return q.x.net - p.x.net; });
-  h += '<div class="card hero' + (tot < 0 ? ' neg' : '') + '"><div class="lbl">Favoritos · P&amp;L de hoy</div><div class="big ' + cl(tot) + '" style="font-size:30px;margin:5px 0 2px">' + money(tot, 2) + '</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + items.length + ' EAs', 'a') + '</div></div>';
-  items.forEach(function (i) {
-    var x = i.x, a = i.a, sq = x.sid && D.sqx[x.sid], di = idle(x), col = x.net < 0 ? '#ff5d78' : '#2ee6a0';
-    var rc = '';
-    if (sq) { var r = rachaOf(x, sq), lv = level(r.p); rc = chip(lv.t, lv.k) + chip('Racha ' + x.curTradeStreak + '/' + sq.maxStreak, lv.k); }
-    h += '<div class="card click" data-a="ea" data-k="' + enc([a.id, x.key]) + '" style="--ac:' + a.color + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="sub">' + esc(a.name) + '</div><div class="nm" style="white-space:normal;line-height:1.2">' + esc(x.name) + '</div>' +
-      '<div style="margin-top:4px">' + (x.sid ? '<span class="tag">' + x.sid + '</span>' : '') + '<span class="tag b">' + esc(x.symbol || '—') + '</span><span class="tag ' + (dirOf(x) === 'LARGO' ? 'g' : dirOf(x) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(x) + '</span></div></div>' +
-      '<div style="text-align:right"><div class="lbl">Hoy</div><div class="mono ' + cl(i.day) + '" style="font-weight:600;font-size:15px">' + money(i.day, 0) + '</div><div class="lbl" style="margin-top:4px">Net</div><div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:15px">' + money(x.net) + '</div></div>' + starHtml(x) + '</div>' +
-      '<div style="margin:10px 0 4px">' + spark(equity(x.raw), col) + '</div>' +
-      '<div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">' + mBox('Win rate', (x.wr * 100).toFixed(0) + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(x.maxdd), 'r') + mBox('Sin op.', di > 9000 ? '—' : di + 'd', di > ALERT_DAYS ? 'r' : 'g') + '</div>' +
-      '<div class="chips">' + chip(x.n + ' trades') + rc + '</div></div>';
+  var items = favGroups();
+  if (!items.length) return h + emptyHtml('⭐', 'Aún no tienes favoritos', 'Toca la estrella ☆ en cualquier EA (Ranking, cuentas, Rachas o detalle). Aquí verás cada EA una sola vez, con todas las cuentas donde corre.');
+  var today = new Date(), tot = 0, nacc = 0; items.forEach(function (g) { g.day = dayPnl(g.raw, today); tot += g.day; nacc += g.inst.length; });
+  items.sort(function (p, q) { return q.net - p.net; });
+  h += '<div class="card hero' + (tot < 0 ? ' neg' : '') + '"><div class="lbl">Favoritos · P&amp;L de hoy</div><div class="big ' + cl(tot) + '" style="font-size:30px;margin:5px 0 2px">' + money(tot, 2) + '</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + items.length + ' EAs', 'a') + chip(nacc + ' en cuentas', 'b') + '</div></div>';
+  items.forEach(function (g) {
+    var sq = g.sid && D.sqx[g.sid], di = idle(g), col = g.net < 0 ? '#ff5d78' : '#2ee6a0', rc = '';
+    if (sq) { var worst = 0; g.inst.forEach(function (i) { worst = Math.max(worst, rachaOf(i.x, sq).p); }); var lv = level(worst); rc = chip('Peor racha ' + lv.t, lv.k); }
+    h += '<div class="card click favc" data-a="fav2" data-k="' + enc(g.key) + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="nm" style="white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2;word-break:break-word">' + esc(g.name) + '</div>' +
+      '<div style="margin-top:4px">' + (g.sid ? '<span class="tag">' + g.sid + '</span>' : '') + '<span class="tag b">' + esc(g.symbol || '—') + '</span><span class="tag ' + (dirOf(g) === 'LARGO' ? 'g' : dirOf(g) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(g) + '</span></div></div>' +
+      '<div style="text-align:right"><div class="lbl">Hoy</div><div class="mono ' + cl(g.day) + '" style="font-weight:600;font-size:15px">' + money(g.day, 0) + '</div><div class="lbl" style="margin-top:4px">Net</div><div class="mono ' + cl(g.net) + '" style="font-weight:600;font-size:15px">' + money(g.net) + '</div></div>' + starHtml(g) + '</div>' +
+      '<div style="margin:10px 0 4px">' + spark(equity(g.raw), col) + '</div>' +
+      '<div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">' + mBox('Win rate', (g.wr * 100).toFixed(0) + '%', g.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', g.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(g.maxdd), 'r') + mBox('Sin op.', di > 9000 ? '—' : di + 'd', di > ALERT_DAYS ? 'r' : 'g') + '</div>' +
+      '<div class="chips">' + chip('📊 en ' + g.inst.length + (g.inst.length === 1 ? ' cuenta' : ' cuentas'), 'b') + chip(g.n + ' trades') + rc + '</div></div>';
   });
+  return h;
+}
+
+/* ficha de un EA favorito: todas las cuentas juntas + comparativa */
+function vFavDetail(e) {
+  var g = favGroup(e.k);
+  if (!g) return backBar('Favorito', '') + emptyHtml('❓', 'EA no encontrado', 'Ya no aparece en ninguna cuenta. Vuelve atrás.');
+  var h = backBar(g.name, g.inst.length + (g.inst.length === 1 ? ' cuenta' : ' cuentas') + ' · ' + esc(g.symbol || '—') + ' · ' + dirOf(g), null, starHtml(g)) +
+    segHtml([['stats', 'Resumen'], ['comp', 'Comparar'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
+  var sq = g.sid && D.sqx[g.sid];
+  if (e.tab === 'stats') {
+    var di = idle(g), pf = isFinite(g.pf) ? g.pf.toFixed(2).replace('.', ',') : '∞', day = dayPnl(g.raw, new Date());
+    h += '<div class="card hero' + (g.net < 0 ? ' neg' : '') + '"><div class="row" style="align-items:center"><div class="lbl">Net P&amp;L · todas las cuentas</div>' + chip('Hoy ' + money(day, 0), day < 0 ? 'r' : day > 0 ? 'g' : '') + '</div><div class="big ' + cl(g.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(g.net) + '</div>' + chartHtml(equity(g.raw), g.net < 0 ? '#ff5d78' : '#2ee6a0', span(g.raw)) + '</div>' +
+      '<div class="grid3" style="margin:0">' + mBox('Trades', g.n, 'b') + mBox('Win rate', (g.wr * 100).toFixed(1).replace('.', ',') + '%', g.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') +
+      mBox('Max DD', '-$' + fmt(g.maxdd), 'r') + mBox('Ret/DD', g.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Días sin op.', di > 9000 ? '—' : di, di > ALERT_DAYS ? 'r' : 'g') +
+      mBox('Largos', g.buys, 'g') + mBox('Cortos', g.sells, 'r') + mBox('Cuentas', g.inst.length, 'b') + '</div>';
+    h += '<div class="sec">Dónde corre</div><div class="card" style="padding:4px 14px">' + g.inst.slice().sort(function (p, q) { return q.x.net - p.x.net; }).map(function (i) {
+      return '<div class="ea" data-a="ea" data-k="' + enc([i.a.id, i.x.key]) + '"><div class="in"><div class="t">' + esc(i.a.name) + '</div><div style="margin-top:3px"><span class="tag">' + i.x.n + ' trades</span><span class="tag">WR ' + (i.x.wr * 100).toFixed(0) + '%</span></div></div><div class="mono ' + cl(i.x.net) + '" style="font-weight:600;font-size:14px">' + money(i.x.net) + '</div></div>';
+    }).join('') + '</div>';
+    if (sq) { h += '<div class="sec">Racha vs SQX (por cuenta)</div>' + g.inst.map(function (i) { return rachaCard(i.x, sq, i.a); }).join(''); }
+  } else if (e.tab === 'comp') {
+    var n = g.inst.length;
+    var avg = function (i) { return i.x.n ? i.x.net / i.x.n : 0; };
+    var mAvg = g.n ? g.net / g.n : 0;
+    if (n < 2) h += '<div class="note">Este EA solo está en una cuenta, no hay con qué compararlo.</div>';
+    h += '<div class="lbl" style="margin-bottom:8px">Cada cuenta frente al conjunto (media por trade, win rate, racha y actividad)</div>';
+    var sorted = g.inst.slice().sort(function (p, q) { return avg(q) - avg(p); });
+    sorted.forEach(function (i, idx) {
+      var x = i.x, a = i.a, d = x.wr * 100 - g.wr * 100, flags = '', pf = isFinite(x.pf) ? x.pf.toFixed(2).replace('.', ',') : '∞', dd = idle(x), col = x.net < 0 ? '#ff5d78' : '#2ee6a0';
+      if (n > 1) {
+        if (Math.abs(d) >= 8) flags += chip((d > 0 ? '▲ ' : '▼ ') + 'WR ' + (d > 0 ? '+' : '') + d.toFixed(0) + ' pts', d > 0 ? 'g' : 'r');
+        if (dd > ALERT_DAYS) { var others = g.inst.filter(function (o) { return o !== i && idle(o.x) <= ALERT_DAYS; }).length; if (others) flags += chip('⚠ sin operar ' + dd + 'd (otras sí)', 'r'); }
+        if (mAvg > 0 && avg(i) < mAvg * 0.5) flags += chip('▼ media/trade baja', 'r'); else if (mAvg > 0 && avg(i) > mAvg * 1.5) flags += chip('▲ media/trade alta', 'g');
+        if (idx === 0) flags += chip('🏆 mejor media/trade', 'a');
+      }
+      if (sq) { var lv = level(rachaOf(x, sq).p); flags += chip('Racha ' + x.curTradeStreak + '/' + sq.maxStreak + ' ' + lv.t, lv.k); }
+      var ad = dayPnl(x.raw, new Date());
+      h += '<div class="card click" data-a="ea" data-k="' + enc([a.id, x.key]) + '" style="--ac:' + a.color + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="nm">' + esc(a.name) + '</div><div class="lbl" style="margin-top:2px">' + x.n + ' trades · desde ' + (x.raw.length ? x.raw[0].close.getDate() + ' ' + MES[x.raw[0].close.getMonth()] + ' ' + String(x.raw[0].close.getFullYear()).slice(2) : '—') + '</div></div>' +
+        '<div style="text-align:right;margin-right:10px"><div class="lbl">Hoy</div><div class="mono ' + cl(ad) + '" style="font-weight:600">' + money(ad, 0) + '</div></div><div style="text-align:right"><div class="lbl">Net</div><div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:15px">' + money(x.net) + '</div></div></div>' +
+        '<div style="margin:8px 0 2px">' + spark(equity(x.raw), col) + '</div>' +
+        '<div class="grid3" style="grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">' + mBox('Win rate', (x.wr * 100).toFixed(1).replace('.', ',') + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') +
+        mBox('Media/trade', money(avg(i), 2), cl(avg(i))) + mBox('Max DD', '-$' + fmt(x.maxdd), 'r') + mBox('Sin op.', dd > 9000 ? '—' : dd + 'd', dd > ALERT_DAYS ? 'r' : 'g') + '</div>' +
+        (flags ? '<div class="chips">' + flags + '</div>' : '') + '</div>';
+    });
+    h += '<div class="lbl" style="text-align:center;margin:4px 0 10px">Conjunto: WR ' + (g.wr * 100).toFixed(1).replace('.', ',') + '% · media/trade ' + money(mAvg, 2) + '</div>';
+  } else if (e.tab === 'mens') {
+    var ms = Object.keys(g.byMonth).sort(), tot = ms.reduce(function (s2, k) { return s2 + g.byMonth[k]; }, 0);
+    h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Total · todas las cuentas</span><span class="mono ' + cl(tot) + '" style="font-weight:600">' + money(tot) + '</span></div>' + monthsBlock(g.byMonth, ms) + '</div>';
+    g.inst.forEach(function (i) { var m2 = Object.keys(i.x.byMonth).sort(), t2 = m2.reduce(function (s2, k) { return s2 + i.x.byMonth[k]; }, 0); h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><div class="nm" style="font-size:13px">' + esc(i.a.name) + '</div><span class="mono ' + cl(t2) + '" style="font-weight:600">' + money(t2) + '</span></div>' + monthsBlock(i.x.byMonth, ms) + '</div>'; });
+  } else {
+    var tr = []; g.inst.forEach(function (i) { i.x.raw.forEach(function (t) { tr.push({ close: t.close, pnl: t.pnl, type: t.type, symbol: t.symbol, eaName: i.a.name }); }); });
+    h += opsHtml(tr, null);
+  }
   return h;
 }
 
@@ -797,7 +863,7 @@ function render() {
   if (S.loading && !D.vps.length && !D.demo.length) return;
   CH = [];
   try {
-    if (top) h = top.t === 'acc' ? vAcc(top) : top.t === 'ea' ? vEA(top) : vRachaAcc(top);
+    if (top) h = top.t === 'acc' ? vAcc(top) : top.t === 'ea' ? vEA(top) : top.t === 'fav' ? vFavDetail(top) : vRachaAcc(top);
     else h = S.tab === 'cuentas' ? vAccounts('vps') : S.tab === 'demo' ? vAccounts('demo') : S.tab === 'rachas' ? vRachas() : S.tab === 'favs' ? vFavs() : S.tab === 'ranking' ? vRanking() : vAjustes();
   } catch (err) { console.error(err); h = emptyHtml('⚠️', 'Algo falló al mostrar esta pantalla', esc(err.message), '<button class="btn pri" data-a="back">Volver</button>'); }
   var id = viewId(); el.innerHTML = h; drawCharts();
@@ -809,6 +875,7 @@ var ACT = {
   back: function () { if (S.stack.length) pop(); else render(); },
   connect: connect, refresh: refresh,
   fav: function (k) { toggleFav(JSON.parse(k)); render(); },
+  fav2: function (k) { push({ t: 'fav', k: JSON.parse(k), tab: 'stats' }); },
   acc: function (k) { push({ t: 'acc', id: JSON.parse(k), tab: 'rend' }); },
   ea: function (k) { var p = JSON.parse(k); push({ t: 'ea', acc: p[0], ea: p[1], tab: 'stats' }); },
   racha: function (k) { push({ t: 'racha', id: JSON.parse(k) }); },
@@ -847,6 +914,4 @@ document.addEventListener('visibilitychange', function () {
   else { await loadAll(true); if (!(D.vps.length || D.demo.length)) { setLive('off'); render(); } }
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
 })();
-</script>
-</body>
-</html>
+</script></body></html>
