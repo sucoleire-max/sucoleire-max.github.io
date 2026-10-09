@@ -207,7 +207,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.2.0';
+var VERSION = '1.2.1';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
@@ -538,10 +538,12 @@ function spark(pts, color) {
 function favGroup(k) {
   var inst = []; allAccs().forEach(function (a) { a.eas.forEach(function (x) { if (favKey(x) === k) inst.push({ a: a, x: x }); }); });
   if (!inst.length) return null;
-  var raw = []; inst.forEach(function (i) { raw = raw.concat(i.x.raw); });
-  raw.sort(function (p, q) { return p.close - q.close; });
-  var g = { key: k, sid: inst[0].x.sid, name: inst[0].x.name, symbol: inst[0].x.symbol, raw: raw, inst: inst };
-  var m = calc(raw); for (var z in m) g[z] = m[z];
+  /* el EA "escogido" es el de la cuenta Demo (si está en varias demo, el de más trades); las demás cuentas solo sirven para comparar, no se suman */
+  var demos = inst.filter(function (i) { return D.demo.indexOf(i.a) >= 0; });
+  var pool = demos.length ? demos : inst;
+  var prim = pool.slice().sort(function (p, q) { return q.x.n - p.x.n; })[0];
+  var g = { key: k, sid: prim.x.sid, name: prim.x.name, symbol: prim.x.symbol, raw: prim.x.raw, inst: inst, prim: prim, isDemo: demos.length > 0 };
+  var m = calc(g.raw); for (var z in m) g[z] = m[z];
   return g;
 }
 function favGroups() { return FAVS.map(favGroup).filter(Boolean); }
@@ -685,7 +687,7 @@ function vEA(e) {
       '<div class="grid3" style="margin:0">' + mBox('Trades', x.n, 'b') + mBox('Win rate', (x.wr * 100).toFixed(1).replace('.', ',') + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') +
       mBox('Max DD', '-$' + fmt(x.maxdd), 'r') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Días sin op.', di > 9000 ? '—' : di, di > ALERT_DAYS ? 'r' : 'g') +
       mBox('Largos', x.buys, 'g') + mBox('Cortos', x.sells, 'r') + mBox('Racha actual', x.curTradeStreak + ' ✗', x.curTradeStreak ? 'r' : 'g') + '</div>';
-    if (isFav(x)) { var gg = favGroup(favKey(x)); if (gg && gg.inst.length > 1) h += '<div class="card click favc" data-a="fav2" data-k="' + enc(gg.key) + '" style="padding:12px"><div class="row" style="align-items:center"><div><div class="nm">⭐ Ver en las ' + gg.inst.length + ' cuentas</div><div class="lbl" style="margin-top:2px">Resumen junto y comparativa</div></div><span class="d" style="font-size:20px">›</span></div></div>'; }
+    if (isFav(x)) { var gg = favGroup(favKey(x)); if (gg && gg.inst.length > 1) h += '<div class="card click favc" data-a="fav2" data-k="' + enc(gg.key) + '" style="padding:12px"><div class="row" style="align-items:center"><div><div class="nm">⭐ Ver en las ' + gg.inst.length + ' cuentas</div><div class="lbl" style="margin-top:2px">Ficha de la escogida y comparativa</div></div><span class="d" style="font-size:20px">›</span></div></div>'; }
     var sq = x.sid && D.sqx[x.sid];
     if (sq) { h += '<div class="sec">Racha vs SQX</div>' + rachaCard(x, sq, a, true); }
   } else if (e.tab === 'mens') {
@@ -750,18 +752,18 @@ function vFavs() {
   var h = '<h1 class="pt">Favoritos</h1>' + noteHtml();
   var items = favGroups();
   if (!items.length) return h + emptyHtml('⭐', 'Aún no tienes favoritos', 'Toca la estrella ☆ en cualquier EA (Ranking, cuentas, Rachas o detalle). Aquí verás cada EA una sola vez, con todas las cuentas donde corre.');
-  var today = new Date(), tot = 0, nacc = 0; items.forEach(function (g) { g.day = dayPnl(g.raw, today); tot += g.day; nacc += g.inst.length; });
+  var today = new Date(), tot = 0; items.forEach(function (g) { g.day = dayPnl(g.raw, today); tot += g.day; });
   items.sort(function (p, q) { return q.net - p.net; });
-  h += '<div class="card hero' + (tot < 0 ? ' neg' : '') + '"><div class="lbl">Favoritos · P&amp;L de hoy</div><div class="big ' + cl(tot) + '" style="font-size:30px;margin:5px 0 2px">' + money(tot, 2) + '</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + items.length + ' EAs', 'a') + chip(nacc + ' en cuentas', 'b') + '</div></div>';
+  h += '<div class="card hero' + (tot < 0 ? ' neg' : '') + '"><div class="lbl">Favoritos · P&amp;L de hoy</div><div class="big ' + cl(tot) + '" style="font-size:30px;margin:5px 0 2px">' + money(tot, 2) + '</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + items.length + ' EAs', 'a') + '</div></div>';
   items.forEach(function (g) {
     var sq = g.sid && D.sqx[g.sid], di = idle(g), col = g.net < 0 ? '#ff5d78' : '#2ee6a0', rc = '';
-    if (sq) { var worst = 0; g.inst.forEach(function (i) { worst = Math.max(worst, rachaOf(i.x, sq).p); }); var lv = level(worst); rc = chip('Peor racha ' + lv.t, lv.k); }
+    if (sq) { var lv = level(rachaOf(g.prim.x, sq).p); rc = chip('Racha ' + lv.t, lv.k); }
     h += '<div class="card click favc" data-a="fav2" data-k="' + enc(g.key) + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="nm" style="white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2;word-break:break-word">' + esc(g.name) + '</div>' +
       '<div style="margin-top:4px">' + (g.sid ? '<span class="tag">' + g.sid + '</span>' : '') + '<span class="tag b">' + esc(g.symbol || '—') + '</span><span class="tag ' + (dirOf(g) === 'LARGO' ? 'g' : dirOf(g) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(g) + '</span></div></div>' +
       '<div style="text-align:right"><div class="lbl">Hoy</div><div class="mono ' + cl(g.day) + '" style="font-weight:600;font-size:15px">' + money(g.day, 0) + '</div><div class="lbl" style="margin-top:4px">Net</div><div class="mono ' + cl(g.net) + '" style="font-weight:600;font-size:15px">' + money(g.net) + '</div></div>' + starHtml(g) + '</div>' +
       '<div style="margin:10px 0 4px">' + spark(equity(g.raw), col) + '</div>' +
       '<div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">' + mBox('Win rate', (g.wr * 100).toFixed(0) + '%', g.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', g.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(g.maxdd), 'r') + mBox('Sin op.', di > 9000 ? '—' : di + 'd', di > ALERT_DAYS ? 'r' : 'g') + '</div>' +
-      '<div class="chips">' + chip('📊 en ' + g.inst.length + (g.inst.length === 1 ? ' cuenta' : ' cuentas'), 'b') + chip(g.n + ' trades') + rc + '</div></div>';
+      '<div class="chips">' + chip('🖥 ' + esc(g.prim.a.name), 'b') + (g.inst.length > 1 ? chip('+' + (g.inst.length - 1) + ' cuentas más') : '') + chip(g.n + ' trades') + rc + '</div></div>';
   });
   return h;
 }
@@ -770,33 +772,33 @@ function vFavs() {
 function vFavDetail(e) {
   var g = favGroup(e.k);
   if (!g) return backBar('Favorito', '') + emptyHtml('❓', 'EA no encontrado', 'Ya no aparece en ninguna cuenta. Vuelve atrás.');
-  var h = backBar(g.name, g.inst.length + (g.inst.length === 1 ? ' cuenta' : ' cuentas') + ' · ' + esc(g.symbol || '—') + ' · ' + dirOf(g), null, starHtml(g)) +
+  var h = backBar(g.name, esc(g.prim.a.name) + (g.inst.length > 1 ? ' (+' + (g.inst.length - 1) + ' más)' : '') + ' · ' + esc(g.symbol || '—') + ' · ' + dirOf(g), null, starHtml(g)) +
     segHtml([['stats', 'Resumen'], ['comp', 'Comparar'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
   var sq = g.sid && D.sqx[g.sid];
   if (e.tab === 'stats') {
     var di = idle(g), pf = isFinite(g.pf) ? g.pf.toFixed(2).replace('.', ',') : '∞', day = dayPnl(g.raw, new Date());
-    h += '<div class="card hero' + (g.net < 0 ? ' neg' : '') + '"><div class="row" style="align-items:center"><div class="lbl">Net P&amp;L · todas las cuentas</div>' + chip('Hoy ' + money(day, 0), day < 0 ? 'r' : day > 0 ? 'g' : '') + '</div><div class="big ' + cl(g.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(g.net) + '</div>' + chartHtml(equity(g.raw), g.net < 0 ? '#ff5d78' : '#2ee6a0', span(g.raw)) + '</div>' +
+    h += '<div class="card hero' + (g.net < 0 ? ' neg' : '') + '"><div class="row" style="align-items:center"><div class="lbl">Net P&amp;L · ' + esc(g.prim.a.name) + '</div>' + chip('Hoy ' + money(day, 0), day < 0 ? 'r' : day > 0 ? 'g' : '') + '</div><div class="big ' + cl(g.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(g.net) + '</div>' + chartHtml(equity(g.raw), g.net < 0 ? '#ff5d78' : '#2ee6a0', span(g.raw)) + '</div>' +
       '<div class="grid3" style="margin:0">' + mBox('Trades', g.n, 'b') + mBox('Win rate', (g.wr * 100).toFixed(1).replace('.', ',') + '%', g.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') +
       mBox('Max DD', '-$' + fmt(g.maxdd), 'r') + mBox('Ret/DD', g.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Días sin op.', di > 9000 ? '—' : di, di > ALERT_DAYS ? 'r' : 'g') +
-      mBox('Largos', g.buys, 'g') + mBox('Cortos', g.sells, 'r') + mBox('Cuentas', g.inst.length, 'b') + '</div>';
-    h += '<div class="sec">Dónde corre</div><div class="card" style="padding:4px 14px">' + g.inst.slice().sort(function (p, q) { return q.x.net - p.x.net; }).map(function (i) {
+      mBox('Largos', g.buys, 'g') + mBox('Cortos', g.sells, 'r') + mBox('Otras cuentas', g.inst.length - 1, 'b') + '</div>';
+    h += '<div class="sec">Dónde corre (solo informativo, no suma)</div><div class="card" style="padding:4px 14px">' + g.inst.slice().sort(function (p, q) { return q.x.net - p.x.net; }).map(function (i) {
       return '<div class="ea" data-a="ea" data-k="' + enc([i.a.id, i.x.key]) + '"><div class="in"><div class="t">' + esc(i.a.name) + '</div><div style="margin-top:3px"><span class="tag">' + i.x.n + ' trades</span><span class="tag">WR ' + (i.x.wr * 100).toFixed(0) + '%</span></div></div><div class="mono ' + cl(i.x.net) + '" style="font-weight:600;font-size:14px">' + money(i.x.net) + '</div></div>';
     }).join('') + '</div>';
-    if (sq) { h += '<div class="sec">Racha vs SQX (por cuenta)</div>' + g.inst.map(function (i) { return rachaCard(i.x, sq, i.a); }).join(''); }
+    if (sq) { h += '<div class="sec">Racha vs SQX</div>' + rachaCard(g.prim.x, sq, g.prim.a, true); }
   } else if (e.tab === 'comp') {
     var n = g.inst.length;
     var avg = function (i) { return i.x.n ? i.x.net / i.x.n : 0; };
     var mAvg = g.n ? g.net / g.n : 0;
     if (n < 2) h += '<div class="note">Este EA solo está en una cuenta, no hay con qué compararlo.</div>';
-    h += '<div class="lbl" style="margin-bottom:8px">Cada cuenta frente al conjunto (media por trade, win rate, racha y actividad)</div>';
+    h += '<div class="lbl" style="margin-bottom:8px">Cada cuenta frente a la escogida: ' + esc(g.prim.a.name) + '</div>';
     var sorted = g.inst.slice().sort(function (p, q) { return avg(q) - avg(p); });
     sorted.forEach(function (i, idx) {
       var x = i.x, a = i.a, d = x.wr * 100 - g.wr * 100, flags = '', pf = isFinite(x.pf) ? x.pf.toFixed(2).replace('.', ',') : '∞', dd = idle(x), col = x.net < 0 ? '#ff5d78' : '#2ee6a0';
-      if (n > 1) {
+      if (i === g.prim) flags += chip('⭐ Escogida' + (g.isDemo ? ' · Demo' : ''), 'a');
+      if (n > 1 && i !== g.prim) {
         if (Math.abs(d) >= 8) flags += chip((d > 0 ? '▲ ' : '▼ ') + 'WR ' + (d > 0 ? '+' : '') + d.toFixed(0) + ' pts', d > 0 ? 'g' : 'r');
         if (dd > ALERT_DAYS) { var others = g.inst.filter(function (o) { return o !== i && idle(o.x) <= ALERT_DAYS; }).length; if (others) flags += chip('⚠ sin operar ' + dd + 'd (otras sí)', 'r'); }
         if (mAvg > 0 && avg(i) < mAvg * 0.5) flags += chip('▼ media/trade baja', 'r'); else if (mAvg > 0 && avg(i) > mAvg * 1.5) flags += chip('▲ media/trade alta', 'g');
-        if (idx === 0) flags += chip('🏆 mejor media/trade', 'a');
       }
       if (sq) { var lv = level(rachaOf(x, sq).p); flags += chip('Racha ' + x.curTradeStreak + '/' + sq.maxStreak + ' ' + lv.t, lv.k); }
       var ad = dayPnl(x.raw, new Date());
@@ -807,13 +809,13 @@ function vFavDetail(e) {
         mBox('Media/trade', money(avg(i), 2), cl(avg(i))) + mBox('Max DD', '-$' + fmt(x.maxdd), 'r') + mBox('Sin op.', dd > 9000 ? '—' : dd + 'd', dd > ALERT_DAYS ? 'r' : 'g') + '</div>' +
         (flags ? '<div class="chips">' + flags + '</div>' : '') + '</div>';
     });
-    h += '<div class="lbl" style="text-align:center;margin:4px 0 10px">Conjunto: WR ' + (g.wr * 100).toFixed(1).replace('.', ',') + '% · media/trade ' + money(mAvg, 2) + '</div>';
+    h += '<div class="lbl" style="text-align:center;margin:4px 0 10px">Escogida: WR ' + (g.wr * 100).toFixed(1).replace('.', ',') + '% · media/trade ' + money(mAvg, 2) + '</div>';
   } else if (e.tab === 'mens') {
     var ms = Object.keys(g.byMonth).sort(), tot = ms.reduce(function (s2, k) { return s2 + g.byMonth[k]; }, 0);
-    h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Total · todas las cuentas</span><span class="mono ' + cl(tot) + '" style="font-weight:600">' + money(tot) + '</span></div>' + monthsBlock(g.byMonth, ms) + '</div>';
-    g.inst.forEach(function (i) { var m2 = Object.keys(i.x.byMonth).sort(), t2 = m2.reduce(function (s2, k) { return s2 + i.x.byMonth[k]; }, 0); h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><div class="nm" style="font-size:13px">' + esc(i.a.name) + '</div><span class="mono ' + cl(t2) + '" style="font-weight:600">' + money(t2) + '</span></div>' + monthsBlock(i.x.byMonth, ms) + '</div>'; });
+    h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Total · ' + esc(g.prim.a.name) + '</span><span class="mono ' + cl(tot) + '" style="font-weight:600">' + money(tot) + '</span></div>' + monthsBlock(g.byMonth, ms) + '</div>';
+    g.inst.filter(function (i) { return i !== g.prim; }).forEach(function (i) { var m2 = Object.keys(i.x.byMonth).sort(), t2 = m2.reduce(function (s2, k) { return s2 + i.x.byMonth[k]; }, 0); h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><div class="nm" style="font-size:13px">' + esc(i.a.name) + '</div><span class="mono ' + cl(t2) + '" style="font-weight:600">' + money(t2) + '</span></div>' + monthsBlock(i.x.byMonth, ms) + '</div>'; });
   } else {
-    var tr = []; g.inst.forEach(function (i) { i.x.raw.forEach(function (t) { tr.push({ close: t.close, pnl: t.pnl, type: t.type, symbol: t.symbol, eaName: i.a.name }); }); });
+    var tr = g.raw.map(function (t) { return { close: t.close, pnl: t.pnl, type: t.type, symbol: t.symbol }; });
     h += opsHtml(tr, null);
   }
   return h;
