@@ -112,6 +112,20 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 .ea:last-child{border:0}
 .ea .in{flex:1;min-width:0}
 .ea .t{font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.num{font-family:var(--mono);font-weight:700;font-size:15px;color:#18b4ff;background:rgba(24,180,255,.1);border:1px solid rgba(24,180,255,.4);border-radius:8px;padding:2px 9px;white-space:nowrap;display:inline-block;letter-spacing:.02em}
+.num.big2{font-size:19px;padding:3px 11px}
+.fold{display:flex;align-items:center;gap:8px;padding:10px 6px;font-size:13px;font-weight:600;color:#c3cfdd;cursor:pointer;border-bottom:1px solid var(--line)}.fold .fa{color:var(--blue);width:10px}
+.srch{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(9,17,32,.8);color:var(--text);font-size:14px;margin-bottom:10px;font-family:inherit;outline:none}
+.cap{width:100%;border-radius:10px;display:block;min-height:70px;background:#0a1220}
+.chk{width:24px;height:24px;border-radius:8px;border:1.5px solid #2a3b57;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#18b4ff;font-size:15px;margin-top:2px}.chk.on{border-color:#18b4ff;background:rgba(24,180,255,.22)}
+.crow .ri{width:116px}.crow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}.crow:first-child{border-top:0}.ss{font-size:10px;color:var(--dimmer);margin-top:2px}.mcb{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(9,17,32,.6)}.pbar{height:8px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#18b4ff,#2ee6a0)}.cfgc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.cfgc button{font-size:11px;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer}.cfgc button.on{color:#fff;border-color:rgba(24,180,255,.6);background:rgba(24,180,255,.18)}
+.ri{width:84px;padding:8px 8px;border-radius:9px;border:1px solid #2a7fb5;background:rgba(14,58,92,.55);color:#4cc3ff;font-family:var(--mono);font-size:15px;font-weight:700;text-align:right;outline:none}
+.rm{background:none;border:0;color:#ff5d78;font-size:18px;padding:6px 2px 6px 6px;cursor:pointer}
+.stk{position:sticky;bottom:0;padding:10px 0 4px;background:linear-gradient(180deg,transparent,#02040a 40%)}
+.btn.pri:disabled{opacity:.45;box-shadow:none}
+.nmS{font-size:10px;color:var(--dim);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eb{display:flex;gap:6px;margin-top:8px}
+.btn.sm{padding:6px 10px;font-size:11px;border-radius:9px}.btn.sm:disabled{opacity:.38;cursor:default}
 .tag{font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);color:var(--dim);margin-right:4px;display:inline-block}
 .tag.b{color:var(--blue)}.tag.g{color:var(--green)}.tag.r{color:var(--red)}.tag.a{color:var(--gold)}
 .fil{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px;scrollbar-width:none}
@@ -195,10 +209,10 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
   <nav class="nav" id="nav">
     <div class="it on" data-tab="cuentas"><i>☁</i>Cuentas</div>
     <div class="it" data-tab="demo"><i>🖥</i>Demo</div>
-    <div class="it" data-tab="rachas"><i>🎯</i>Rachas</div>
-    <div class="it" data-tab="favs"><i>⭐</i>Favoritos</div>
-    <div class="it" data-tab="ranking"><i>🏆</i>Ranking</div>
-    <div class="it" data-tab="ajustes"><i>⚙</i>Ajustes</div>
+    <div class="it" data-tab="lib"><i>📚</i>Librería</div>
+    <div class="it" data-tab="port"><i>🧩</i>Portafolios</div>
+    <div class="it" data-tab="fond"><i>🏦</i>Fondeos</div>
+    <div class="it" data-tab="mas"><i>☰</i>Más</div>
   </nav>
 </div>
 <div class="toast" id="toast"></div>
@@ -207,15 +221,15 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.2.1';
+var VERSION = '1.7.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
-var SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
 /* ---------- almacenamiento (todo con try/catch) ---------- */
 function ls(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
-var F = { vps: ls('tm_folder_id', '14v9ZVOKdgEXjOOto1XvmJxBl7Nq8ewUP'), demo: ls('tm_folder2_id', '1SWfvkkglqVgVSMoNzCIrnAgUbPkD0DlG'), sqx: ls('tm_folder_sqx_id', '1rt6pDQqsMpTiCUzrmyYfv2CMKPKq9h2r') };
+var F = { vps: ls('tm_folder_id', '14v9ZVOKdgEXjOOto1XvmJxBl7Nq8ewUP'), demo: ls('tm_folder2_id', '1SWfvkkglqVgVSMoNzCIrnAgUbPkD0DlG'), sqx: ls('tm_folder_sqx_id', '1rt6pDQqsMpTiCUzrmyYfv2CMKPKq9h2r'), lib: ls('tm_folder_lib_id', '') };
 var ALERT_DAYS = parseInt(ls('tm_alert_days', '')) || 7;
 var token = ls('tm_token', null), tokenExp = +ls('tm_token_exp', 0) || 0;
 var tokenClient = null;
@@ -358,7 +372,7 @@ function parseSqx(txt) {
   if (cur) all.push(cur);
   var bm = byMonthOf(tr.map(function (t) { return { close: t.d, pnl: t.p }; })), mk = Object.keys(bm).sort(), maxM = 0, cm = 0;
   mk.forEach(function (k) { if (bm[k] < 0) { cm++; if (cm > maxM) maxM = cm; } else cm = 0; });
-  return { maxStreak: maxS, avgStreak: all.length ? all.reduce(function (s, v) { return s + v; }, 0) / all.length : 0, maxMonthStreak: maxM, trades: tr.length };
+  return { s: tr.map(function (t) { return [t.d.getTime(), Math.round(t.p * 100) / 100]; }), maxStreak: maxS, avgStreak: all.length ? all.reduce(function (s, v) { return s + v; }, 0) / all.length : 0, maxMonthStreak: maxM, trades: tr.length };
 }
 /* 2_51_576.csv · 2.51.576.csv · 2_51_576__2025-06-30.csv · 1790003154806_3_6_503.csv */
 function sqxIdFromName(name) {
@@ -368,8 +382,8 @@ function sqxIdFromName(name) {
 }
 
 /* ---------- Google Drive (solo lectura) ---------- */
-var D = { vps: [], demo: [], sqx: {}, warn: [], updated: null, fromCache: false, sqxFiles: 0 };
-var S = { tab: 'cuentas', stack: [], rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
+var D = { vps: [], demo: [], sqx: {}, lib: { files: {}, meta: {}, imgs: {}, snaps: {} }, warn: [], updated: null, fromCache: false, sqxFiles: 0 };
+var S = { tab: 'cuentas', stack: [], pfSrc: 'demo', pfMode: 'man', pick: {}, pkF: {}, pkQ: '', delArm: '', pfNote: '', libQ: '', libF: 'all', libOpen: {}, rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
 function authErr() { var e = new Error('Sesión caducada'); e.auth = true; return e; }
 function tokenOk() { return !!token && (!tokenExp || Date.now() < tokenExp - 30000); }
 async function dget(url) {
@@ -420,7 +434,7 @@ async function loadAccounts(src, co) {
   accs.forEach(function (a, i) { a.color = COLORS[i % COLORS.length]; });
   return accs;
 }
-async function loadSqx(co) {
+async function loadSqx(co, libP) {
   var files = (await listFolder(F.sqx, co)).filter(function (f) { return /\.csv$/i.test(f.name); });
   var best = {};
   files.forEach(function (f) {
@@ -429,21 +443,120 @@ async function loadSqx(co) {
     var b = best[id];
     if (!b || f.modifiedTime > b.modifiedTime || (f.modifiedTime === b.modifiedTime && f.name > b.name)) best[id] = f;
   });
+  var lib = libP ? await libP : D.lib;
+  Object.keys(lib.files || {}).forEach(function (id) { if (!best[id]) best[id] = lib.files[id]; });   /* respaldo: el CSV de SQX de la Librería */
   var ids = Object.keys(best); P.total += ids.length; D.sqxFiles = files.length;
   var res = {};
   await pool(ids, 6, async function (id) {
     var f = best[id];
     try {
-      var c = await kvGet('sqx:' + f.id);
+      var c = await kvGet('sqx2:' + f.id);
       if (c && (co || c.mt === f.modifiedTime)) { res[id] = c.d; return; }
       if (co) return;
       var r = await dget('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media&supportsAllDrives=true');
       var d = parseSqx(await r.text());
-      if (d) { res[id] = d; kvSet('sqx:' + f.id, { mt: f.modifiedTime, d: d }); } else D.warn.push('SQX sin operaciones válidas: ' + f.name);
+      if (d) { res[id] = d; kvSet('sqx2:' + f.id, { mt: f.modifiedTime, d: d }); } else D.warn.push('SQX sin operaciones válidas: ' + f.name);
     } catch (e) { if (e.auth) throw e; D.warn.push(f.name + ': ' + e.message); }
     finally { tick(); }
   });
   return res;
+}
+
+/* ---------- Librería (FGX LIBRERIA en Drive): activo / timeframe / dirección / BL de cada EA ---------- */
+var ASSET_MAP = { XAUUSD: 'ORO', GOLD: 'ORO', ORO: 'ORO', NQ: 'NQ', NDX: 'NQ', NAS100: 'NQ', USTEC: 'NQ', US100: 'NQ', DAX: 'DAX', GER40: 'DAX', DE40: 'DAX', DE30: 'DAX', SP500: 'SP500', SPX: 'SP500', US500: 'SP500', SPX500: 'SP500', US30: 'US30', DJ30: 'US30', DJI: 'US30', BTCUSD: 'BTC', BTC: 'BTC' };
+function assetOf(sym) {
+  var u = String(sym || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!u) return '';
+  if (ASSET_MAP[u]) return ASSET_MAP[u];
+  for (var k in ASSET_MAP) if (u.indexOf(k) === 0) return ASSET_MAP[k];
+  if (/^[A-Z]{6}$/.test(u)) return 'DIVISAS';
+  return u.slice(0, 8);
+}
+function cleanAsset(g) { var w = String(g || '').trim().split(/[\s(]/)[0].toUpperCase(); return ASSET_MAP[w] || w || ''; }
+function dirLabel(f) { var u = String(f || '').toUpperCase(); if (/(\+|\bY\b|LONGSHORT|AMBAS)/.test(u)) return 'L+C'; if (/CORT|SHORT/.test(u)) return 'CORTO'; if (/LARG|LONG/.test(u)) return 'LARGO'; return ''; }
+function tfOfText(t) { var m = /\b(M1|M5|M15|M30|H1|H4|D1|W1)\b/i.exec(String(t || '').replace(/[_\-]/g, ' ')); return m ? m[1].toUpperCase() : ''; }
+async function listKids(id) {
+  var out = [], pt = '';
+  do {
+    var q = encodeURIComponent("'" + id + "' in parents and trashed=false");
+    var r = await dget('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=nextPageToken,files(id,name,mimeType,modifiedTime)&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''));
+    var j = await r.json(); out = out.concat(j.files || []); pt = j.nextPageToken || '';
+  } while (pt);
+  return out;
+}
+async function findLibRoot() {
+  if (F.lib) return F.lib;
+  var c = await kvGet('libroot'); if (c) return c;
+  var q = encodeURIComponent("name='FGX LIBRERIA' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  var r = await dget('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true');
+  var j = await r.json(), f = (j.files || [])[0];
+  if (f) { kvSet('libroot', f.id); return f.id; }
+  return null;
+}
+async function loadLib(co) {
+  var idx = { files: {}, meta: {}, imgs: {}, snaps: {} };
+  try {
+    if (co) { var cc = (await kvGet('libidx')) || idx; cc.imgs = cc.imgs || {}; cc.snaps = cc.snaps || {}; return cc; }
+    var root = await findLibRoot();
+    if (!root) { D.warn.push('No encuentro la carpeta FGX LIBRERIA en tu Drive (puedes indicarla en Ajustes).'); return (await kvGet('libidx')) || idx; }
+    var level = [{ id: root, path: [] }], found = [], foundImg = [];
+    for (var depth = 0; level.length && depth < 8; depth++) {
+      var next = [];
+      await pool(level, 6, async function (fo) {
+        var kids = await listKids(fo.id);
+        kids.forEach(function (k) {
+          if (k.mimeType === 'application/vnd.google-apps.folder') next.push({ id: k.id, path: fo.path.concat(k.name) });
+          else if (/\.csv$/i.test(k.name)) found.push({ f: k, path: fo.path });
+          else if (/_(overview|equity)\.(png|jpe?g|webp|gif)$/i.test(k.name)) foundImg.push({ f: k, path: fo.path });
+        });
+      });
+      level = next;
+    }
+    found.forEach(function (x) {
+      var id = sqxIdFromName(x.f.name); if (!id) return;
+      var dm = /__(\d{4}-\d{2}-\d{2})/.exec(x.f.name); (idx.snaps[id] = idx.snaps[id] || []).push({ d: dm ? dm[1] : '', f: x.f.id });
+      var old = idx.files[id]; if (old && old.modifiedTime >= x.f.modifiedTime) return;
+      idx.files[id] = { id: x.f.id, name: x.f.name, modifiedTime: x.f.modifiedTime };
+      var p = x.path.slice(-4), asset = '', tf = '', dir = '', bl = '';
+      if (p.length === 4) { asset = p[0]; tf = p[1]; dir = p[2]; bl = p[3]; } else if (p.length === 3) { asset = p[0]; tf = p[1]; dir = p[2]; } else if (p.length >= 1) { asset = p[0]; }
+      idx.meta[id] = { grp: asset, asset: cleanAsset(asset), tf: tfOfText(tf) || tfOfText(asset), dir: dirLabel(dir) || dirLabel(asset), bl: bl, tfRaw: tf, dirRaw: dir };
+    });
+    foundImg.forEach(function (x) {
+      var m = /^(\d+)[._](\d+)[._](\d+)(?:__(\d{4}-\d{2}-\d{2}))?_(overview|equity)\./i.exec(x.f.name); if (!m) return;
+      var id = m[1] + '_' + m[2] + '_' + m[3], t = m[5].toLowerCase(), o = (idx.imgs[id] = idx.imgs[id] || {});
+      if (!o[t] || (m[4] || '') >= (o[t].d || '')) o[t] = { f: x.f.id, d: m[4] || '' };
+    });
+    Object.keys(idx.snaps).forEach(function (k) { idx.snaps[k].sort(function (a, b) { return a.d < b.d ? 1 : -1; }); });
+    if (Object.keys(idx.meta).length) kvSet('libidx', idx);
+    else D.warn.push('La carpeta FGX LIBRERIA no tiene CSV de estrategias.');
+  } catch (e) { if (e.auth) throw e; D.warn.push('Librería: ' + e.message); return (await kvGet('libidx')) || idx; }
+  return idx;
+}
+function eaMeta(x, accName) {
+  var m = (x && x.sid && D.lib.meta[x.sid]) || {};
+  var asset = m.asset || assetOf(x && x.symbol) || '—';
+  var tf = m.tf || tfOfText(accName) || tfOfText(x && x.name) || '—';
+  var dir = m.dir || (x ? dirOf(x) : '') || '—';
+  return { asset: asset, tf: tf, dir: dir, bl: m.bl || '', grp: m.grp || '', lib: !!m.asset };
+}
+function dirCls(d) { return d === 'LARGO' ? 'g' : d === 'CORTO' ? 'r' : d === 'L+C' ? 'a' : ''; }
+function eaBadge(x, big) {
+  var id = x && x.sid ? x.sid : '—';
+  return '<span class="num' + (big ? ' big2' : '') + '">' + esc(id) + '</span>';
+}
+function eaTags(x, acc) {
+  var m = eaMeta(x, acc && acc.name);
+  return '<span class="tag b">' + esc(m.asset) + '</span><span class="tag">' + esc(m.tf) + '</span><span class="tag ' + dirCls(m.dir) + '">' + esc(m.dir) + '</span>';
+}
+function eaBtns(x, accId) {
+  var sid = x && x.sid;
+  var hasSqx = !!(sid && D.sqx[sid] && D.sqx[sid].s);
+  return '<div class="eb"><button class="btn sm" data-a="vsid" data-k="' + enc([sid || '', 'sqx', accId || '']) + '"' + (hasSqx ? '' : ' disabled title="Sin CSV de SQX"') + '>📚 SQX</button>' +
+    '<button class="btn sm" data-a="vsid" data-k="' + enc([sid || '', 'demo', accId || '', x && x.key || '']) + '"' + (sid && !eaInst(sid).length ? ' disabled title="Sin operaciones en Demo real"' : '') + '>🖥 Demo real</button></div>';
+}
+/* cabecera estándar de un EA: número + etiquetas (+ nombre pequeño si no hay número) */
+function eaHead(x, acc) {
+  return '<div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x, acc) + '</div>' + (x.sid ? '' : '<div class="nmS">' + esc(x.name) + '</div>');
 }
 async function loadAll(co) {
   if (S.loading) return;
@@ -452,10 +565,12 @@ async function loadAll(co) {
   setLive('load'); document.getElementById('refreshBtn').classList.add('spin');
   if (first) showLoading(co ? 'Abriendo datos guardados…' : 'Conectando con Drive…');
   try {
-    var r = await Promise.all([loadAccounts('vps', co), loadAccounts('demo', co), loadSqx(co)]);
-    D.vps = r[0]; D.demo = r[1]; D.sqx = r[2];
+    var libP = loadLib(co);
+    var r = await Promise.all([loadAccounts('vps', co), loadAccounts('demo', co), loadSqx(co, libP)]);
+    D.vps = r[0]; D.demo = r[1]; D.sqx = r[2]; D.lib = await libP; D.lib.imgs = D.lib.imgs || {}; D.lib.snaps = D.lib.snaps || {};
     D.vps.concat(D.demo).forEach(function (a) { buildEAs(a, D.sqx); });
     D.updated = new Date(); D.fromCache = !!co;
+    if (!co) pfPull().then(function () { if (S.tab === 'port' && !S.stack.length) render(); }).catch(function () {});
     if (co) { setLive((D.vps.length || D.demo.length) ? 'cache' : 'off'); }
     else { setLive('ok'); if (!first) toast('✅ ' + (D.vps.length + D.demo.length) + ' cuentas · ' + Object.keys(D.sqx).length + ' SQX'); }
   } catch (e) {
@@ -512,7 +627,8 @@ window.addEventListener('popstate', function (ev) { var d = (ev.state && ev.stat
 function goTab(t) {
   if (S.tab === t && !S.stack.length) { document.getElementById('content').scrollTo(0, 0); return; }
   S.tab = t; S.stack = []; S.opsDay = null; history.replaceState({ d: 0 }, '');
-  document.querySelectorAll('#nav .it').forEach(function (n) { n.classList.toggle('on', n.dataset.tab === t); });
+  var hl = (t === 'rachas' || t === 'ranking' || t === 'ajustes' || t === 'favs') ? 'mas' : t;
+  document.querySelectorAll('#nav .it').forEach(function (n) { n.classList.toggle('on', n.dataset.tab === hl); });
   render();
 }
 function allAccs() { return D.vps.concat(D.demo); }
@@ -599,7 +715,7 @@ function span(trades) { function f(d) { return d.getDate() + ' ' + MES[d.getMont
 function vAccounts(src) {
   var accs = src === 'vps' ? D.vps : D.demo, title = src === 'vps' ? 'Cuentas VPS' : 'Demo PC';
   if (!accs.length) {
-    if (!tokenOk() && !D.fromCache) return '<h1 class="pt">' + title + '</h1>' + emptyHtml('🔌', 'Conecta con Google Drive', 'La app solo lee los CSV de tus carpetas de Drive. No escribe nada.', '<button class="btn pri" data-a="connect">Conectar con Google Drive</button>');
+    if (!tokenOk() && !D.fromCache) return '<h1 class="pt">' + title + '</h1>' + emptyHtml('🔌', 'Conecta con Google Drive', 'La app lee los CSV de tus carpetas de Drive y solo escribe su propio archivo de portafolios.', '<button class="btn pri" data-a="connect">Conectar con Google Drive</button>');
     return '<h1 class="pt">' + title + '</h1>' + noteHtml() + emptyHtml('📂', 'Sin cuentas', src === 'vps' ? 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta de cuentas VPS.' : 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta Demo PC. Comprueba que el exportador y la sincronización con Drive estén activos.');
   }
   var today = new Date(), net = 0, day = 0, nEA = 0, nIdle = 0;
@@ -654,7 +770,8 @@ function vAcc(e) {
   return h;
 }
 function eaRow(a, x, i) {
-  return '<div class="ea" data-a="ea" data-k="' + enc([a.id, x.key]) + '"><div class="rk ' + (i < 3 ? 'rk' + (i + 1) : '') + '">' + (i + 1) + '</div><div class="in"><div class="t">' + esc(x.name) + '</div><div style="margin-top:3px"><span class="tag b">' + esc(x.symbol || '—') + '</span><span class="tag">' + x.n + ' trades</span><span class="tag">WR ' + (x.wr * 100).toFixed(0) + '%</span></div></div>' +
+  return '<div class="ea" data-a="ea" data-k="' + enc([a.id, x.key]) + '"><div class="rk ' + (i < 3 ? 'rk' + (i + 1) : '') + '">' + (i + 1) + '</div><div class="in">' + eaHead(x, a) +
+    '<div style="margin-top:4px"><span class="tag">' + x.n + ' trades</span><span class="tag">WR ' + (x.wr * 100).toFixed(0) + '%</span></div>' + eaBtns(x, a.id) + '</div>' +
     '<div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:14px">' + money(x.net) + '</div>' + starHtml(x) + '</div>';
 }
 function monthsBlock(byMonth, allMonths) {
@@ -673,14 +790,14 @@ function mensualEAs(a) {
   if (!months.length) return emptyHtml('📅', 'Sin datos mensuales', '');
   return a.eas.map(function (x) {
     var tot = Object.keys(x.byMonth).reduce(function (s, k) { return s + x.byMonth[k]; }, 0);
-    return '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><div class="nm" style="font-size:13px">' + esc(x.name) + '</div><span class="mono ' + cl(tot) + '" style="font-weight:600">' + money(tot) + '</span></div>' + monthsBlock(x.byMonth, months) + '</div>';
+    return '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><div>' + eaBadge(x) + '<div style="margin-top:4px">' + eaTags(x, a) + '</div></div><span class="mono ' + cl(tot) + '" style="font-weight:600">' + money(tot) + '</span></div>' + monthsBlock(x.byMonth, months) + '</div>';
   }).join('');
 }
 
 function vEA(e) {
   var a = accBy(e.acc), x = eaBy(a, e.ea);
   if (!x) return backBar('EA', '') + emptyHtml('❓', 'EA no encontrado', 'Puede que ya no aparezca en el CSV. Vuelve atrás.');
-  var h = backBar(x.name, esc(a.name) + ' · ' + esc(x.symbol || '—') + ' · ' + dirOf(x), a.color, starHtml(x)) + segHtml([['stats', 'Stats'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
+  var h = backBar(x.sid || x.name, esc(a.name) + ' · ' + eaMeta(x, a.name).asset + ' · ' + eaMeta(x, a.name).tf + ' · ' + eaMeta(x, a.name).dir, a.color, starHtml(x)) + eaBtns(x, a.id) + segHtml([['stats', 'Stats'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
   if (e.tab === 'stats') {
     var di = idle(x), pf = isFinite(x.pf) ? x.pf.toFixed(2).replace('.', ',') : '∞';
     h += '<div class="card hero' + (x.net < 0 ? ' neg' : '') + '"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(x.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(x.net) + '</div>' + chartHtml(equity(x.raw), x.net < 0 ? '#ff5d78' : '#2ee6a0', span(x.raw)) + '</div>' +
@@ -699,6 +816,969 @@ function vEA(e) {
   return h;
 }
 
+
+/* =====================================================================================
+   MOTOR: Monte Carlo + Constructor automático + Portafolios robustos (mismos criterios que FGX Digital)
+   ===================================================================================== */
+var CAP = +ls('tm_cap', 100000) || 100000;
+var DAYMS = 864e5;
+function nz(v, d, lo, hi) { v = Number(String(v).replace(',', '.').replace(/[^\d.\-]/g, '')); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; }
+function f1(v, d) { return isFinite(v) ? v.toFixed(d === undefined ? 1 : d).replace('.', ',') : '—'; }
+function mulb(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function yieldUI() { return new Promise(function (r) { setTimeout(r, 0); }); }
+function rowsOf(id, src) { return eaTrades(id, src).map(function (t) { return [t.close.getTime(), t.pnl]; }); }
+
+/* ---------- Monte Carlo (4 pruebas: orden, saltar, bloques, degradar) ---------- */
+var MCD = { cap: 100000, limDD: 10, conf: 95, minProf: 90, maxRuin: 5, skipP: 10, blockN: 5, degP: 30, degMax: 10, sims: 1000 };
+var MC_TESTS = [['order', '🔀 Orden de trades'], ['skip', '⏭ Saltar trades'], ['block', '🧱 Bloques'], ['degrade', '📉 Degradar ejecución']];
+function mcStat(buf, m) { var eq = 0, pk = 0, dd = 0; for (var i = 0; i < m; i++) { eq += buf[i]; if (eq > pk) pk = eq; if (pk - eq > dd) dd = pk - eq; } return { net: eq, dd: dd }; }
+function mcPctl(sorted, q) { var n = sorted.length; if (!n) return 0; var x = (n - 1) * q / 100, a = Math.floor(x), b = Math.min(n - 1, a + 1); return sorted[a] + (sorted[b] - sorted[a]) * (x - a); }
+function mcTest(kind, pnl, N, seed, o) {
+  var n = pnl.length, rnd = mulb(seed), buf = new Float64Array(n), net = new Float64Array(N), dd = new Float64Array(N), aL = 0, nl = 0;
+  for (var i0 = 0; i0 < n; i0++) if (pnl[i0] < 0) { aL -= pnl[i0]; nl++; } aL = nl ? aL / nl : 0;
+  var B = Math.max(2, Math.min(50, o.blockN | 0)), nb = Math.ceil(n / B);
+  for (var s2 = 0; s2 < N; s2++) {
+    var m = n, i;
+    if (kind === 'order') { for (i = 0; i < n; i++) buf[i] = pnl[i]; for (i = n - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)), t = buf[i]; buf[i] = buf[j]; buf[j] = t; } }
+    else if (kind === 'skip') { m = 0; var p = o.skipP / 100; for (i = 0; i < n; i++) if (rnd() >= p) buf[m++] = pnl[i]; }
+    else if (kind === 'block') { m = 0; while (m < n) { var st = Math.floor(rnd() * nb) * B; for (i = st; i < st + B && i < n && m < n; i++) buf[m++] = pnl[i]; } }
+    else { var pp = o.degP / 100, mx = o.degMax / 100 * aL; for (i = 0; i < n; i++) { var v = pnl[i]; if (rnd() < pp) v -= rnd() * mx; buf[i] = v; } }
+    var r = mcStat(buf, m); net[s2] = r.net; dd[s2] = r.dd;
+  }
+  return { net: net, dd: dd };
+}
+function mcRun(pnl, o) {
+  o = Object.assign({}, MCD, o || {}); var N = o.sims, lim = o.limDD / 100 * o.cap, c = o.conf, out = [], passN = 0, ddMax = 0;
+  var arr = Float64Array.from(pnl);
+  MC_TESTS.forEach(function (tt, i) {
+    var R = mcTest(tt[0], arr, N, 101 + i * 7, o), ns = Float64Array.from(R.net).sort(), ds = Float64Array.from(R.dd).sort(), prof = 0, ruin = 0;
+    for (var k = 0; k < N; k++) { if (R.net[k] > 0) prof++; if (R.dd[k] > lim) ruin++; }
+    var profPct = 100 * prof / N, ruinPct = 100 * ruin / N, netAt = mcPctl(ns, 100 - c), ddAt = mcPctl(ds, c);
+    var crit = [
+      { ok: profPct >= o.minProf, t: 'Simulaciones rentables: ' + f1(profPct) + '% (mín. ' + o.minProf + '%)' },
+      { ok: netAt > 0, t: 'Beneficio con ' + c + '%: ' + money(netAt) + ' (debe ser > 0)' },
+      { ok: ddAt <= lim, t: 'Drawdown con ' + c + '%: ' + money(ddAt) + ' (límite ' + money(lim) + ')' },
+      { ok: ruinPct <= o.maxRuin, t: 'Prob. de tocar el límite: ' + f1(ruinPct) + '% (máx. ' + o.maxRuin + '%)' }
+    ], n = crit.filter(function (x) { return x.ok; }).length;
+    passN += n; if (ddAt > ddMax) ddMax = ddAt;
+    out.push({ kind: tt[0], name: tt[1], crit: crit, n: n, lvl: n === 4 ? 'g' : n === 3 ? 'y' : 'r', medNet: mcPctl(ns, 50), netAt: netAt, ddAt: ddAt, profPct: profPct, ruinPct: ruinPct });
+  });
+  var ls2 = out.map(function (t) { return t.lvl; });
+  return { tests: out, passN: passN, tot: out.length * 4, dd: ddMax, lvl: ls2.indexOf('r') >= 0 ? 'r' : ls2.indexOf('y') >= 0 ? 'y' : 'g', o: o, trades: pnl.length };
+}
+function mcHtml(r) {
+  var L = { g: ['🟢 ROBUSTA', 'g'], y: ['🟡 JUSTA', 'a'], r: ['🔴 FRÁGIL', 'r'] };
+  return '<div class="mcb"><div class="row" style="align-items:center;margin-bottom:6px"><b style="font-size:13px">🎲 Monte Carlo · ' + r.o.sims + ' sims · ' + r.trades + ' trades</b>' + chip(L[r.lvl][0], L[r.lvl][1]) + '</div>' +
+    '<div class="lbl" style="text-transform:none;letter-spacing:.03em;margin-bottom:6px">Cuenta ' + money(r.o.cap, 0, true) + ' · DD límite ' + r.o.limDD + '% · confianza ' + r.o.conf + '% · pasa ' + r.passN + ' de ' + r.tot + ' criterios</div>' +
+    r.tests.map(function (t) {
+      return '<div style="padding:7px 0;border-top:1px solid var(--line)"><div class="row" style="align-items:center"><span style="font-size:12.5px">' + t.name + '</span>' + chip(L[t.lvl][0], L[t.lvl][1]) + '</div>' +
+        t.crit.map(function (c) { return '<div style="font-size:10.5px;color:' + (c.ok ? 'var(--dim)' : 'var(--red)') + ';margin-top:2px">' + (c.ok ? '✓ ' : '✗ ') + esc(c.t) + '</div>'; }).join('') + '</div>';
+    }).join('') + '</div>';
+}
+
+/* ---------- utilidades comunes ---------- */
+var JC = {};
+function judge(id) {
+  var bt = eaTrades(id, 'sqx'), dm = eaTrades(id, 'demo'), k = id + ':' + bt.length + ':' + dm.length;
+  if (JC[k]) return JC[k];
+  if (!bt.length || dm.length < 5) return (JC[k] = { ok: true, noDemo: true });
+  var Rof = function (p) { var l = p.filter(function (x) { return x <= 0; }), a = l.length ? -l.reduce(function (s3, v) { return s3 + v; }, 0) / l.length : 1; return p.map(function (x) { return x / (a || 1); }); };
+  var btR = Rof(bt.map(function (x) { return x.pnl; })), dmR = Rof(dm.map(function (x) { return x.pnl; })), net = dmR.reduce(function (a, v) { return a + v; }, 0), N = dm.length, rnd = mulb(7), below = 0;
+  for (var q = 0; q < 1500; q++) { var eq = 0; for (var i = 0; i < N; i++) eq += btR[Math.floor(rnd() * btR.length)]; if (eq <= net) below++; }
+  var pct = below / 1500, res;
+  if (pct < 0.05) res = { ok: false, why: 'Por debajo del backtest (percentil ' + f1(pct * 100) + ')' };
+  else {
+    var pnl = dm.reduce(function (a, x) { return a + x.pnl; }, 0);
+    res = (Date.now() - dm[0].close.getTime() >= 365 * DAYMS && pnl <= 0) ? { ok: false, why: 'Más de 1 año en demo y con profit negativo (' + money(pnl) + ')' } : { ok: true, pct: pct };
+  }
+  return (JC[k] = res);
+}
+function corrMatrix(ids, get) {
+  var ser = ids.map(function (id) { var m = new Map(), a = Infinity, b = -Infinity; get(id).forEach(function (t) { var d = Math.floor(t[0] / DAYMS); m.set(d, (m.get(d) || 0) + t[1]); if (d < a) a = d; if (d > b) b = d; }); return { m: m, a: a, b: b }; });
+  var n = ids.length, M = ids.map(function () { return new Array(n).fill(null); }), sum = 0, cnt = 0, mx = null;
+  for (var i = 0; i < n; i++) {
+    M[i][i] = 1;
+    for (var j = i + 1; j < n; j++) {
+      var A = ser[i], B = ser[j], lo = Math.max(A.a, B.a), hi = Math.min(A.b, B.b), r = null;
+      if (isFinite(lo) && isFinite(hi) && hi - lo >= 28) {
+        var k = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+        for (var d = lo; d <= hi; d++) { var w = (d + 4) % 7; if (w === 0 || w === 6) continue; var x = A.m.get(d) || 0, y = B.m.get(d) || 0; k++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; }
+        var vx = sxx - sx * sx / k, vy = syy - sy * sy / k; if (k > 10 && vx > 0 && vy > 0) r = (sxy - sx * sy / k) / Math.sqrt(vx * vy);
+      }
+      M[i][j] = M[j][i] = r;
+      if (r !== null) { sum += r; cnt++; if (!mx || r > mx.v) mx = { v: r, a: ids[i], b: ids[j] }; }
+    }
+  }
+  return { M: M, avg: cnt ? sum / cnt : null, mx: mx };
+}
+function srStats(a) { var eq = 0, pk = 0, dd = 0; for (var i = 0; i < a.length; i++) { eq += a[i][1]; if (eq > pk) pk = eq; if (pk - eq > dd) dd = pk - eq; } return { net: eq, dd: dd }; }
+function srMerge(a, b) { var o = new Array(a.length + b.length), i = 0, j = 0, k = 0; while (i < a.length && j < b.length) o[k++] = a[i][0] <= b[j][0] ? a[i++] : b[j++]; while (i < a.length) o[k++] = a[i++]; while (j < b.length) o[k++] = b[j++]; return o; }
+function pfCreate(name, ids, risk, base, src) {
+  var p = { id: 'p' + Date.now().toString(36) + Math.floor(Math.random() * 99), name: name, ids: ids.slice(), risk: Object.assign({}, risk), base: base, src: src, created: Date.now() };
+  PF.list.push(p); pfTouch(p); return p;
+}
+function eaRow(id, right, note) {
+  var r = eaRef(id), x = r.x;
+  return '<div class="ea" style="align-items:flex-start;cursor:default"><div class="in"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x, r.a) + (note || '') + '</div>' + eaBtns(x, '') + '</div>' + (right ? '<div style="text-align:right">' + right + '</div>' : '') + '</div>';
+}
+
+/* ---------- configuración (se guarda en el móvil) ---------- */
+var AU = { dd: 10, maxN: 0, corr: 70, risk: 200, favOnly: false, dirs: ['LARGO', 'CORTO', 'L+C'] };
+var LPD = { w: 50, bad: 'discard', minOps: 30, minMon: 3, minN: 4, maxN: 8, dd: 10, corr: 30, share: 25, asset: 40, rmin: 100, rmax: 500, rstep: 50, pass: 90, halves: true, nobest: true, time: 60, favOnly: false };
+var LP = Object.assign({}, LPD, { res: null, run: false, stop: false, prog: '', pct: 0 });
+(function () { try { var a = JSON.parse(ls('tm_au', 'null')); if (a) Object.keys(AU).forEach(function (k) { if (a[k] !== undefined && typeof a[k] === typeof AU[k]) AU[k] = a[k]; }); var l = JSON.parse(ls('tm_lp', 'null')); if (l) Object.keys(LPD).forEach(function (k) { if (l[k] !== undefined && typeof l[k] === typeof LPD[k]) LP[k] = l[k]; }); } catch (e) {} })();
+function cfgSave() { lsSet('tm_au', JSON.stringify(AU)); var o = {}; Object.keys(LPD).forEach(function (k) { o[k] = LP[k]; }); lsSet('tm_lp', JSON.stringify(o)); lsSet('tm_cap', CAP); }
+var LIM = { au: { dd: [0.5, 100], maxN: [0, 30], corr: [5, 100], risk: [1, 1e6] }, lp: { w: [0, 100], minOps: [1, 5000], minMon: [0, 120], minN: [1, 30], maxN: [1, 30], dd: [0.5, 100], corr: [0, 100], share: [10, 100], asset: [20, 100], rmin: [10, 5000], rmax: [10, 5000], rstep: [5, 2000], pass: [50, 100], time: [10, 900] } };
+function cfgInput(lab, key, hint) {
+  var a = key.split('.'), v = a[0] === 'au' ? AU[a[1]] : a[0] === 'lp' ? LP[a[1]] : a[0] === 'cap' ? CAP : a[0] === 'mcdd' ? MCD.limDD : '';
+  return '<div class="crow"><div><div>' + lab + '</div>' + (hint ? '<div class="ss">' + hint + '</div>' : '') + '</div><input class="ri" type="number" inputmode="decimal" data-cfg="' + key + '" value="' + v + '"></div>';
+}
+function cfgChip(lab, key, on) { return '<button class="' + (on ? 'on' : '') + '" data-a="cfgT" data-k="' + enc(key) + '">' + lab + '</button>'; }
+function cfgApply(key, raw) {
+  var a = key.split('.');
+  if (a[0] === 'cap') CAP = nz(raw, CAP, 1000, 1e9);
+  else if (a[0] === 'mcdd') MCD.limDD = nz(raw, 10, 0.5, 100);
+  else { var lim = (LIM[a[0]] || {})[a[1]]; if (!lim) return; var tgt = a[0] === 'au' ? AU : LP, v = nz(raw, tgt[a[1]], lim[0], lim[1]); tgt[a[1]] = v; if (a[0] === 'lp') { if (LP.maxN < LP.minN) { if (a[1] === 'minN') LP.maxN = LP.minN; else LP.minN = LP.maxN; } if (LP.rmax < LP.rmin) { if (a[1] === 'rmin') LP.rmax = LP.rmin; else LP.rmin = LP.rmax; } } }
+  cfgSave();
+}
+
+/* ---------- Constructor automático ---------- */
+function auSeries(id, risk, src) { var t = eaTrades(id, src), al = avgLoss(t), m = al > 0 && risk > 0 ? risk / al : 1; return t.map(function (x) { return [x.close.getTime(), x.pnl * m]; }); }
+function auBuild() {
+  var src = S.pfSrc, limit = CAP * AU.dd / 100, disc = [], cand = [], FV = AU.favOnly ? new Set(FAVS) : null, sname = src === 'demo' ? 'Demo real' : 'Backtest SQX';
+  pkIds().forEach(function (id) {
+    var r = eaRef(id), m = eaMeta(r.x, r.a && r.a.name);
+    if (FV && !FV.has(id)) return;
+    if (m.dir !== '—' && AU.dirs.indexOf(m.dir) < 0) return;
+    var t = eaTrades(id, src); if (t.length < 20) { if (t.length) disc.push({ id: id, why: 'Solo ' + t.length + ' operaciones en ' + sname + ' (hacen falta 20)' }); return; }
+    var j = judge(id); if (!j.ok) { disc.push({ id: id, why: j.why }); return; }
+    var sr = auSeries(id, AU.risk, src), s = srStats(sr);
+    if (s.net <= 0) { disc.push({ id: id, why: 'Profit negativo en ' + sname }); return; }
+    if (s.dd > limit) { disc.push({ id: id, why: 'Por sí sola supera el Max DD (' + money(s.dd) + ')' }); return; }
+    cand.push({ id: id, sr: sr, ratio: s.net / (s.dd || 1), noDemo: !!j.noDemo });
+  });
+  cand.sort(function (a, b) { return b.ratio - a.ratio; });
+  var cm = corrMatrix(cand.map(function (x) { return x.id; }), function (id) { return cand.filter(function (x) { return x.id === id; })[0].sr; }), cix = {}; cand.forEach(function (x, i) { cix[x.id] = i; });
+  var lim = AU.corr >= 100 ? null : AU.corr / 100, tooCorr = function (id, ids) { return lim !== null && ids.some(function (o) { var r = cm.M[cix[id]][cix[o]]; return r !== null && r > lim; }); };
+  var maxN = AU.maxN > 0 ? AU.maxN : 999, seen = {}, out = [];
+  cand.slice(0, 12).forEach(function (seed) {
+    var cur = seed.sr, ids = [seed.id], cs = srStats(cur), best = cs.net / (cs.dd || 1);
+    while (ids.length < maxN) {
+      var pick = null;
+      for (var q = 0; q < cand.length; q++) {
+        var x = cand[q]; if (ids.indexOf(x.id) >= 0 || tooCorr(x.id, ids)) continue;
+        var mg = srMerge(cur, x.sr), s = srStats(mg); if (s.dd > limit || s.net <= cs.net) continue;
+        var rr = s.net / (s.dd || 1); if (!pick || rr > pick.r) pick = { x: x, m: mg, s: s, r: rr };
+      }
+      if (!pick || pick.r < 0.7 * Math.max(best, cs.net / (cs.dd || 1))) break;
+      ids.push(pick.x.id); cur = pick.m; cs = pick.s; best = Math.max(best, pick.r);
+    }
+    var key = ids.slice().sort().join('|'); if (seen[key]) return; seen[key] = 1;
+    var risk = {}; ids.forEach(function (i) { risk[i] = AU.risk; });
+    var cc = corrMatrix(ids, function (id) { return cand.filter(function (x) { return x.id === id; })[0].sr; });
+    out.push({ ids: ids, risk: risk, net: cs.net, dd: cs.dd, ratio: cs.net / (cs.dd || 1), corr: cc.avg, corrMax: cc.mx });
+  });
+  out.sort(function (a, b) { return b.ratio - a.ratio; });
+  S.auRes = { res: out.slice(0, 15), disc: disc, cand: cand.length, limit: limit, src: src, at: Date.now(), noDemo: cand.filter(function (x) { return x.noDemo; }).length };
+}
+
+function auPnl(o, src) { var all = []; o.ids.forEach(function (id) { all = srMerge(all, auSeries(id, o.risk[id], src)); }); return all.map(function (x) { return x[1]; }); }
+/* ---------- Portafolios robustos (SQX + Demo real) ---------- */
+function lpSer(rows) {
+  if (!rows || !rows.length) return null;
+  var a = rows.filter(function (x) { return isFinite(x[0]); }).sort(function (p, q) { return p[0] - q[0]; }); if (!a.length) return null;
+  var sl = 0, nl = 0; a.forEach(function (x) { if (x[1] < 0) { sl -= x[1]; nl++; } }); if (!nl) return null;
+  var aL = sl / nl, t = new Float64Array(a.length), v = new Float64Array(a.length), net = 0;
+  a.forEach(function (x, i) { t[i] = x[0]; v[i] = x[1] / aL; net += v[i]; });
+  var day = new Map(), da = Infinity, db = -Infinity;
+  for (var i = 0; i < a.length; i++) { var d = Math.floor(t[i] / DAYMS); day.set(d, (day.get(d) || 0) + v[i]); if (d < da) da = d; if (d > db) db = d; }
+  return { t: t, v: v, n: a.length, aL: aL, net: net, months: (t[a.length - 1] - t[0]) / (30.44 * DAYMS), day: day, a: da, b: db };
+}
+function lpPear(A1, B1) {
+  var lo = Math.max(A1.a, B1.a), hi = Math.min(A1.b, B1.b); if (hi - lo < 28) return 0;
+  var k = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+  for (var d = lo; d <= hi; d++) { var w = (d + 4) % 7; if (w === 0 || w === 6) continue; var x = A1.day.get(d) || 0, y = B1.day.get(d) || 0; k++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; }
+  var vx = sxx - sx * sx / k, vy = syy - sy * sy / k; return k > 10 && vx > 0 && vy > 0 ? (sxy - sx * sy / k) / Math.sqrt(vx * vy) : 0;
+}
+function lpScale(s, r) { return { t: s.t, v: Float64Array.from(s.v, function (x) { return x * r; }) }; }
+function lpMergeS(a, s, r) {
+  var na = a.t.length, nb = s.t.length, T = new Float64Array(na + nb), V = new Float64Array(na + nb), i = 0, j = 0, k = 0;
+  while (i < na && j < nb) { if (a.t[i] <= s.t[j]) { T[k] = a.t[i]; V[k++] = a.v[i++]; } else { T[k] = s.t[j]; V[k++] = s.v[j++] * r; } }
+  while (i < na) { T[k] = a.t[i]; V[k++] = a.v[i++]; } while (j < nb) { T[k] = s.t[j]; V[k++] = s.v[j++] * r; }
+  return { t: T, v: V };
+}
+function lpMerged(m, key) { var cur = null; for (var q = 0; q < m.length; q++) { var s = m[q].E[key]; if (!s) continue; cur = cur ? lpMergeS(cur, s, m[q].r) : lpScale(s, m[q].r); } return cur; }
+function lpStat(sr) {
+  var n = sr.t.length; if (!n) return null; var mid = (sr.t[0] + sr.t[n - 1]) / 2, eq = 0, pk = 0, dd = 0, e1 = 0, p1 = 0, d1 = 0, e2 = 0, p2 = 0, d2 = 0;
+  for (var i = 0; i < n; i++) {
+    var v = sr.v[i]; eq += v; if (eq > pk) pk = eq; if (pk - eq > dd) dd = pk - eq;
+    if (sr.t[i] < mid) { e1 += v; if (e1 > p1) p1 = e1; if (p1 - e1 > d1) d1 = p1 - e1; } else { e2 += v; if (e2 > p2) p2 = e2; if (p2 - e2 > d2) d2 = p2 - e2; }
+  }
+  return { net: eq, dd: dd, n: n, h: [{ net: e1, dd: d1 }, { net: e2, dd: d2 }] };
+}
+function lpRd(s) { return Math.max(-50, Math.min(50, s.dd > 0 ? s.net / s.dd : (s.net > 0 ? 50 : 0))); }
+function lpPrep() {
+  var disc = [], cands = [], FV = LP.favOnly ? new Set(FAVS) : null;
+  pkIds().forEach(function (id) {
+    if (FV && !FV.has(id)) return;
+    var r = eaRef(id), meta = eaMeta(r.x, r.a && r.a.name), sb = lpSer(rowsOf(id, 'sqx')), sd = lpSer(rowsOf(id, 'demo')), warn = [];
+    var bt = sb && sb.n >= 30 ? sb : null;
+    if (bt && bt.net <= 0) { disc.push({ id: id, why: 'Profit negativo en el backtest' }); return; }
+    var j = judge(id), bad = !j.ok;
+    if (bad && LP.bad === 'discard') { disc.push({ id: id, why: j.why, bad: true }); return; }
+    var poco = !sd || sd.n < LP.minOps || sd.months < LP.minMon, dm = poco ? null : sd;
+    if (!bt && !dm) { disc.push({ id: id, why: 'Pocos datos en el backtest y en Demo' }); return; }
+    if (poco) warn.push(!sd ? 'sin demo' : 'pocos datos (' + sd.n + ' ops, ' + f1(sd.months) + ' meses)');
+    if (bad) warn.push('va mal en demo');
+    cands.push({ id: id, asset: meta.asset || id, tf: meta.tf, dir: meta.dir, bt: bt, dm: dm, prim: bt || dm, warn: warn, poco: poco, bad: bad });
+  });
+  return { cands: cands, disc: disc };
+}
+async function lpSearch(onProg) {
+  var pr = lpPrep(), c0 = pr.cands, disc = pr.disc;
+  if (c0.length < LP.minN) return { err: 'Solo hay ' + c0.length + ' estrategias válidas tras los descartes (hacen falta al menos ' + LP.minN + ').', disc: disc };
+  var t0 = Date.now(), limit = LP.time * 1000, lim = CAP * LP.dd / 100 * 0.65, minN = Math.min(LP.minN, LP.maxN), maxN = Math.max(LP.minN, LP.maxN), corrMax = LP.corr / 100;
+  var lv = []; for (var r0 = LP.rmin; r0 <= LP.rmax + 1e-9; r0 += LP.rstep) lv.push(Math.round(r0)); if (!lv.length) lv.push(LP.rmin);
+  var mid = lv[Math.floor((lv.length - 1) / 2)], nAssets = new Set(c0.map(function (x) { return x.asset; })).size, assetEff = Math.max(LP.asset / 100, Math.min(1, 1 / nAssets + 0.05));
+  var cm = new Map(), cr = function (a, b) { var k = a.id + '|' + b.id; if (!cm.has(k)) { var v = lpPear(a.prim, b.prim); cm.set(k, v); cm.set(b.id + '|' + a.id, v); } return cm.get(k); };
+  var cache = new Map(), poolM = new Map(), tested = 0, lastY = Date.now(), best = null;
+  var over = function () { return LP.stop || Date.now() - t0 > limit; };
+  var tick = async function () { if (Date.now() - lastY > 40) { lastY = Date.now(); onProg({ phase: 'search', tested: tested, best: best, el: (Date.now() - t0) / 1000 }); await yieldUI(); } };
+  var keyOf = function (m) { return m.map(function (x) { return x.E.id + '@' + x.r; }).sort().join('|'); };
+  function evalM(m) {
+    var k = keyOf(m); if (cache.has(k)) return cache.get(k);
+    for (var i = 0; i < m.length; i++) for (var j = i + 1; j < m.length; j++) if (cr(m[i].E, m[j].E) > corrMax) { cache.set(k, null); return null; }
+    var sb = lpMerged(m, 'bt'), sd = lpMerged(m, 'dm'), tb = sb && lpStat(sb), td = sd && lpStat(sd); if (!tb && !td) { cache.set(k, null); return null; }
+    var wb = tb ? LP.w : 0, wd = td ? 100 - LP.w : 0; if (wb + wd === 0) { wb = tb ? 1 : 0; wd = td ? 1 : 0; }
+    var rd = ((tb ? wb * lpRd(tb) : 0) + (td ? wd * lpRd(td) : 0)) / (wb + wd), ddf = Math.max(tb ? tb.dd : 0, td ? td.dd : 0) / lim, len = m.length;
+    var key = tb ? 'bt' : 'dm', pt = tb || td, shMax = 0;
+    m.forEach(function (x) { var s = x.E[key], n = s ? s.net * x.r : 0, sh = pt.net > 0 ? n / pt.net : 1; if (sh > shMax) shMax = sh; });
+    var grp = new Map(), tot = 0; m.forEach(function (x) { grp.set(x.E.asset, (grp.get(x.E.asset) || 0) + x.r); tot += x.r; });
+    var aMax = Math.max.apply(null, Array.from(grp.values())) / tot, shEff = Math.max(LP.share / 100, 1.25 / len), full = len >= minN;
+    var halvesOk = [tb, td].filter(Boolean).every(function (s) { return s.h[0].net > 0 && s.h[1].net > 0; });
+    var viol = Math.max(0, ddf - 1) + (full ? Math.max(0, shMax / shEff - 1) + Math.max(0, aMax / assetEff - 1) : 0), pen = viol > 1e-9 ? 20 * viol + 5 : 0;
+    var base = rd * (0.6 + 0.4 * Math.min(1, ddf)) * (LP.halves && !halvesOk ? 0.4 : 1);
+    var o = { m: m.map(function (x) { return { E: x.E, r: x.r }; }), sc: base - pen, rd: rd, ddf: ddf, shMax: shMax, aMax: aMax, halvesOk: halvesOk, feas: pen === 0 && full && len <= maxN, tb: tb, td: td };
+    cache.set(k, o); tested++; if (!best || (o.feas && (!best.feas || o.sc > best.sc)) || (!best.feas && o.sc > best.sc)) best = o;
+    if (o.feas) poolM.set(k, o);
+    return o;
+  }
+  var singles = c0.map(function (E) { return { E: E, o: evalM([{ E: E, r: lv[0] }]) }; }).filter(function (x) { return x.o && x.o.ddf <= 1; }).sort(function (a, b) { return b.o.sc - a.o.sc; });
+  c0.filter(function (E) { return !singles.some(function (x) { return x.E === E; }); }).forEach(function (E) { disc.push({ id: E.id, why: 'Por sí sola supera el DD máximo con el riesgo mínimo' }); });
+  var cands = singles.slice(0, 40).map(function (x) { return x.E; });
+  if (cands.length < minN) return { err: 'Solo ' + cands.length + ' estrategias utilizables con estos límites (correlación, DD). Prueba a subir la correlación máxima o el DD.', disc: disc };
+  var okC = function (E, m) { return m.every(function (x) { return cr(E, x.E) <= corrMax; }); };
+  var improve = async function (cur) {
+    var ch = true;
+    while (ch && !over()) {
+      ch = false;
+      for (var i = 0; i < cur.m.length && !over(); i++) {
+        for (var di = 0; di < 2; di++) {
+          var dr = di ? 1 : -1, li = lv.indexOf(cur.m[i].r) + dr; if (li < 0 || li >= lv.length) continue;
+          var o = evalM(cur.m.map(function (x, j) { return j === i ? { E: x.E, r: lv[li] } : x; })); await tick(); if (o && o.sc > cur.sc + 1e-9) { cur = o; ch = true; }
+        }
+        if (cur.m.length > minN) { var o2 = evalM(cur.m.filter(function (_, j) { return j !== i; })); await tick(); if (o2 && o2.sc > cur.sc + 1e-9) { cur = o2; ch = true; break; } }
+        for (var q = 0; q < 6 && !over(); q++) {
+          var E = cands[Math.floor(Math.random() * cands.length)]; if (cur.m.some(function (x) { return x.E.id === E.id; })) continue;
+          var o3 = evalM(cur.m.map(function (x, j) { return j === i ? { E: E, r: x.r } : x; })); await tick(); if (o3 && o3.sc > cur.sc + 1e-9) { cur = o3; ch = true; break; }
+        }
+      }
+    }
+    return cur;
+  };
+  var grow = async function (start, samp) {
+    var cur = evalM([{ E: start, r: mid }]) || evalM([{ E: start, r: lv[0] }]); if (!cur) return;
+    while (cur.m.length < maxN && !over()) {
+      var ba = null;
+      for (var ci = 0; ci < cands.length; ci++) {
+        var E = cands[ci];
+        if (cur.m.some(function (x) { return x.E.id === E.id; }) || !okC(E, cur.m) || Math.random() > samp) continue;
+        var rs = [lv[0], mid, lv[lv.length - 1]].filter(function (v, i, a) { return a.indexOf(v) === i; });
+        for (var ri = 0; ri < rs.length; ri++) { var o = evalM(cur.m.concat([{ E: E, r: rs[ri] }])); await tick(); if (o && (!ba || o.sc > ba.sc)) ba = o; if (over()) break; }
+        if (over()) break;
+      }
+      if (!ba) break; if (ba.sc <= cur.sc + 1e-9 && cur.m.length >= minN) break; cur = ba;
+    }
+    if (cur.m.length >= minN) await improve(cur);
+  };
+  for (var si = 0; si < Math.min(10, cands.length); si++) { if (over()) break; await grow(cands[si], 1); }
+  var rr = 0; while (!over() && rr++ < 500) await grow(cands[Math.floor(Math.random() * cands.length)], 0.6);
+  var bySet = new Map(); Array.from(poolM.values()).forEach(function (o) { var k = o.m.map(function (x) { return x.E.id; }).sort().join('|'); if (!bySet.has(k) || o.sc > bySet.get(k).sc) bySet.set(k, o); });
+  var quick = Array.from(bySet.values()).sort(function (a, b) { return b.sc - a.sc; }), top = quick.slice(0, 15), out = [], pOver = 0, pTot = 0;
+  for (var a1 = 0; a1 < cands.length; a1++) for (var b1 = a1 + 1; b1 < cands.length; b1++) { pTot++; if (cr(cands[a1], cands[b1]) > corrMax) pOver++; }
+  var rdQ = function (m) { var sb = lpMerged(m, 'bt'), sd = lpMerged(m, 'dm'), tb = sb && lpStat(sb), td = sd && lpStat(sd); if (!tb && !td) return 0; var wb = tb ? LP.w : 0, wd = td ? 100 - LP.w : 0; if (wb + wd === 0) { wb = tb ? 1 : 0; wd = td ? 1 : 0; } return ((tb ? wb * lpRd(tb) : 0) + (td ? wd * lpRd(td) : 0)) / (wb + wd); };
+  for (var i = 0; i < top.length; i++) {
+    onProg({ phase: 'mc', i: i + 1, n: top.length, tested: tested, el: (Date.now() - t0) / 1000 }); await yieldUI();
+    var o = top[i], m = o.m, sb = lpMerged(m, 'bt'), sd = lpMerged(m, 'dm'), pr2 = sb || sd, key = sb ? 'bt' : 'dm';
+    var bestId = null, bn = -Infinity; m.forEach(function (x) { var s = x.E[key], n = s ? s.net * x.r : 0; if (n > bn) { bn = n; bestId = x.E.id; } });
+    var rdNo = m.length > 1 ? rdQ(m.filter(function (x) { return x.E.id !== bestId; })) : 0, nbOk = rdNo >= 0.5 * o.rd;
+    var mon = new Map(); for (var k = 0; k < pr2.t.length; k++) { var d = new Date(pr2.t[k]), kk = d.getFullYear() * 12 + d.getMonth(); mon.set(kk, (mon.get(kk) || 0) + pr2.v[k]); }
+    var ks = Array.from(mon.keys()).sort(function (x, y) { return x - y; }), worst = 0, run = 0, streak = 0;
+    for (var k2 = ks[0]; k2 <= ks[ks.length - 1]; k2++) { var v = mon.get(k2) || 0; if (v < worst) worst = v; if (v < 0) { run++; if (run > streak) streak = run; } else run = 0; }
+    var passN = 0, tot = 0, dd95 = 0, mcOk = false, mc1 = null;
+    mc1 = mcRun(Array.from(sb ? sb.v : sd.v), { cap: CAP, limDD: LP.dd, sims: 1000 }); passN += mc1.passN; tot += mc1.tot; dd95 = Math.max(dd95, mc1.dd); mcOk = true;
+    if (sb && sd && sd.t.length >= 50) { await yieldUI(); var mc2 = mcRun(Array.from(sd.v), { cap: CAP, limDD: LP.dd, sims: 1000 }); passN += mc2.passN; tot += mc2.tot; dd95 = Math.max(dd95, mc2.dd); }
+    var cavg = 0, cn = 0; for (var a2 = 0; a2 < m.length; a2++) for (var b2 = a2 + 1; b2 < m.length; b2++) { cavg += cr(m[a2].E, m[b2].E); cn++; }
+    var pct = tot ? passN / tot : 0, h = (function (st) { return st ? st.h.map(function (x) { return x.dd > 0 ? x.net / x.dd : null; }) : null; })(o.tb || o.td);
+    var warns = []; m.forEach(function (x) { x.E.warn.forEach(function (w) { warns.push(x.E.id + ': ' + w); }); });
+    var dsc = [sb && lpStat(sb), sd && lpStat(sd)].filter(Boolean), ddHist = Math.max.apply(null, dsc.map(function (s) { return s.dd; }));
+    var rec = { m: m.map(function (x) { return { id: x.E.id, r: x.r, bt: !!x.E.bt, warn: x.E.warn }; }), pct: pct, mcOk: mcOk, dd95: dd95, ddHist: ddHist, rd: o.rd, rdB: o.tb ? lpRd(o.tb) : null, rdD: o.td ? lpRd(o.td) : null, h: h, halvesOk: o.halvesOk, nb: { id: bestId, rd: rdNo, ok: nbOk }, cavg: cn ? cavg / cn : null, streak: streak, warns: warns, key: key, pnl: Array.from(pr2.v), worstMonth: worst };
+    rec.fin = o.sc * (nbOk || !LP.nobest ? 1 : 0.85) * (tot ? pct : 1); rec.pass = mcOk ? pct * 100 >= LP.pass : true;
+    out.push(rec);
+  }
+  out.sort(function (a, b) { return (b.pass - a.pass) || (b.fin - a.fin); });
+  return { bestInfo: best ? { ddf: best.ddf, shMax: best.shMax, aMax: best.aMax, len: best.m.length, halvesOk: best.halvesOk, feas: best.feas } : null, top: out.slice(0, 5), tested: tested, quick: quick.length, passed: out.filter(function (x) { return x.pass; }).length, secs: (Date.now() - t0) / 1000, stopped: LP.stop, cands: cands.length, disc: disc, nCand: c0.length, pOver: pOver, pTot: pTot, assetEff: assetEff, nAssets: nAssets };
+}
+async function lpRun() {
+  if (LP.run) return; LP.run = true; LP.stop = false; LP.res = null; LP.prog = 'Preparando candidatos…'; LP.pct = 0; render();
+  var upd = function () { var q = document.getElementById('lpProg'), b = document.getElementById('lpBarI'); if (q) q.textContent = LP.prog; if (b) b.style.width = LP.pct + '%'; };
+  try {
+    await yieldUI();
+    LP.res = await lpSearch(function (p) {
+      if (p.phase === 'search') { LP.pct = Math.min(95, 95 * p.el / LP.time); LP.prog = 'Buscando… ' + p.tested.toLocaleString('es-ES') + ' combinaciones · ' + p.el.toFixed(0) + ' s' + (p.best && p.best.feas ? ' · mejor Ret/DD: ' + f1(p.best.rd) : ''); }
+      else { LP.pct = 95 + 5 * p.i / p.n; LP.prog = 'Monte Carlo completo ' + p.i + ' / ' + p.n; }
+      upd();
+    });
+  } catch (e) { console.error(e); LP.res = { err: 'Error: ' + e.message, disc: [] }; }
+  LP.run = false; render();
+}
+
+/* =====================================================================================
+   FONDEOS: simulador de desafío (Fase 1 / Fase 2) mes a mes + Monte Carlo + «elegir EAs para pasar el examen»
+   ===================================================================================== */
+var FD = { pid: '', src: 'demo', sims: 200, p1: { t: 10, d: 5, m: 10 }, p2: { on: true, t: 5, d: 5, m: 10 }, rz: { on: true, mg: 80, mode: 'burn', w: 10, l: 10 }, risk: {}, res: null, work: null };
+var FAD = { obj: 'pass', wb: 40, minN: 3, maxN: 8, nolim: false, corr: 30, favOnly: false, rmin: 100, rmax: 500, rstep: 50, time: 60, mc: true, passMC: 90, nb: true, sh: true, shP: 40 };
+var FA = { res: null, run: false, stop: false, prog: '', pct: 0, mc: {}, open: -1 };
+(function () {
+  try { var a = JSON.parse(ls('tm_fd', 'null')); if (a) { if (a.src === 'sqx' || a.src === 'demo') FD.src = a.src; ['sims'].forEach(function (k) { if (isFinite(a[k])) FD[k] = a[k]; }); ['p1', 'p2', 'rz'].forEach(function (k) { if (a[k]) Object.keys(FD[k]).forEach(function (j) { if (typeof a[k][j] === typeof FD[k][j]) FD[k][j] = a[k][j]; }); }); }
+    var b = JSON.parse(ls('tm_fa', 'null')); if (b) Object.keys(FAD).forEach(function (k) { if (b[k] !== undefined && typeof b[k] === typeof FAD[k]) FAD[k] = b[k]; }); } catch (e) {}
+})();
+function fdSave() { lsSet('tm_fd', JSON.stringify({ src: FD.src, sims: FD.sims, p1: FD.p1, p2: FD.p2, rz: FD.rz })); lsSet('tm_fa', JSON.stringify(FAD)); lsSet('tm_cap', CAP); }
+var FDL = { 'fd.sims': [50, 1000], 'fd.p1.t': [1, 30], 'fd.p1.d': [1, 20], 'fd.p1.m': [1, 30], 'fd.p2.t': [1, 20], 'fd.p2.d': [1, 20], 'fd.p2.m': [1, 30], 'fd.rz.mg': [50, 100], 'fd.rz.w': [0, 30], 'fd.rz.l': [0, 30],
+  'fa.wb': [0, 100], 'fa.minN': [1, 30], 'fa.maxN': [1, 30], 'fa.corr': [0, 100], 'fa.rmin': [10, 5000], 'fa.rmax': [10, 5000], 'fa.rstep': [5, 2000], 'fa.time': [10, 300], 'fa.passMC': [50, 100], 'fa.shP': [10, 100] };
+function fdGet(key) { var a = key.split('.'), o = a[0] === 'fd' ? FD : FAD; for (var i = 1; i < a.length; i++) o = o[a[i]]; return o; }
+function fdSet(key, v) { var a = key.split('.'), o = a[0] === 'fd' ? FD : FAD; for (var i = 1; i < a.length - 1; i++) o = o[a[i]]; o[a[a.length - 1]] = v; }
+function fdApply(key, raw) {
+  var lim = FDL[key]; if (!lim) return; var v = nz(raw, fdGet(key), lim[0], lim[1]); if (/minN|maxN|rmin|rmax|sims|rstep|time/.test(key)) v = Math.round(v); fdSet(key, v);
+  if (key === 'fa.minN' && FAD.maxN < FAD.minN) FAD.maxN = FAD.minN; if (key === 'fa.maxN' && FAD.minN > FAD.maxN) FAD.minN = FAD.maxN;
+  if (key === 'fa.rmin' && FAD.rmax < FAD.rmin) FAD.rmax = FAD.rmin; if (key === 'fa.rmax' && FAD.rmin > FAD.rmax) FAD.rmin = FAD.rmax;
+  FD.res = null; fdSave();
+}
+function fdInput(lab, key, hint) { return '<div class="crow"><div><div>' + lab + '</div>' + (hint ? '<div class="ss">' + hint + '</div>' : '') + '</div><input class="ri" type="number" inputmode="decimal" data-cfg="' + key + '" value="' + (key === 'cap' ? CAP : fdGet(key)) + '"></div>'; }
+function fdChip(lab, key, on) { return '<button class="' + (on ? 'on' : '') + '" data-a="fdT" data-k="' + enc(key) + '">' + lab + '</button>'; }
+function fdKey(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function fdMes(k) { var m = k.split('-'); return ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][+m[1] - 1] + ' ' + m[0]; }
+function fdDm(k) { return k ? k.slice(8, 10) + '/' + k.slice(5, 7) + '/' + k.slice(2, 4) : ''; }
+function fdPorts() { return pfLive().sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); }); }
+function fdCur() { if (FD.pid === 'work' && FD.work) return FD.work; var l = fdPorts(), p = pfBy(FD.pid); if (!p && l.length) { p = l[0]; FD.pid = p.id; FD.risk = {}; } return p || null; }
+function fdRisk(p, id) { return FD.risk[id] > 0 ? FD.risk[id] : (+p.risk[id] > 0 ? +p.risk[id] : (p.base || 200)); }
+function fdRz(v) { return FD.rz.on ? (v > 0 ? v * (1 - FD.rz.w / 100) : v * (1 + FD.rz.l / 100)) : v; }
+function fdTr(id, src) { return eaTrades(id, src).map(function (t) { return [fdKey(t.close), t.pnl]; }); }
+function fdSeries(p, id) { var t = fdTr(id, FD.src), al = avgLoss(eaTrades(id, FD.src)), r = fdRisk(p, id), m = al > 0 ? r / al : 1; return t.map(function (x) { return [x[0], fdRz(x[1] * m)]; }); }
+function fdScaled(p) { var out = []; p.ids.forEach(function (id) { out = out.concat(fdSeries(p, id)); }); out.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; }); return out; }
+function fdCal(a, b) { return (Date.parse(b) - Date.parse(a)) / 864e5 + 1; }
+function fdAddM(k, n) { var y = +k.slice(0, 4), m = +k.slice(5, 7) + n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12) + 1; return y + '-' + ('0' + m).slice(-2); }
+function fdAttempt(tr) {
+  var cap = CAP, ph = FD.p2.on ? [FD.p1, FD.p2] : [FD.p1], rows = [], phase = 0, bal = cap, dayStart = cap, cur = null, n = 0, outcome = 'nc', days = new Set(), pdays = new Set(), sk = null, k0 = null, kEnd = null, skipD = null, mf = 0, soft = false;
+  var mg = FD.rz.on ? FD.rz.mg / 100 : 1, mgBurn = FD.rz.on && FD.rz.mode === 'burn';
+  for (var i = 0; i < tr.length; i++) {
+    var d = tr[i][0], v = tr[i][1], P = ph[phase], tgt = P.t / 100 * cap;
+    if (d === skipD) continue; if (k0 === null) k0 = d; if (sk === null) sk = d;
+    if (d !== cur) { cur = d; dayStart = bal; }
+    days.add(d); pdays.add(d); bal += v; n++; kEnd = d;
+    var fd = (dayStart - bal) / (P.d / 100 * cap), ft = (cap - bal) / (P.m / 100 * cap), fx = Math.max(fd, ft); if (fx > mf) mf = fx;
+    var real = fd > 1 || ft > 1;
+    if (real || (mgBurn && fx > mg)) { rows.push({ phase: phase + 1, pnl: bal - cap, target: tgt, n: n, res: 'burn', soft: !real, near: mf, sk: sk, ek: d, dys: pdays.size }); outcome = 'burn'; soft = !real; break; }
+    if (bal - cap >= tgt) {
+      var last = phase === ph.length - 1; rows.push({ phase: phase + 1, pnl: bal - cap, target: tgt, n: n, res: last ? 'pass' : 'next', near: mf, sk: sk, ek: d, dys: pdays.size });
+      if (last) { outcome = 'pass'; break; }
+      phase++; bal = cap; dayStart = cap; n = 0; pdays = new Set(); sk = null; skipD = d; mf = 0;
+    }
+  }
+  if (outcome === 'nc' && tr.length) rows.push({ phase: phase + 1, pnl: bal - cap, target: ph[phase].t / 100 * cap, n: n, res: 'nc', near: mf, sk: sk || kEnd, ek: kEnd, dys: pdays.size });
+  return { rows: rows, outcome: outcome, soft: soft, days: days.size, k0: k0, kEnd: kEnd };
+}
+function fdAvg(a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; }
+async function fdSimulate() {
+  var p = fdCur(); if (!p) return null; var tr = fdScaled(p); if (!tr.length) return { empty: true };
+  var byM = {}; tr.forEach(function (t) { var m = t[0].slice(0, 7); (byM[m] = byM[m] || []).push(t); });
+  var months = Object.keys(byM).sort(), hist = [], H = { att: 0, pass: 0, burn: 0, soft: 0, edge: 0, nc: 0, mp: [], f1: [], f2: [] }, startKey = months[0], guard = 0, mg = FD.rz.mg / 100;
+  while (startKey && guard++ < 1200) {
+    var t2 = tr.filter(function (x) { return x[0] >= startKey + '-01'; }); if (!t2.length) break;
+    var r = fdAttempt(t2); H.att++;
+    if (r.outcome === 'pass') { H.pass++; H.mp.push(fdCal(r.k0, r.kEnd) / 30.44); r.rows.forEach(function (x) { (x.phase === 1 ? H.f1 : H.f2).push(fdCal(x.sk, x.ek) / 30.44); }); } else if (r.outcome === 'burn') { H.burn++; if (r.soft) H.soft++; } else H.nc++;
+    if (FD.rz.on) r.rows.forEach(function (x) { if (x.res !== 'burn' && x.near > mg) H.edge++; });
+    r.rows.forEach(function (x) { hist.push(Object.assign({ month: startKey }, x)); });
+    if (r.outcome === 'nc') break; startKey = fdAddM(r.kEnd.slice(0, 7), 1);
+  }
+  await yieldUI();
+  var dayMap = {}; tr.forEach(function (t) { (dayMap[t[0]] = dayMap[t[0]] || []).push(t[1]); });
+  var days = Object.keys(dayMap).map(function (k) { return dayMap[k]; }), cnt = months.map(function (m) { return new Set(byM[m].map(function (x) { return x[0]; })).size; }).sort(function (a, b) { return a - b; }), D = Math.max(1, cnt[Math.floor((cnt.length - 1) / 2)]), M = Math.max(1, Math.min(months.length, 36));
+  var rnd = mulb(11), nets = [], MC = { pass: 0, burn: 0, mp: [], f1: [], f2: [], pos: 0 }, lastY = Date.now();
+  for (var s2 = 0; s2 < FD.sims; s2++) {
+    var net = 0, t = []; for (var j = 0; j < D * M; j++) { var dd = days[Math.floor(rnd() * days.length)], key = 'k' + ('00000' + j).slice(-5); dd.forEach(function (v) { t.push([key, v]); net += v; }); }
+    var b = 0, g = 0;
+    while (b < M && g++ < 400) {
+      var i0 = 0; while (i0 < t.length && t[i0][0] < 'k' + ('00000' + b * D).slice(-5)) i0++;
+      var tt = i0 ? t.slice(i0) : t; if (!tt.length) break;
+      var r2 = fdAttemptMC(tt);
+      if (r2.outcome === 'pass') { MC.pass++; MC.mp.push(r2.days / D); r2.rows.forEach(function (x) { (x.phase === 1 ? MC.f1 : MC.f2).push(x.dys / D); }); } else if (r2.outcome === 'burn') MC.burn++;
+      if (r2.outcome === 'nc') break; b = Math.floor(r2.kEndN / D) + 1;
+    }
+    nets.push(net); if (net > 0) MC.pos++;
+    if (Date.now() - lastY > 60) { lastY = Date.now(); FD.prog = 'Monte Carlo ' + (s2 + 1) + ' / ' + FD.sims; var q = document.getElementById('fdProg'); if (q) q.textContent = FD.prog; await yieldUI(); }
+  }
+  var eq = 0, pk = 0, mdd = 0, curve = [0], dayPnl = {}; tr.forEach(function (t) { eq += t[1]; curve.push(eq); if (eq > pk) pk = eq; if (pk - eq > mdd) mdd = pk - eq; dayPnl[t[0]] = (dayPnl[t[0]] || 0) + t[1]; });
+  var worstDay = Math.min.apply(null, [0].concat(Object.keys(dayPnl).map(function (k) { return dayPnl[k]; })));
+  var cm = corrMatrix(p.ids, function (id) { return fdSeries(p, id).map(function (x) { return [Date.parse(x[0] + 'T00:00:00Z'), x[1]]; }); });
+  return { hist: hist, H: H, mdd: mdd, worstDay: worstDay, cm: cm, months: months.length, MC: MC, nets: nets, curve: curve, d0: tr[0][0], d1: tr[tr.length - 1][0], net: eq, M: M, D: D, mcPass: MC.pass / FD.sims, mcBurn: MC.burn / FD.sims, mcNet: fdAvg(nets), mcPos: 100 * MC.pos / FD.sims, hmp: fdAvg(H.mp), hf1: fdAvg(H.f1), hf2: fdAvg(H.f2), mmp: fdAvg(MC.mp), mf1: fdAvg(MC.f1), mf2: fdAvg(MC.f2), nTr: tr.length };
+}
+function fdAttemptMC(tt) { var r = fdAttempt(tt); r.kEndN = r.kEnd === null ? 0 : parseInt(r.kEnd.slice(1), 10); return r; }
+var FDRES = { pass: ['✅ PASA', 'g'], next: ['➡️ F2', 'b'], burn: ['❌ QUEMADA', 'r'], nc: ['⏳ EN CURSO', ''] };
+function vFond() {
+  var p = fdCur(), list = fdPorts(), h = '<h1 class="pt">Fondeos</h1>' + noteHtml();
+  var opts = list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === FD.pid ? ' selected' : '') + '>' + (x.kind === 'auto' ? '⚙ ' : x.kind === 'robust' ? '🛡 ' : '✋ ') + esc(x.name) + ' (' + x.ids.length + ' EAs)</option>'; }).join('');
+  if (FD.work) opts = '<option value="work"' + (FD.pid === 'work' ? ' selected' : '') + '>🎯 ' + esc(FD.work.name) + ' (' + FD.work.ids.length + ' EAs)</option>' + opts;
+  h += '<div class="card" style="padding:12px 14px"><div class="sec" style="margin:0 0 6px">🏦 Simulador de cuenta fondeada</div><div class="lbl" style="text-transform:none;letter-spacing:.02em;line-height:1.5;margin-bottom:8px">Un desafío tras otro: el día 1 de cada mes empieza la Fase 1 y sigue hasta que se supera o se quema. Si pasa la Fase 1, la Fase 2 empieza al día siguiente.</div>' +
+    (opts ? '<select id="fdSel" class="srch" style="margin:0 0 10px;font-size:13px">' + opts + '</select>' : '<div class="lbl">No tienes portafolios. Crea uno en la pestaña Portafolios.</div>') +
+    segHtml([['demo', '🖥 Demo real'], ['sqx', '📚 Backtest SQX']], FD.src, 'fdSrc') + '</div>';
+  h += cfgCard('💰 Capital y Monte Carlo', fdInput('Capital de la cuenta ($)', 'cap') + fdInput('Simulaciones Monte Carlo', 'fd.sims', '50 – 1000'));
+  h += cfgCard('🎯 Fase 1 — Desafío', fdInput('Objetivo de ganancia (%)', 'fd.p1.t') + fdInput('Max DD diario (%)', 'fd.p1.d') + fdInput('Max DD total (%)', 'fd.p1.m'));
+  h += cfgCard('🏆 Fase 2 — Verificación', '<div class="crow" style="display:block"><div class="cfgc">' + fdChip('Fase 2 ' + (FD.p2.on ? 'activada' : 'desactivada'), 'fd.p2.on', FD.p2.on) + '</div></div>' + (FD.p2.on ? fdInput('Objetivo de ganancia (%)', 'fd.p2.t') + fdInput('Max DD diario (%)', 'fd.p2.d') + fdInput('Max DD total (%)', 'fd.p2.m') : ''));
+  h += cfgCard('🧪 Realismo (modo estrés)', '<div class="ss" style="margin:4px 0 6px;line-height:1.5">Recorta ganancias, alarga pérdidas (slippage, spreads, comisiones) y deja un margen de seguridad frente al drawdown.</div><div class="crow" style="display:block"><div class="cfgc">' + fdChip('Modo realista ' + (FD.rz.on ? 'activado' : 'desactivado'), 'fd.rz.on', FD.rz.on) + '</div></div>' +
+    (FD.rz.on ? fdInput('Margen de seguridad (% del límite DD)', 'fd.rz.mg') + '<div class="crow" style="display:block"><div class="cfgc">' + fdChip('Si lo supera: ' + (FD.rz.mode === 'burn' ? 'contar como quemada' : 'solo avisar'), 'fd.rz.mode', FD.rz.mode === 'burn') + '</div></div>' + fdInput('Ganancias recortadas (%)', 'fd.rz.w') + fdInput('Pérdidas alargadas (%)', 'fd.rz.l') : ''));
+  if (p && p.ids.length) {
+    h += '<div class="sec" style="margin:14px 4px 6px">⚖ Riesgo por EA ($ por trade)</div><div class="card" style="padding:2px 14px">' + p.ids.map(function (id) {
+      var n = eaTrades(id, FD.src).length; return eaRow(id, '<div class="lbl" style="font-size:9px;margin-bottom:3px">$ por trade</div><input class="ri" data-fr="' + esc(id) + '" type="number" inputmode="decimal" min="1" value="' + fdRisk(p, id) + '">', n ? '' : '<span class="tag r">sin datos</span>');
+    }).join('') + '</div>';
+  }
+  h += FD.run ? '<div class="card"><div id="fdProg" class="lbl" style="text-transform:none">' + esc(FD.prog || 'Simulando…') + '</div><div class="pbar"><i style="width:60%"></i></div></div>' : '<button class="btn pri" data-a="fdGo" style="margin-top:12px">📅 Simular mes a mes</button>';
+  if (FD.res) h += fdResHtml(FD.res);
+  return h + vFondAuto();
+}
+function fdResHtml(r) {
+  if (r.empty) return '<div class="card">No hay operaciones con estos datos. Revisa la fuente (Demo / SQX).</div>';
+  var rz = FD.rz.on, pct = function (v) { return f1(v, 1) + '%'; }, cmx = r.cm.mx;
+  var h = '<div class="sec" style="margin:16px 4px 6px">📅 Desafíos uno tras otro · ' + r.months + ' meses de datos</div><div class="grid3" style="margin:0">' +
+    mBox('Iniciados', r.H.att, 'b') + mBox('Pasadas', r.H.pass, 'g') + mBox('Quemadas', r.H.burn + (rz && r.H.soft ? ' (' + r.H.soft + ' margen)' : ''), 'r') +
+    (rz ? mBox('Al borde', r.H.edge, 'a') : '') + mBox('Beneficio', money(r.net, 0), r.net >= 0 ? 'g' : 'r') + mBox('% rentable MC', pct(r.mcPos), 'g') +
+    mBox('Net MC medio', money(r.mcNet, 0), r.mcNet >= 0 ? 'g' : 'r') + mBox('Pasadas MC', f1(r.mcPass, 1), 'b') + mBox('Quemadas MC', f1(r.mcBurn, 1), 'a') +
+    mBox('Max DD hist.', '-$' + fmt(r.mdd), r.mdd > FD.p1.m / 100 * CAP ? 'r' : 'a') + mBox('Peor día', money(r.worstDay, 0), r.worstDay < -FD.p1.d / 100 * CAP ? 'r' : 'a') +
+    mBox('Corr. media', r.cm.avg === null ? '—' : f1(r.cm.avg * 100, 0) + '%', r.cm.avg === null ? '' : r.cm.avg > 0.6 ? 'r' : r.cm.avg > 0.3 ? 'a' : 'g') +
+    mBox('Meses para pasar', r.H.mp.length ? f1(r.hmp) : '—', 'g') + mBox('Meses (MC)', r.MC.mp.length ? f1(r.mmp) : '—', 'g') + '</div>' +
+    '<div class="lbl" style="text-transform:none;margin:6px 4px 0;line-height:1.5">Max DD hist. ' + pct(100 * r.mdd / CAP) + ' del capital (límite total F1 ' + FD.p1.m + '%) · Peor día ' + pct(100 * -r.worstDay / CAP) + ' (límite diario F1 ' + FD.p1.d + '%)' + (cmx ? ' · Corr. máx. ' + f1(cmx.v * 100, 0) + '% (' + esc(cmx.a) + ' · ' + esc(cmx.b) + ')' : '') + (r.H.mp.length && FD.p2.on ? ' · F1 ' + f1(r.hf1) + ' + F2 ' + f1(r.hf2) + ' meses' : '') + '</div>' +
+    '<div class="card hero" style="margin-top:10px;padding-bottom:8px"><div class="lbl">Equity acumulada — histórico (cuenta ' + money(CAP, 0, true) + ')</div>' + chartHtml(r.curve.map(function (v) { return v + CAP; }), r.net < 0 ? '#ff5d78' : '#2ee6a0', [fdDm(r.d0), fdDm(r.d1)]) + '</div>' +
+    '<div class="sec" style="margin:14px 4px 6px">Detalle de cada desafío (' + r.hist.length + ')</div><div class="card" style="padding:2px 14px;max-height:460px;overflow:auto">' +
+    r.hist.slice(0, 120).map(function (x) { var R = FDRES[x.res], q = x.res === 'burn'; return '<div style="padding:8px 0;border-top:1px solid var(--line)"><div class="row" style="align-items:center"><div><b style="font-size:13px">' + fdMes(x.month) + '</b> <span class="tag">Fase ' + x.phase + '</span></div>' + chip(R[0], R[1]) + '</div><div style="font-size:11px;color:var(--dim);margin-top:3px"><span class="' + (x.pnl >= 0 && !q ? 'g' : 'r') + '">' + money(x.pnl, 0) + '</span> / obj. $' + fmt(x.target) + ' · ' + x.n + ' trades · ' + x.dys + ' días' + (x.sk ? ' · ' + fdDm(x.sk) + ' → ' + fdDm(x.ek) : '') + (x.soft ? ' · por margen' : '') + '</div></div>'; }).join('') + (r.hist.length > 120 ? '<div class="lbl" style="padding:8px 0">… y ' + (r.hist.length - 120) + ' más</div>' : '') + '</div>';
+  return h;
+}
+async function fdRun() {
+  if (FD.run) return; FD.run = true; FD.res = null; FD.prog = 'Simulando…'; render(); await yieldUI();
+  try { FD.res = await fdSimulate(); } catch (e) { console.error(e); toast('⚠ ' + e.message); FD.res = null; }
+  FD.run = false; render();
+}
+
+/* ---------- Elegir EAs para pasar el examen ---------- */
+function faMerge(a, b) { var o = [], i = 0, j = 0; while (i < a.length && j < b.length) o.push(a[i][0] <= b[j][0] ? a[i++] : b[j++]); while (i < a.length) o.push(a[i++]); while (j < b.length) o.push(b[j++]); return o; }
+function faPrep() {
+  var out = [], FV = FAD.favOnly ? new Set(FAVS) : null;
+  pkIds().forEach(function (id) {
+    if (FV && !FV.has(id)) return;
+    var rows = eaTrades(id, FD.src); if (rows.length < 15) return; var aL = avgLoss(rows); if (aL <= 0) return;
+    var u = rows.map(function (t) { return [fdKey(t.close), fdRz(t.pnl / aL)]; }).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+    var day = new Map(); u.forEach(function (x) { var d = Math.floor(Date.parse(x[0] + 'T00:00:00Z') / DAYMS); day.set(d, (day.get(d) || 0) + x[1]); });
+    var ks = Array.from(day.keys()), a = Math.min.apply(null, ks), b = Math.max.apply(null, ks), r = eaRef(id);
+    out.push({ id: id, u: u, day: day, a: a, b: b, meta: eaMeta(r.x, r.a && r.a.name) });
+  });
+  return out;
+}
+function faSeries(E, r) { return E.u.map(function (x) { return [x[0], x[1] * r]; }); }
+function faHist(tr) {
+  var res = { pass: 0, burn: 0, nc: 0, days: [] }; if (!tr.length) return res;
+  var d0 = Date.parse(tr[0][0] + 'T00:00:00Z'), d1 = Date.parse(tr[tr.length - 1][0] + 'T00:00:00Z'), i0 = 0;
+  for (var d = d0; d <= d1; d += 7 * DAYMS) {
+    var k = new Date(d).toISOString().slice(0, 10); while (i0 < tr.length && tr[i0][0] < k) i0++; if (i0 >= tr.length) break;
+    var r = fdAttempt(i0 ? tr.slice(i0) : tr);
+    if (r.outcome === 'pass') { res.pass++; res.days.push(fdCal(r.k0, r.kEnd)); } else if (r.outcome === 'burn') res.burn++; else res.nc++;
+  }
+  return res;
+}
+function faStats(r) { var fin = r.pass + r.burn; return { pass: fin ? 100 * r.pass / fin : 0, burn: fin ? 100 * r.burn / fin : 0, fin: fin, days: r.days.length ? fdAvg(r.days) : 0 }; }
+function faScore(st) { var w = Math.min(1, st.fin / 12), s; if (FAD.obj === 'bal') { var b = FAD.wb / 100; s = st.pass * (1 - b) - st.burn * b; } else if (FAD.obj === 'burn') s = -st.burn + 0.2 * st.pass; else s = st.pass - 0.05 * st.burn - 0.002 * st.days; return s * w - (1 - w) * 20; }
+async function faSearch(onProg) {
+  var c0 = faPrep(); if (c0.length < 2) return { err: 'Hay menos de 2 EAs con datos suficientes (mín. 15 operaciones) en esta fuente.' };
+  var t0 = Date.now(), limit = FAD.time * 1000, maxN = FAD.nolim ? 99 : Math.max(FAD.minN, FAD.maxN), minN = Math.min(FAD.minN, maxN);
+  var lv = []; for (var r0 = FAD.rmin; r0 <= FAD.rmax + 1e-9; r0 += FAD.rstep) lv.push(Math.round(r0)); if (!lv.length) lv.push(FAD.rmin);
+  var mid = lv[Math.floor((lv.length - 1) / 2)], pool = new Map(), cache = new Map(), tested = 0, lastY = Date.now(), best = null;
+  var tick = async function () { if (Date.now() - lastY > 40) { lastY = Date.now(); onProg({ tested: tested, best: best, el: (Date.now() - t0) / 1000 }); await yieldUI(); } };
+  var over = function () { return FA.stop || Date.now() - t0 > limit; };
+  var keyOf = function (m) { return m.map(function (x) { return x.E.id + '@' + x.r; }).sort().join('|'); };
+  var evalM = function (m) {
+    var k = keyOf(m); if (cache.has(k)) return cache.get(k);
+    var tr = faSeries(m[0].E, m[0].r); for (var i = 1; i < m.length; i++) tr = faMerge(tr, faSeries(m[i].E, m[i].r));
+    var st = faStats(faHist(tr)), o = { m: m.map(function (x) { return { E: x.E, r: x.r }; }), st: st, sc: faScore(st), tr: tr };
+    cache.set(k, o); pool.set(k, o); tested++; if (!best || o.sc > best.sc) best = o; return o;
+  };
+  var singles = []; for (var si = 0; si < c0.length; si++) { singles.push({ E: c0[si], o: evalM([{ E: c0[si], r: mid }]) }); await tick(); if (over()) break; }
+  singles.sort(function (a, b) { return b.o.sc - a.o.sc; });
+  var cands = singles.slice(0, 40).map(function (x) { return x.E; });
+  var cm = new Map(), cr = function (a, b) { var k = a.id + '|' + b.id; if (!cm.has(k)) { var v = lpPear(a, b); cm.set(k, v); cm.set(b.id + '|' + a.id, v); } return cm.get(k); };
+  var okCorr = function (E, mem) { return mem.every(function (x) { return cr(E, x.E) <= FAD.corr / 100; }); };
+  var improve = async function (cur) {
+    var ch = true;
+    while (ch && !over()) {
+      ch = false;
+      for (var i = 0; i < cur.m.length && !over(); i++) {
+        for (var di = 0; di < 2; di++) {
+          var dr = di ? 1 : -1, li = lv.indexOf(cur.m[i].r) + dr; if (li < 0 || li >= lv.length) continue;
+          var o = evalM(cur.m.map(function (x, j) { return j === i ? { E: x.E, r: lv[li] } : x; })); await tick(); if (o.sc > cur.sc + 1e-9) { cur = o; ch = true; }
+        }
+        if (cur.m.length > minN) { var o2 = evalM(cur.m.filter(function (_, j) { return j !== i; })); await tick(); if (o2.sc > cur.sc + 1e-9) { cur = o2; ch = true; break; } }
+      }
+    }
+    return cur;
+  };
+  var grow = async function (start) {
+    var cur = evalM([{ E: start, r: mid }]);
+    while (cur.m.length < maxN && !over()) {
+      var ba = null;
+      for (var ci = 0; ci < cands.length; ci++) {
+        var E = cands[ci]; if (cur.m.some(function (x) { return x.E.id === E.id; }) || !okCorr(E, cur.m)) continue;
+        var rs = [lv[0], mid, lv[lv.length - 1]].filter(function (v, i, a) { return a.indexOf(v) === i; });
+        for (var ri = 0; ri < rs.length; ri++) { var o = evalM(cur.m.concat([{ E: E, r: rs[ri] }])); await tick(); if (!ba || o.sc > ba.sc) ba = o; if (over()) break; }
+        if (over()) break;
+      }
+      if (!ba) break; if (ba.sc <= cur.sc + 1e-9 && cur.m.length >= minN) break; cur = ba;
+    }
+    return improve(cur);
+  };
+  var starts = singles.slice(0, Math.min(8, singles.length)).map(function (x) { return x.E; });
+  for (var s0 = 0; s0 < starts.length; s0++) { if (over()) break; await grow(starts[s0]); }
+  var rr = 0; while (!over() && rr++ < 200) await grow(cands[Math.floor(Math.random() * cands.length)]);
+  var bySet = new Map(); Array.from(pool.values()).filter(function (o) { return o.m.length >= minN; }).forEach(function (o) { var k = o.m.map(function (x) { return x.E.id; }).sort().join('|'); if (!bySet.has(k) || o.sc > bySet.get(k).sc) bySet.set(k, o); });
+  var top = Array.from(bySet.values()).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 10);
+  top.forEach(function (o) {
+    var a = Date.parse(o.tr[0][0]), b = Date.parse(o.tr[o.tr.length - 1][0]), mid2 = new Date((a + b) / 2).toISOString().slice(0, 10);
+    var h1 = faStats(faHist(o.tr.filter(function (x) { return x[0] < mid2; }))), h2 = faStats(faHist(o.tr.filter(function (x) { return x[0] >= mid2; })));
+    var s1 = faScore(h1), s2 = faScore(h2), ok = h1.fin >= 2 && h2.fin >= 2; o.h = [h1, h2]; o.ok = ok; o.fin = ok ? (o.sc + Math.min(s1, s2)) / 2 : o.sc * 0.85;
+    var sum = 0, n = 0; for (var i = 0; i < o.m.length; i++) for (var j = i + 1; j < o.m.length; j++) { sum += cr(o.m[i].E, o.m[j].E); n++; } o.cavg = n ? sum / n : null;
+  });
+  top = top.sort(function (a, b) { return b.fin - a.fin; }).slice(0, 8);
+  var limDD = Math.min(FD.p1.m, FD.p2.on ? FD.p2.m : 1e9);
+  for (var i = 0; i < top.length; i++) {
+    onProg({ phase: 'mc', i: i + 1, n: top.length, tested: tested, el: (Date.now() - t0) / 1000 }); await yieldUI();
+    var o = top[i]; o.why = [];
+    var nets = o.m.map(function (x) { return { id: x.E.id, n: x.E.u.reduce(function (a, u) { return a + u[1]; }, 0) * x.r }; }), pos = nets.reduce(function (a, x) { return a + Math.max(0, x.n); }, 0), bestN = nets.reduce(function (a, x) { return x.n > a.n ? x : a; }, nets[0]);
+    o.shMax = pos > 0 ? Math.max(0, bestN.n) / pos : 1; o.bestId = bestN.id;
+    if (FAD.mc && o.tr.length >= 30) { var q = mcRun(o.tr.map(function (x) { return x[1]; }), { cap: CAP, limDD: limDD, sims: 1000 }); o.mcPct = q.passN / q.tot; o.mcDD = q.dd; if (o.mcPct * 100 < FAD.passMC) o.why.push('Monte Carlo: supera ' + Math.round(o.mcPct * 100) + '% de las pruebas (pide ' + FAD.passMC + '%)'); }
+    if (FAD.sh && o.m.length >= 3 && o.shMax * 100 > Math.max(FAD.shP, 125 / o.m.length)) o.why.push(o.bestId + ' aporta el ' + Math.round(o.shMax * 100) + '% del beneficio (máx. ' + Math.round(Math.max(FAD.shP, 125 / o.m.length)) + '%)');
+    if (FAD.nb && o.m.length > 1) { var rest = o.m.filter(function (x) { return x.E.id !== o.bestId; }), tr = faSeries(rest[0].E, rest[0].r); for (var k = 1; k < rest.length; k++) tr = faMerge(tr, faSeries(rest[k].E, rest[k].r)); var st2 = faStats(faHist(tr)); o.nbPass = st2.pass; o.nbOk = st2.fin < 2 || st2.pass >= 0.5 * o.st.pass; if (!o.nbOk) o.why.push('Depende de ' + o.bestId + ': sin él solo aprobaría el ' + Math.round(st2.pass) + '%'); }
+    if (!o.ok) o.why.push('Pocas pruebas en alguna mitad del tiempo');
+    o.good = !o.why.length;
+  }
+  top = top.sort(function (a, b) { return (b.good - a.good) || (b.fin - a.fin); }).slice(0, 5);
+  return { top: top, tested: tested, nGood: top.filter(function (o) { return o.good; }).length, secs: (Date.now() - t0) / 1000, stopped: FA.stop, cands: cands.length };
+}
+async function faRun() {
+  if (FA.run) return; FA.run = true; FA.stop = false; FA.res = null; FA.mc = {}; FA.open = 0; FA.prog = 'Preparando…'; FA.pct = 0; render(); await yieldUI();
+  var upd = function () { var q = document.getElementById('faProg'), b = document.getElementById('faBarI'); if (q) q.textContent = FA.prog; if (b) b.style.width = FA.pct + '%'; };
+  try {
+    FA.res = await faSearch(function (p) {
+      if (p.phase === 'mc') { FA.pct = 95 + 5 * p.i / p.n; FA.prog = 'Comprobando la robustez: ' + p.i + ' / ' + p.n; }
+      else { FA.pct = Math.min(95, 95 * p.el / FAD.time); FA.prog = 'Probadas ' + p.tested.toLocaleString('es-ES') + ' combinaciones · ' + p.el.toFixed(0) + ' s' + (p.best ? ' · mejor: ' + f1(p.best.st.pass, 0) + '% aprobar / ' + f1(p.best.st.burn, 0) + '% quemar' : ''); }
+      upd();
+    });
+  } catch (e) { console.error(e); FA.res = { err: 'Error: ' + e.message }; }
+  FA.run = false; render();
+}
+function vFondAuto() {
+  var OBJ = [['pass', 'Máx. % aprobar'], ['bal', 'Equilibrio'], ['burn', 'Mín. quemar']];
+  var h = '<div class="sec" style="margin:22px 4px 6px">🎯 Elegir EAs para pasar el examen</div><div class="lbl" style="text-transform:none;letter-spacing:.02em;line-height:1.5;margin:0 4px 8px">Usa las reglas de arriba (capital, fases, realismo) y la fuente elegida (' + (FD.src === 'demo' ? 'Demo real' : 'Backtest SQX') + '). Prueba combinaciones de EAs con su riesgo y simula cada una desafío a desafío.</div>' +
+    '<div class="seg">' + OBJ.map(function (o) { return '<button class="' + (FAD.obj === o[0] ? 'on' : '') + '" data-a="fdT" data-k="' + enc('fa.obj:' + o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div>' +
+    cfgCard('Ajustes de la búsqueda', (FAD.obj === 'bal' ? fdInput('Peso de «quemar» (%)', 'fa.wb') : '') + fdInput('Mín. EAs', 'fa.minN') + (FAD.nolim ? '' : fdInput('Máx. EAs', 'fa.maxN')) + fdInput('Correlación máx. (%)', 'fa.corr') + fdInput('Riesgo mínimo ($)', 'fa.rmin') + fdInput('Riesgo máximo ($)', 'fa.rmax') + fdInput('Paso de riesgo ($)', 'fa.rstep') + fdInput('Tiempo de búsqueda (s)', 'fa.time', 'más tiempo = más combinaciones') +
+      '<div class="crow" style="display:block"><div class="cfgc">' + fdChip('Sin límite de EAs', 'fa.nolim', FAD.nolim) + fdChip('⭐ Solo favoritos', 'fa.favOnly', FAD.favOnly) + fdChip('Monte Carlo con el límite del examen', 'fa.mc', FAD.mc) + fdChip('Sin el mejor EA', 'fa.nb', FAD.nb) + fdChip('Ningún EA domina', 'fa.sh', FAD.sh) + '</div></div>' + (FAD.mc ? fdInput('Pruebas MC que debe superar (%)', 'fa.passMC') : '') + (FAD.sh ? fdInput('Peso máx. de un EA en el beneficio (%)', 'fa.shP') : ''));
+  if (FA.run) h += '<div class="card"><div id="faProg" class="lbl" style="text-transform:none">' + esc(FA.prog) + '</div><div class="pbar"><i id="faBarI" style="width:' + FA.pct + '%"></i></div><button class="btn sec2" data-a="faStop">⏹ Parar y ver lo mejor</button></div>';
+  else h += '<button class="btn pri" data-a="faGo">🔍 Buscar mejores combinaciones</button>';
+  var R = FA.res;
+  if (R && R.err) h += '<div class="card" style="color:var(--red);font-size:13px">⚠ ' + esc(R.err) + '</div>';
+  else if (R) {
+    h += '<div class="row" style="margin:12px 4px 6px;align-items:center"><div class="sec" style="margin:0">Mejores combinaciones</div><span class="lbl">' + R.tested.toLocaleString('es-ES') + ' probadas · ' + f1(R.secs, 0) + ' s' + (R.stopped ? ' · parado' : '') + '</span></div>';
+    if (!R.top.length) h += emptyHtml('🤷', 'Sin combinaciones', 'Prueba a subir la correlación, bajar el mínimo de EAs o ampliar el rango de riesgo.');
+    R.top.forEach(function (o, i) {
+      var open = FA.open === i;
+      h += '<div class="card" style="padding:11px 13px"><div class="row click" data-a="faOpen" data-k="' + enc(i) + '" style="align-items:center"><div style="min-width:0"><div class="sub">#' + (i + 1) + ' · ' + o.m.length + ' EAs · ' + o.st.fin + ' pruebas · ' + (o.good ? '✔ pasa las pruebas' : '✖ no pasa') + '</div><div class="nm">' + o.m.map(function (x) { return x.E.id; }).sort().join(' · ') + '</div></div><div style="text-align:right">' + chip('✔ ' + f1(o.st.pass, 0) + '%', 'g') + '<div class="lbl" style="margin-top:4px;color:var(--red)">🔥 ' + f1(o.st.burn, 0) + '%</div></div></div>';
+      if (open) {
+        h += '<div class="grid3" style="margin:8px 0 4px">' + mBox('Días medios', o.st.days ? Math.round(o.st.days) : '—', 'b') + mBox('Corr. media', o.cavg === null ? '—' : f1(o.cavg * 100, 0) + '%', 'p') + mBox('Estabilidad', o.ok ? f1(o.h[0].pass, 0) + '·' + f1(o.h[1].pass, 0) + '%' : 'pocos datos', o.ok ? 'g' : 'a') +
+          mBox('Monte Carlo', o.mcPct === undefined ? '—' : f1(o.mcPct * 100, 0) + '%', o.mcPct === undefined ? '' : o.mcPct * 100 >= FAD.passMC ? 'g' : 'r') + mBox('Sin ' + (o.bestId || '·'), o.nbPass === undefined ? '—' : f1(o.nbPass, 0) + '%', o.nbOk === false ? 'r' : 'g') + mBox('Mayor peso', o.m.length > 1 ? f1(o.shMax * 100, 0) + '%' : '—', o.shMax * 100 > FAD.shP && o.m.length >= 3 ? 'r' : 'a') + '</div>' +
+          (o.good ? '' : '<div class="lbl" style="text-transform:none;margin:4px 2px;color:var(--red);line-height:1.5">' + o.why.map(function (w) { return '· ' + esc(w); }).join('<br>') + '</div>') +
+          '<div style="margin-top:8px">' + o.m.slice().sort(function (a, b) { return a.E.id < b.E.id ? -1 : 1; }).map(function (x) { return eaRow(x.E.id, '<span class="tag a">$' + fmt(x.r) + '</span>'); }).join('') + '</div>' + (FA.mc[i] ? mcHtml(FA.mc[i]) : '') +
+          '<div class="row" style="gap:8px;margin-top:10px"><button class="btn pri" style="flex:1;margin:0;padding:12px" data-a="faUse" data-k="' + enc(i) + '">Usar</button><button class="btn" style="flex:1;padding:12px" data-a="faSave" data-k="' + enc(i) + '">💾 Guardar</button><button class="btn" style="flex:1;padding:12px" data-a="faMC" data-k="' + enc(i) + '">🎲 MC</button></div>';
+      }
+      h += '</div>';
+    });
+    h += '<div class="lbl" style="text-transform:none;line-height:1.5;margin:6px 4px">Se prueba empezando un desafío cada semana y el % es sobre los que terminan en pasar o quemar. Se elige con datos pasados: el % real puede ser menor.</div>';
+  }
+  return h;
+}
+
+/* ---------- Portafolios manuales (se guardan en el móvil y en un archivo propio de Drive) ---------- */
+var PF = { list: [], remote: null, timer: null, dirty: false, status: '' };
+var PF_FILE = 'FGX_portafolios_movil.json';
+(function pfLocalLoad() { try { var v = JSON.parse(ls('tm_pf', 'null')); if (v && Array.isArray(v.list)) PF.list = v.list; } catch (e) {} })();
+function pfLocalSave() { lsSet('tm_pf', JSON.stringify({ list: PF.list })); }
+function pfLive() { return PF.list.filter(function (p) { return !p.deleted; }); }
+function pfBy(id) { return PF.list.filter(function (p) { return p.id === id && !p.deleted; })[0]; }
+function pfTouch(p) { p.updated = Date.now(); pfLocalSave(); PF.dirty = true; clearTimeout(PF.timer); PF.timer = setTimeout(function () { pfPush(true); }, 2500); }
+async function dsend(url, method, headers, body) {
+  var h = { Authorization: 'Bearer ' + token }; for (var k in headers) h[k] = headers[k];
+  var r = await fetch(url, { method: method, headers: h, body: body });
+  if (r.status === 401) throw authErr();
+  if (r.status === 403) { var e = new Error('Falta permiso para guardar en Drive'); e.perm = true; throw e; }
+  if (!r.ok) throw new Error('Drive respondió ' + r.status);
+  return r;
+}
+async function pfRemoteFind() {
+  var q = encodeURIComponent("name='" + PF_FILE + "' and trashed=false");
+  var r = await dget('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name,modifiedTime)&supportsAllDrives=true&includeItemsFromAllDrives=true');
+  return ((await r.json()).files || [])[0] || null;
+}
+async function pfPull() {
+  if (!tokenOk()) return;
+  var f = await pfRemoteFind(); if (!f) return;
+  PF.remote = f.id;
+  var j = await (await dget('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media&supportsAllDrives=true')).json();
+  (j.list || []).forEach(function (rp) {
+    var lp = PF.list.filter(function (p) { return p.id === rp.id; })[0];
+    if (!lp) PF.list.push(rp); else if ((rp.updated || 0) > (lp.updated || 0)) PF.list[PF.list.indexOf(lp)] = rp;
+  });
+  pfLocalSave();
+}
+async function pfPush(auto) {
+  if (!tokenOk()) { PF.status = 'local'; if (!auto) toast('Guardado en el móvil. Conecta con Drive para subirlo'); return; }
+  try {
+    var json = JSON.stringify({ version: 1, list: PF.list });
+    if (!PF.remote) { var f = await pfRemoteFind(); PF.remote = f ? f.id : null; }
+    if (PF.remote) await dsend('https://www.googleapis.com/upload/drive/v3/files/' + PF.remote + '?uploadType=media', 'PATCH', { 'Content-Type': 'application/json' }, json);
+    else {
+      var bnd = 'fgxb' + Date.now(), meta = JSON.stringify({ name: PF_FILE, mimeType: 'application/json' });
+      var body = '--' + bnd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + meta + '\r\n--' + bnd + '\r\nContent-Type: application/json\r\n\r\n' + json + '\r\n--' + bnd + '--';
+      var r = await dsend('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', 'POST', { 'Content-Type': 'multipart/related; boundary=' + bnd }, body);
+      PF.remote = (await r.json()).id;
+    }
+    PF.dirty = false; PF.status = 'ok'; if (!auto) toast('✅ Guardado en Drive');
+  } catch (e) {
+    PF.status = e.perm ? 'perm' : 'err';
+    toast(e.perm ? '⚠ Falta permiso de guardado: toca Reconectar' : e.auth ? 'Sesión caducada: reconecta' : '❌ ' + e.message);
+  }
+  if (S.tab === 'port' || (S.stack[S.stack.length - 1] || {}).t === 'pf') { var el = document.getElementById('pfStat'); if (el) el.outerHTML = pfStat(); }
+}
+function pfStat() {
+  var t = PF.status === 'ok' && !PF.dirty ? '☁ Guardado en Drive' : PF.status === 'perm' ? '⚠ Solo en el móvil (falta permiso)' : PF.status === 'err' ? '⚠ Solo en el móvil (error al subir)' : PF.dirty ? '… guardando' : tokenOk() ? '☁ Sin cambios' : '📱 Solo en el móvil';
+  return '<span id="pfStat" class="lbl" style="text-transform:none;letter-spacing:.04em">' + t + '</span>';
+}
+/* trades de un EA en una fuente; Demo real = la cuenta donde más opera (Demo PC primero) */
+function eaTrades(id, src) {
+  if (src === 'sqx') { var sq = D.sqx[id]; return sq && sq.s ? sq.s.map(function (r) { return { close: new Date(r[0]), pnl: r[1], type: '', symbol: '' }; }) : []; }
+  var inst = eaInst(id); if (!inst.length) return [];
+  var dm = inst.filter(function (i) { return D.demo.indexOf(i.a) >= 0; }), pl = dm.length ? dm : inst;
+  return pl.slice().sort(function (p, q) { return q.x.n - p.x.n; })[0].x.raw;
+}
+function avgLoss(t) { var l = t.filter(function (x) { return x.pnl < 0; }); return l.length ? -l.reduce(function (a, x) { return a + x.pnl; }, 0) / l.length : 0; }
+function pfCalc(pf, src) {
+  var all = [], per = {};
+  pf.ids.forEach(function (id) {
+    var t = eaTrades(id, src), al = avgLoss(t), r = +pf.risk[id] > 0 ? +pf.risk[id] : pf.base, mult = al > 0 ? r / al : 1;
+    per[id] = { n: t.length, r: r };
+    t.forEach(function (x) { all.push({ close: x.close, pnl: x.pnl * mult, type: x.type || '', symbol: x.symbol || '' }); });
+  });
+  all.sort(function (a, b) { return a.close - b.close; });
+  return { trades: all, per: per, m: calc(all) };
+}
+function eaRef(id) { var i = eaInst(id); return i.length ? i[0] : { x: pseudoEA(id), a: null }; }
+function pfCards(list) {
+  var h = '';
+  list.forEach(function (p) {
+    var c = pfCalc(p, p.src || S.pfSrc), m = c.m, miss = p.ids.filter(function (id) { return !c.per[id].n; }).length;
+    h += '<div class="card click" data-a="pfOpen" data-k="' + enc(p.id) + '" style="padding:11px 13px"><div class="row" style="align-items:center"><div style="min-width:0"><div class="sub">' + p.ids.length + ' EAs · riesgo base $' + fmt(p.base) + (miss ? ' · ⚠ ' + miss + ' sin datos' : '') + '</div><div class="nm">' + esc(p.name) + '</div></div>' +
+      '<div style="text-align:right"><div class="big ' + cl(m.net) + '" style="font-size:18px">' + money(m.net) + '</div><div class="lbl">Ret/DD ' + f1(m.rdd, 2) + '</div></div></div>' + (m.n > 1 ? '<div style="margin-top:6px">' + spark(equity(c.trades), m.net < 0 ? '#ff5d78' : '#2ee6a0') + '</div>' : '') + '</div>';
+  });
+  return h;
+}
+function pfSegModes() { return '<div class="seg">' + [['man', '✋ Manuales'], ['au', '⚙ Automático'], ['lp', '🛡 Robustos']].map(function (i) { return '<button class="' + (S.pfMode === i[0] ? 'on' : '') + '" data-a="pfMode" data-k="' + enc(i[0]) + '">' + i[1] + '</button>'; }).join('') + '</div>'; }
+function vPorts() {
+  var mode = S.pfMode || 'man', all = pfLive().sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); });
+  var h = '<h1 class="pt">Portafolios</h1>' + noteHtml() + pfSegModes();
+  if (mode === 'au') return h + vAuto(all.filter(function (p) { return p.kind === 'auto'; }));
+  if (mode === 'lp') return h + vRobust(all.filter(function (p) { return p.kind === 'robust'; }));
+  var list = all.filter(function (p) { return !p.kind; });
+  h += segHtml([['demo', '🖥 Demo real'], ['sqx', '📚 Backtest SQX']], S.pfSrc, 'pfSrc') +
+    '<div class="row" style="margin:0 4px 8px;align-items:center"><span class="lbl">' + list.length + ' portafolios</span>' + pfStat() + '</div>';
+  if (!list.length) h += emptyHtml('🧩', 'Aún no tienes portafolios', 'Crea uno, añade EAs de la Librería o de tus cuentas y ponles el riesgo en $ por trade.');
+  return h + pfCards(list) + '<button class="btn pri" data-a="pfNew" style="margin-top:6px">＋ Nuevo portafolio</button>' + (PF.status === 'perm' ? '<button class="btn sec2" data-a="connect">🔗 Reconectar para dar permiso de guardado</button>' : '');
+}
+function cfgCard(title, body) { return '<div class="card" style="padding:6px 14px"><div class="sec" style="margin:8px 0 2px">' + title + '</div>' + body + '</div>'; }
+function discHtml(disc, key) {
+  if (!disc || !disc.length) return '';
+  var open = S.discOpen === key;
+  return '<div class="card" style="padding:10px 14px"><div class="row click" data-a="discT" data-k="' + enc(key) + '" style="align-items:center"><span class="lbl" style="text-transform:none">🗑 ' + disc.length + ' EAs descartados</span><span class="lbl">' + (open ? '▲' : '▼') + '</span></div>' +
+    (open ? disc.map(function (d) { return '<div style="margin-top:6px"><span class="num" style="font-size:12px">' + esc(d.id) + '</span> <span style="font-size:11px;color:var(--dim)">' + esc(d.why || '') + '</span></div>'; }).join('') : '') + '</div>';
+}
+function vAuto(saved) {
+  var h = cfgCard('Constructor automático',
+    cfgInput('Capital de la cuenta ($)', 'cap') + cfgInput('Max DD permitido (%)', 'au.dd', 'sobre el capital') + cfgInput('Máx. EAs (0 = sin límite)', 'au.maxN') + cfgInput('Correlación máx. (%)', 'au.corr', '100 = sin filtro') + cfgInput('Riesgo por EA ($/trade)', 'au.risk') +
+    '<div class="crow" style="display:block"><div>Dirección</div><div class="cfgc">' + ['LARGO', 'CORTO', 'L+C'].map(function (d) { return cfgChip(d, 'dir:' + d, AU.dirs.indexOf(d) >= 0); }).join('') + cfgChip('⭐ Solo favoritos', 'au.favOnly', AU.favOnly) + '</div></div>') +
+    segHtml([['demo', '🖥 Demo real'], ['sqx', '📚 Backtest SQX']], S.pfSrc, 'pfSrc') +
+    '<button class="btn pri" data-a="auGo">⚙ Construir portafolios</button>';
+  var R = S.auRes;
+  if (R) {
+    h += '<div class="row" style="margin:12px 4px 6px;align-items:center"><div class="sec" style="margin:0">Resultados · ' + (R.src === 'demo' ? 'Demo real' : 'SQX') + '</div><span class="lbl">' + R.cand + ' candidatos · límite ' + money(R.limit, 0, true) + '</span></div>';
+    if (R.noDemo) h += '<div class="lbl" style="text-transform:none;margin:0 4px 6px">ℹ ' + R.noDemo + ' EAs sin demo suficiente se han incluido sin juzgar.</div>';
+    if (!R.res.length) h += emptyHtml('🤷', 'Sin combinaciones válidas', 'Sube el DD permitido, la correlación máxima o quita el filtro de favoritos.');
+    R.res.forEach(function (o, i) {
+      var open = S.auOpen === i, mc = S.auMC && S.auMC[i];
+      h += '<div class="card" style="padding:11px 13px"><div class="row click" data-a="auOpen" data-k="' + enc(i) + '" style="align-items:center"><div><div class="sub">#' + (i + 1) + ' · ' + o.ids.length + ' EAs · DD ' + money(o.dd, 0, true) + ' · corr. media ' + (o.corr === null ? '—' : f1(o.corr * 100, 0) + '%') + '</div><div class="nm">' + o.ids.join(' · ') + '</div></div><div style="text-align:right"><div class="big ' + cl(o.net) + '" style="font-size:18px">' + money(o.net) + '</div><div class="lbl">Ret/DD ' + f1(o.ratio, 2) + '</div></div></div>';
+      if (open) {
+        h += '<div style="margin-top:8px">' + o.ids.map(function (id) { return eaRow(id, '<span class="tag a">$' + fmt(o.risk[id]) + '</span>'); }).join('') + '</div>' + (mc ? mcHtml(mc) : '') +
+          '<div class="row" style="gap:8px;margin-top:10px"><button class="btn" style="flex:1;padding:12px" data-a="auMC" data-k="' + enc(i) + '">🎲 Monte Carlo</button><button class="btn pri" style="flex:1;margin:0" data-a="auSave" data-k="' + enc(i) + '">💾 Guardar</button></div>';
+      }
+      h += '</div>';
+    });
+    h += discHtml(R.disc, 'au');
+  }
+  if (saved.length) h += '<div class="sec" style="margin:14px 4px 6px">Guardados (' + saved.length + ')</div>' + pfCards(saved);
+  return h;
+}
+function vRobust(saved) {
+  var h = cfgCard('Portafolios robustos',
+    cfgInput('Capital de la cuenta ($)', 'cap') + cfgInput('Max DD permitido (%)', 'lp.dd', 'se busca con margen de seguridad') + cfgInput('Peso del backtest (%)', 'lp.w', 'el resto va a Demo real') +
+    cfgInput('Mín. EAs', 'lp.minN') + cfgInput('Máx. EAs', 'lp.maxN') + cfgInput('Correlación máx. (%)', 'lp.corr') + cfgInput('Máx. peso de un EA (%)', 'lp.share') + cfgInput('Máx. peso de un activo (%)', 'lp.asset') +
+    cfgInput('Riesgo mínimo ($)', 'lp.rmin') + cfgInput('Riesgo máximo ($)', 'lp.rmax') + cfgInput('Paso de riesgo ($)', 'lp.rstep') +
+    cfgInput('Mín. ops en demo', 'lp.minOps') + cfgInput('Mín. meses en demo', 'lp.minMon') + cfgInput('% mínimo Monte Carlo', 'lp.pass') + cfgInput('Tiempo de búsqueda (s)', 'lp.time') +
+    '<div class="crow" style="display:block"><div class="cfgc">' + cfgChip('EAs que van mal en demo: ' + (LP.bad === 'discard' ? 'descartar' : 'avisar'), 'lp.bad', LP.bad === 'discard') + cfgChip('Exigir mitades positivas', 'lp.halves', LP.halves) + cfgChip('Sin depender del mejor EA', 'lp.nobest', LP.nobest) + cfgChip('⭐ Solo favoritos', 'lp.favOnly', LP.favOnly) + '</div></div>');
+  if (LP.run) h += '<div class="card"><div id="lpProg" class="lbl" style="text-transform:none">' + esc(LP.prog) + '</div><div class="pbar"><i id="lpBarI" style="width:' + LP.pct + '%"></i></div><button class="btn sec2" data-a="lpStop">⏹ Parar y ver lo mejor</button></div>';
+  else h += '<button class="btn pri" data-a="lpGo">🛡 Buscar portafolios robustos</button>';
+  var R = LP.res;
+  if (R && R.err) h += '<div class="card" style="color:var(--red);font-size:13px">⚠ ' + esc(R.err) + '</div>' + discHtml(R.disc, 'lp');
+  else if (R) {
+    h += '<div class="row" style="margin:12px 4px 6px;align-items:center"><div class="sec" style="margin:0">Mejores ' + R.top.length + '</div><span class="lbl">' + R.tested.toLocaleString('es-ES') + ' probados · ' + f1(R.secs, 0) + ' s' + (R.stopped ? ' · parado' : '') + '</span></div>' +
+      '<div class="lbl" style="text-transform:none;margin:0 4px 8px">' + R.cands + ' EAs utilizables de ' + R.nCand + ' · ' + R.passed + ' superan el Monte Carlo · ' + R.pOver + ' de ' + R.pTot + ' pares superan la correlación máx.</div>';
+    if (!R.top.length) { var bi = R.bestInfo, why = ''; if (bi) { var lim2 = []; if (bi.ddf > 1) lim2.push('el DD'); if (bi.shMax > Math.max(LP.share / 100, 1.25 / bi.len)) lim2.push('el peso de un EA (' + f1(bi.shMax * 100, 0) + '%)'); if (bi.aMax > R.assetEff) lim2.push('el peso de un activo (' + f1(bi.aMax * 100, 0) + '%, máx. ' + f1(R.assetEff * 100, 0) + '%)'); if (bi.len < LP.minN) lim2.push('el mínimo de EAs'); if (lim2.length) why = ' El mejor intento se pasaba en: ' + lim2.join(', ') + '.'; }
+      h += emptyHtml('🤷', 'Sin combinaciones que cumplan los límites', 'Hay ' + R.nAssets + ' activos entre los candidatos.' + why + ' Prueba a subir el DD, la correlación o el peso por activo, o dar más tiempo.'); }
+    R.top.forEach(function (o, i) {
+      var open = S.lpOpen === i, lvl = o.pass ? 'g' : 'r';
+      h += '<div class="card" style="padding:11px 13px"><div class="row click" data-a="lpOpen" data-k="' + enc(i) + '" style="align-items:center"><div style="min-width:0"><div class="sub">#' + (i + 1) + ' · ' + o.m.length + ' EAs · riesgo $' + fmt(o.m.reduce(function (a, x) { return a + x.r; }, 0)) + ' total</div><div class="nm">' + o.m.map(function (x) { return x.id; }).join(' · ') + '</div></div><div style="text-align:right">' + chip('MC ' + f1(o.pct * 100, 0) + '%', lvl) + '<div class="lbl" style="margin-top:4px">Ret/DD ' + f1(o.rd) + '</div></div></div>';
+      if (open) {
+        h += '<div class="grid3" style="margin:8px 0 4px">' + mBox('DD histórico', money(o.ddHist, 0, true), 'r') + mBox('DD MC ' + MCD.conf + '%', money(o.dd95, 0, true), o.dd95 <= CAP * LP.dd / 100 ? 'g' : 'r') + mBox('Corr. media', o.cavg === null ? '—' : f1(o.cavg * 100, 0) + '%', 'b') +
+          mBox('Ret/DD SQX', o.rdB === null ? '—' : f1(o.rdB), 'p') + mBox('Ret/DD Demo', o.rdD === null ? '—' : f1(o.rdD), 'p') + mBox('Peor racha mensual', o.streak + ' m', o.streak > 3 ? 'r' : 'g') + '</div>' +
+          '<div class="lbl" style="text-transform:none;margin:4px 2px">' + (o.halvesOk ? '✓ Las dos mitades del histórico son positivas' : '✗ Una mitad del histórico es negativa') + ' · ' + (o.nb.ok ? '✓ Aguanta sin ' + o.nb.id : '✗ Depende de ' + o.nb.id) + '</div>' +
+          (o.warns.length ? '<div class="lbl" style="text-transform:none;margin:4px 2px;color:var(--gold)">⚠ ' + o.warns.map(esc).join(' · ') + '</div>' : '') +
+          '<div style="margin-top:8px">' + o.m.map(function (x) { return eaRow(x.id, '<span class="tag a">$' + fmt(x.r) + '</span>', x.warn.length ? '<span class="tag a">⚠</span>' : ''); }).join('') + '</div>' +
+          '<div class="row" style="gap:8px;margin-top:10px"><button class="btn" style="flex:1;padding:12px" data-a="lpMC" data-k="' + enc(i) + '">🎲 Ver Monte Carlo</button><button class="btn pri" style="flex:1;margin:0" data-a="lpSave" data-k="' + enc(i) + '">💾 Guardar</button></div>' + (S.lpMC && S.lpMC[i] ? mcHtml(S.lpMC[i]) : '');
+      }
+      h += '</div>';
+    });
+    h += discHtml(R.disc, 'lp');
+  }
+  if (saved.length) h += '<div class="sec" style="margin:14px 4px 6px">Guardados (' + saved.length + ')</div>' + pfCards(saved);
+  return h;
+}
+function vPort(e) {
+  var p = pfBy(e.pid); if (!p) return backBar('Portafolio', '') + emptyHtml('❓', 'Portafolio no encontrado', '');
+  var src = p.src || 'demo', c = pfCalc(p, src), m = c.m, tot = 0;
+  p.ids.forEach(function (id) { tot += c.per[id].r; });
+  var h = backBar(p.name, p.ids.length + ' EAs · riesgo total $' + fmt(tot) + ' por trade', '#18b4ff', '') + '<div class="row" style="margin:0 4px 8px;align-items:center"><input id="pfName" class="srch" style="margin:0 8px 0 0;padding:9px 12px;font-size:13px" value="' + esc(p.name) + '">' + pfStat() + '</div>' +
+    segHtml([['sqx', '📚 Métricas SQX'], ['demo', '🖥 Métricas Demo real']], src, 'pfSrcD');
+  if (!p.ids.length) h += emptyHtml('🧩', 'Portafolio vacío', 'Añade EAs de la Librería o de tus cuentas.');
+  else if (!m.n) h += emptyHtml(src === 'demo' ? '🖥' : '📚', 'Sin datos en ' + (src === 'demo' ? 'Demo real' : 'SQX'), 'Ninguno de estos EAs tiene operaciones en esta fuente.');
+  else {
+    var pf = isFinite(m.pf) ? m.pf.toFixed(2).replace('.', ',') : '∞';
+    h += '<div class="card hero' + (m.net < 0 ? ' neg' : '') + '" style="padding-bottom:8px"><div class="row" style="align-items:center"><div class="lbl">Net P&amp;L · ' + (src === 'demo' ? 'Demo real' : 'Backtest SQX') + ' con estos riesgos</div>' + chip(m.n + ' trades', 'b') + '</div><div class="big ' + cl(m.net) + '" style="font-size:28px;margin:2px 0 2px">' + money(m.net) + '</div>' + chartHtml(equity(c.trades), m.net < 0 ? '#ff5d78' : '#2ee6a0', span(c.trades)) + '</div>' +
+      '<div class="grid3" style="margin:0 0 4px">' + mBox('Ret/DD', m.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(m.maxdd), 'r') + mBox('Win rate', (m.wr * 100).toFixed(0) + '%', m.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') + mBox('Trades', m.n, 'b') + mBox('Racha actual', m.curTradeStreak + ' ✗', m.curTradeStreak ? 'r' : 'g') + '</div>';
+  }
+  if (m.n >= 20) h += '<button class="btn" style="margin-top:8px" data-a="pfMC">🎲 Monte Carlo de este portafolio</button>' + (S.pfMC && S.pfMC[p.id + ':' + src] ? mcHtml(S.pfMC[p.id + ':' + src]) : '');
+  h += '<div class="row" style="align-items:center;margin:12px 4px 6px;gap:8px"><div class="sec" style="margin:0">Riesgo por EA ($ por trade)</div><div style="display:flex;gap:6px;align-items:center"><input id="pfBase" class="ri" type="number" inputmode="decimal" min="1" value="' + p.base + '"><button class="btn sm" data-a="pfBaseAll">A todos</button></div></div>';
+  if (p.ids.length) h += '<div class="card" style="padding:2px 14px">' + p.ids.map(function (id) {
+    var r = eaRef(id), x = r.x, n = c.per[id].n;
+    return '<div class="ea" style="align-items:flex-start;cursor:default"><div class="in"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x, r.a) + (n ? '' : '<span class="tag r">sin datos</span>') + '</div>' + eaBtns(x, '') + '</div>' +
+      '<div style="text-align:right"><div class="lbl" style="font-size:9px;margin-bottom:3px">$ por trade</div><input class="ri" data-rk="' + esc(id) + '" type="number" inputmode="decimal" min="1" value="' + c.per[id].r + '"></div><button class="rm" data-a="pfRm" data-k="' + enc(id) + '" aria-label="Quitar">✕</button></div>';
+  }).join('') + '</div>';
+  h += '<div class="row" style="gap:8px;margin-top:12px"><button class="btn" style="flex:1;padding:13px" data-a="pfAdd">＋ Añadir EA</button><button class="btn pri" style="flex:1;margin:0" data-a="pfSave">💾 Guardar ahora</button></div>' +
+    '<button class="btn sec2" style="margin-top:10px;color:' + (S.delArm === p.id ? '#ff5d78' : 'var(--dim)') + '" data-a="pfDel">' + (S.delArm === p.id ? '⚠ Toca otra vez para eliminar' : '🗑 Eliminar portafolio') + '</button>';
+  return h;
+}
+function pkIds() { var set = {}; Object.keys(D.sqx).forEach(function (k) { set[k] = 1; }); allAccs().forEach(function (a) { a.eas.forEach(function (x) { if (x.sid) set[x.sid] = 1; }); }); return Object.keys(set); }
+function pkGroups() {
+  var A = {}, T = {};
+  pkIds().forEach(function (id) { var m = eaMeta(eaRef(id).x, eaRef(id).a && eaRef(id).a.name); A[m.asset] = (A[m.asset] || 0) + 1; if (m.tf !== '—') T[m.tf] = (T[m.tf] || 0) + 1; });
+  var top = function (o) { return Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }); };
+  return [['f', ['fav']], ['a', top(A).slice(0, 6)], ['t', top(T)], ['d', ['LARGO', 'CORTO', 'L+C']]];
+}
+function pkFiltered(p) {
+  var q = String(S.pkQ || '').trim().toLowerCase().replace(/[.\s]/g, '_'), F = S.pkF, any = function (g) { return Object.keys(F).some(function (k) { return k.charAt(0) === g && F[k]; }); };
+  return pkIds().filter(function (id) {
+    var r = eaRef(id), m = eaMeta(r.x, r.a && r.a.name);
+    if (any('f') && FAVS.indexOf(id) < 0) return false;
+    if (any('a') && !F['a:' + m.asset]) return false;
+    if (any('t') && !F['t:' + m.tf]) return false;
+    if (any('d') && !F['d:' + m.dir]) return false;
+    if (q && id.toLowerCase().indexOf(q) < 0 && String(m.grp).toLowerCase().replace(/\s/g, '_').indexOf(q) < 0 && String(m.asset + '_' + m.tf).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  }).sort(function (a, b) { var ra = D.sqx[a] ? rddOf(a) : -1e9, rb = D.sqx[b] ? rddOf(b) : -1e9; return rb - ra; });
+}
+function pkList(p) {
+  var ids = pkFiltered(p);
+  if (!ids.length) return emptyHtml('🔍', 'Sin resultados', 'Prueba con otra búsqueda o quita algún filtro.');
+  return '<div class="lbl" style="margin:0 4px 8px">' + ids.length + ' EAs · por Ret/DD</div><div class="card" style="padding:2px 14px">' + ids.slice(0, 80).map(function (id) {
+    var r = eaRef(id), x = r.x, inP = p.ids.indexOf(id) >= 0, on = inP || S.pick[id], rd = D.sqx[id] ? rddOf(id) : null;
+    return '<div class="ea" data-a="' + (inP ? 'noop' : 'pkT') + '" data-k="' + enc(id) + '" style="align-items:flex-start;' + (inP ? 'opacity:.55' : '') + '"><div class="chk' + (on ? ' on' : '') + '">' + (on ? '✓' : '') + '</div><div class="in"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x, r.a) + (inP ? '<span class="tag a">ya está</span>' : '') + '</div>' + eaBtns(x, '') + '</div>' +
+      '<div style="text-align:right"><div class="lbl" style="font-size:9px">Ret/DD</div><div class="mono ' + (rd == null ? 'd' : rd >= 0 ? 'g' : 'r') + '" style="font-weight:600;font-size:14px">' + (rd == null ? '—' : rd.toFixed(1).replace('.', ',')) + '</div></div></div>';
+  }).join('') + (ids.length > 80 ? '<div class="lbl" style="padding:10px;text-align:center">Mostrando 80 de ' + ids.length + ': afina la búsqueda</div>' : '') + '</div>';
+}
+function pkBar() { var n = Object.keys(S.pick).filter(function (k) { return S.pick[k]; }).length; return '<div id="pkBar" class="stk"><button class="btn pri" style="margin:0" data-a="pkGo"' + (n ? '' : ' disabled') + '>' + (n ? 'Añadir ' + n + (n === 1 ? ' EA' : ' EAs') + ' al portafolio' : 'Marca los EAs que quieras añadir') + '</button></div>'; }
+function vPick(e) {
+  var p = pfBy(e.pid); if (!p) return backBar('Añadir EAs', '') + emptyHtml('❓', 'Portafolio no encontrado', '');
+  var G = pkGroups(), lab = { f: function () { return '⭐ Favoritos'; }, a: function (v) { return v; }, t: function (v) { return v; }, d: function (v) { return v === 'LARGO' ? 'Largo' : v === 'CORTO' ? 'Corto' : 'L+C'; } };
+  return backBar('Añadir EAs', esc(p.name)) + '<input id="pkQ" class="srch" type="search" placeholder="🔍 Buscar estrategia, activo…" value="' + esc(S.pkQ) + '">' +
+    '<div class="fil" style="flex-wrap:wrap;overflow:visible">' + G.map(function (g) { return g[1].map(function (v) { var k = g[0] + ':' + v; return '<button class="' + (S.pkF[k] ? 'on' : '') + '" data-a="pkF" data-k="' + enc(k) + '">' + esc(lab[g[0]](v)) + '</button>'; }).join(''); }).join('') + '</div>' +
+    '<div id="pkList">' + pkList(p) + '</div>' + pkBar();
+}
+
+/* ---------- Más ---------- */
+function vMas() {
+  var it = [['favs', '⭐', 'Favoritos', 'Tus EAs favoritos y sus métricas'], ['rachas', '🎯', 'Rachas', 'Racha actual de cada EA frente a su máximo en SQX'], ['ranking', '🏆', 'Ranking', 'Todos los EAs ordenados por beneficio'], ['ajustes', '⚙', 'Ajustes', 'Carpetas de Drive, alertas y estado de la lectura']];
+  return '<h1 class="pt">Más</h1>' + it.map(function (i) { return '<div class="card click" data-a="goT" data-k="' + enc(i[0]) + '"><div class="row" style="align-items:center"><div><div class="nm">' + i[1] + ' ' + i[2] + '</div><div class="lbl" style="margin-top:3px;text-transform:none;letter-spacing:.04em">' + i[3] + '</div></div><span class="d" style="font-size:20px">›</span></div></div>'; }).join('');
+}
+
+/* ---------- Librería (árbol como en FGX Digital) ---------- */
+function rddOf(id) {
+  var sq = D.sqx[id]; if (!sq || !sq.s) return 0;
+  if (sq._r == null) { var p = sq.s.map(function (r) { return r[1]; }), net = p.reduce(function (a, b) { return a + b; }, 0), dd = maxDD(p); sq._r = dd > 0 ? net / dd : 0; }
+  return sq._r;
+}
+function pseudoEA(id) { return { sid: id, name: id, symbol: '', key: id, buys: 0, sells: 0 }; }
+function libRow(id) {
+  var x = pseudoEA(id), r = rddOf(id);
+  return '<div class="ea" data-a="vsid" data-k="' + enc([id, 'sqx', '']) + '"><div class="in"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x) + '</div>' + eaBtns(x, '') + '</div>' +
+    '<div style="text-align:right"><div class="lbl" style="font-size:9px">Ret/DD</div><div class="mono ' + (r >= 0 ? 'g' : 'r') + '" style="font-weight:600;font-size:14px">' + r.toFixed(1).replace('.', ',') + '</div></div>' + starHtml(x) + '</div>';
+}
+function libFiltered() {
+  var q = String(S.libQ || '').trim().toLowerCase().replace(/[.\s]/g, '_');
+  return Object.keys(D.lib.meta).filter(function (id) {
+    if (!D.sqx[id]) return false;
+    var m = D.lib.meta[id];
+    if (S.libF === 'fav') { if (FAVS.indexOf(id) < 0) return false; } else if (S.libF !== 'all' && m.dir !== S.libF) return false;
+    if (q && id.toLowerCase().indexOf(q) < 0 && String(m.grp).toLowerCase().replace(/\s/g, '_').indexOf(q) < 0 && String(m.asset + '_' + m.tf).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  }).sort(function (a, b) { return rddOf(b) - rddOf(a); });
+}
+function libList() {
+  var ids = libFiltered();
+  if (!ids.length) return emptyHtml('📚', Object.keys(D.lib.meta).length ? 'Sin resultados' : 'Librería sin leer', Object.keys(D.lib.meta).length ? 'Prueba con otra búsqueda o filtro.' : 'No he podido leer la carpeta FGX LIBRERIA de Drive. Revisa Ajustes → Librería.');
+  if (String(S.libQ || '').trim()) return '<div class="lbl" style="margin:0 4px 8px">' + ids.length + ' EAs · por Ret/DD</div><div class="card" style="padding:2px 14px">' + ids.slice(0, 60).map(libRow).join('') + (ids.length > 60 ? '<div class="lbl" style="padding:10px;text-align:center">Mostrando 60 de ' + ids.length + ': afina la búsqueda</div>' : '') + '</div>';
+  var tree = {};
+  ids.forEach(function (id) { var m = D.lib.meta[id], a = m.grp || 'Sin clasificar', t = m.tfRaw || m.tf || '—', d = m.dirRaw || m.dir || '—', b = m.bl || 'Sin BL';
+    ((((tree[a] = tree[a] || {})[t] = tree[a][t] || {})[d] = tree[a][t][d] || {})[b] = tree[a][t][d][b] || []).push(id); });
+  function count(n) { return Array.isArray(n) ? n.length : Object.keys(n).reduce(function (s2, k) { return s2 + count(n[k]); }, 0); }
+  function fold(name, n, path, lvl, ic) {
+    var op = !!S.libOpen[path];
+    return '<div class="fold" data-a="libT" data-k="' + enc(path) + '" style="padding-left:' + (6 + lvl * 14) + 'px"><span class="fa">' + (op ? '▾' : '▸') + '</span>' + ic + ' ' + esc(name) + '<span class="chip" style="margin-left:auto">' + count(n) + '</span></div>';
+  }
+  function walk(n, path, lvl) {
+    return Object.keys(n).sort(function (x, y) { return x.localeCompare(y, 'es', { numeric: true }); }).map(function (k) {
+      var p = path + '/' + k, c = n[k], out = fold(k, c, p, lvl, lvl === 3 ? '🏷' : '📁');
+      if (S.libOpen[p]) out += Array.isArray(c) ? c.sort(function (a, b) { return rddOf(b) - rddOf(a); }).map(libRow).join('') : walk(c, p, lvl + 1);
+      return out;
+    }).join('');
+  }
+  return '<div class="lbl" style="margin:0 4px 8px">Librería · ordenado por Ret/DD</div><div class="card" style="padding:2px 8px">' + walk(tree, '', 0) + '</div>';
+}
+function vLibreria() {
+  var n = Object.keys(D.lib.meta).filter(function (id) { return D.sqx[id]; }).length;
+  var chips = [['all', 'Todos'], ['fav', '⭐ Favoritos'], ['LARGO', 'Largo'], ['CORTO', 'Corto'], ['L+C', 'L+C']];
+  return '<h1 class="pt">Librería</h1>' + noteHtml() + '<input id="libQ" class="srch" type="search" placeholder="🔍 Buscar estrategia, activo…" value="' + esc(S.libQ) + '">' +
+    '<div class="fil">' + chips.map(function (c) { return '<button class="' + (S.libF === c[0] ? 'on' : '') + '" data-a="libF" data-k="' + enc(c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' +
+    '<div id="libList">' + libList() + '</div>';
+}
+/* capturas de la Librería (imágenes en Drive), con caché */
+var IMGURL = {};
+async function imgBlob(fid) {
+  var c = await kvGet('img:' + fid); if (c) return c;
+  if (!tokenOk()) return null;
+  try { var r = await dget('https://www.googleapis.com/drive/v3/files/' + fid + '?alt=media&supportsAllDrives=true'); var b = await r.blob(); kvSet('img:' + fid, b); return b; } catch (e) { return null; }
+}
+function loadImgs() {
+  document.querySelectorAll('img[data-fid]').forEach(function (im) {
+    var fid = im.dataset.fid;
+    if (IMGURL[fid]) { im.src = IMGURL[fid]; return; }
+    imgBlob(fid).then(function (b) { if (!b) { var pe = im.parentNode; if (pe) pe.innerHTML = '<div class="lbl" style="padding:14px;text-align:center">No se pudo cargar la captura</div>'; return; } IMGURL[fid] = URL.createObjectURL(b); im.src = IMGURL[fid]; });
+  });
+}
+
+/* ---------- ficha unificada de un EA: 📚 SQX | 🖥 Demo real (+ cuenta) ---------- */
+function eaInst(sid) { var inst = []; allAccs().forEach(function (a) { a.eas.forEach(function (x) { if (x.sid === sid) inst.push({ a: a, x: x }); }); }); return inst; }
+function vSid(e) {
+  var sid = e.sid, inst = eaInst(sid), sq = D.sqx[sid], hasSqx = !!(sq && sq.s);
+  var dm = inst.filter(function (i) { return D.demo.indexOf(i.a) >= 0; }), pl = dm.length ? dm : inst;
+  var prim = pl.slice().sort(function (p, q) { return q.x.n - p.x.n; })[0] || null;
+  var ref = prim ? prim.x : { sid: sid, name: sid, symbol: '', buys: 0, sells: 0, raw: [] };
+  var cur = null;
+  if (e.src === 'demo' && inst.length) {
+    if (e.acc === 'all') cur = 'all';
+    else cur = inst.filter(function (i) { return i.a.id === e.acc; })[0] || prim;
+  }
+  var h = '<div class="back"><button class="btn" data-a="back">← Volver</button><div style="min-width:0;flex:1">' + eaBadge(ref, true) + '<div style="margin-top:5px">' + eaTags(ref, prim && prim.a) + '</div></div>' + starHtml(ref) + '</div>' +
+    segHtml([['sqx', '📚 Métricas SQX'], ['demo', '🖥 Métricas Demo real']], e.src, 'srcSet');
+  var meta = eaMeta(ref, prim && prim.a.name);
+  var trades, m, label, tabs = [['stats', 'Stats'], ['mens', 'Mensual']];
+  if (e.src === 'demo') {
+    if (!inst.length) return h + emptyHtml('🖥', 'Sin operaciones en Demo real', 'Este EA no aparece en ninguna cuenta (VPS ni Demo PC). Puede que aún no haya operado o que su CSV no esté en Drive.');
+    tabs.push(['ops', 'Operaciones']);
+    h += '<div class="fil"><button class="' + (cur === 'all' ? 'on' : '') + '" data-a="accSet2" data-k="' + enc('all') + '">Todas (suma)</button>' +
+      inst.map(function (i) { return '<button class="' + (cur === i ? 'on' : '') + '" data-a="accSet2" data-k="' + enc(i.a.id) + '">' + (D.demo.indexOf(i.a) >= 0 ? '🖥 ' : '☁ ') + esc(i.a.name) + '</button>'; }).join('') + '</div>';
+    if (cur === 'all') { trades = []; inst.forEach(function (i) { trades = trades.concat(i.x.raw); }); trades.sort(function (a, b) { return a.close - b.close; }); label = 'Demo real · todas las cuentas'; }
+    else { trades = cur.x.raw; label = 'Demo real · ' + cur.a.name; }
+  } else {
+    if (!hasSqx) return h + emptyHtml('📚', 'Sin backtest de SQX', 'No encuentro el CSV de SQX de ' + esc(sid) + ' ni en <b>CSV SQX HISTORICOS</b> ni en la Librería.');
+    trades = sq.s.map(function (r) { return { close: new Date(r[0]), pnl: r[1], type: '', symbol: '' }; });
+    label = 'Backtest SQX';
+  }
+  m = calc(trades);
+  h += segHtml(tabs, e.tab, 'eaTab');
+  if (e.tab === 'stats') {
+    var pf = isFinite(m.pf) ? m.pf.toFixed(2).replace('.', ',') : '∞';
+    if (e.src === 'sqx') {
+      var lm = D.lib.meta[sid], mo = {}, ops = 0; inst.forEach(function (i) { ops += i.x.n; Object.keys(i.x.byMonth).forEach(function (k) { mo[k] = 1; }); });
+      var tr0 = sq.s;
+      h += '<div class="chips" style="margin:0 0 10px">' + (lm ? chip(esc(lm.grp), 'b') : '') + chip(new Date(tr0[0][0]).toLocaleDateString('es-ES') + ' → ' + new Date(tr0[tr0.length - 1][0]).toLocaleDateString('es-ES')) + (lm && lm.dir ? chip(lm.dir === 'LARGO' ? '🟢 Solo largos' : lm.dir === 'CORTO' ? '🔴 Solo cortos' : '🟡 Largos y cortos', dirCls(lm.dir)) : '') + (lm && lm.bl ? chip('📁 ' + esc(lm.bl)) : '') + '</div>';
+      h += inst.length ? '<div class="card click" data-a="srcSet" data-k="' + enc('demo') + '" style="padding:11px 14px;border-color:rgba(24,180,255,.5)"><div class="row" style="align-items:center"><div><div class="nm" style="font-size:14px">🖥 Ver en Demo real →</div><div class="lbl" style="margin-top:3px;text-transform:none;letter-spacing:.04em">' + Object.keys(mo).length + ' meses de demo · ' + ops + ' ops · ' + inst.length + (inst.length === 1 ? ' cuenta' : ' cuentas') + '</div></div><span class="d" style="font-size:20px">›</span></div></div>'
+        : '<div class="card" style="padding:11px 14px;opacity:.6"><div class="nm" style="font-size:14px">🖥 Sin operaciones en Demo real</div></div>';
+    }
+    h += '<div class="card hero' + (m.net < 0 ? ' neg' : '') + '"><div class="row" style="align-items:center"><div class="lbl">Net P&amp;L · ' + esc(label) + '</div>' + chip(m.n + ' trades', 'b') + '</div><div class="big ' + cl(m.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(m.net) + '</div>' + chartHtml(equity(trades), m.net < 0 ? '#ff5d78' : '#2ee6a0', span(trades)) + '</div>';
+    h += '<div class="grid3" style="margin:0">' + mBox('Trades', m.n, 'b') + mBox('Win rate', (m.wr * 100).toFixed(1).replace('.', ',') + '%', m.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') +
+      mBox('Max DD', '-$' + fmt(m.maxdd), 'r') + mBox('Ret/DD', m.rdd.toFixed(2).replace('.', ','), 'a');
+    if (e.src === 'demo') {
+      var di = m.last ? Math.floor((Date.now() - m.last) / 86400000) : 9999;
+      h += mBox('Días sin op.', di > 9000 ? '—' : di, di > ALERT_DAYS ? 'r' : 'g') + mBox('Largos', m.buys, 'g') + mBox('Cortos', m.sells, 'r') + mBox('Racha actual', m.curTradeStreak + ' ✗', m.curTradeStreak ? 'r' : 'g');
+    } else {
+      h += mBox('Racha máx.', sq.maxStreak + ' ✗', 'r') + mBox('Racha media', sq.avgStreak.toFixed(1).replace('.', ','), 'a') + mBox('Meses neg. máx.', sq.maxMonthStreak, 'r') + mBox('Desde', trades.length ? trades[0].close.getFullYear() : '—', 'b');
+    }
+    h += '</div>';
+    if (e.src === 'sqx') {
+      var sn = D.lib.snaps[sid] || [], im = D.lib.imgs[sid] || {};
+      if (sn.length) h += '<div class="sec">Snapshots</div><div class="card" style="padding:4px 14px">' + sn.map(function (z, k) { return '<div class="row" style="align-items:center;padding:9px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12px">' + (z.d ? z.d.split('-').reverse().join('/') : 'sin fecha') + '</span><span class="lbl">' + (k === 0 ? 'último · ' + m.n + ' trades' : 'anterior') + '</span></div>'; }).join('') + '</div>';
+      [['overview', 'Captura overview · combo WF'], ['equity', 'Captura equity chart de SQX']].forEach(function (t) { if (im[t[0]]) h += '<div class="sec">' + t[1] + '</div><div class="card" style="padding:6px"><img class="cap" data-fid="' + im[t[0]].f + '" alt=""></div>'; });
+    }
+    if (e.src === 'demo' && cur !== 'all' && sq) h += '<div class="sec">Racha vs SQX</div>' + rachaCard(cur.x, sq, cur.a, true);
+    if (e.src === 'demo' && inst.length > 1 && sid) h += '<div class="card click favc" data-a="fav2" data-k="' + enc(sid) + '" style="padding:12px"><div class="row" style="align-items:center"><div><div class="nm">Comparar las ' + inst.length + ' cuentas</div><div class="lbl" style="margin-top:2px">Ficha de la escogida y comparativa</div></div><span class="d" style="font-size:20px">›</span></div></div>';
+  } else if (e.tab === 'mens') {
+    var ms = Object.keys(m.byMonth).sort(), tot = ms.reduce(function (s2, k) { return s2 + m.byMonth[k]; }, 0);
+    h += '<div class="card" style="padding:12px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Total · ' + esc(label) + '</span><span class="mono ' + cl(tot) + '" style="font-weight:600">' + money(tot) + '</span></div>' + monthsBlock(m.byMonth, ms) + '</div>';
+  } else {
+    h += opsHtml(trades.map(function (t) { return { close: t.close, pnl: t.pnl, type: t.type, symbol: t.symbol }; }), null);
+  }
+  return h;
+}
+
 /* ---------- rachas ---------- */
 function level(p) { return p >= 85 ? { c: '#ff5d78', t: '🔥 ¡Toca!', k: 'r' } : p >= 50 ? { c: '#e6b84a', t: '⚠️ ' + Math.round(p) + '%', k: 'a' } : { c: '#2ee6a0', t: '✅ Normal', k: 'g' }; }
 function rachaOf(x, sq) {
@@ -708,7 +1788,7 @@ function rachaOf(x, sq) {
 function rachaCard(x, sq, a, noClick) {
   var r = rachaOf(x, sq), lv = level(r.p), lm = level(r.pm);
   return '<div class="card' + (noClick ? '' : ' click') + '" style="--ac:' + lv.c + '"' + (noClick ? '' : ' data-a="ea" data-k="' + enc([a.id, x.key]) + '"') + '><div class="row" style="align-items:center;gap:12px">' + gauge(r.p, lv.c, Math.round(r.p) + '%') +
-    '<div style="flex:1;min-width:0"><div class="sub">' + esc(a.name) + '</div><div class="nm" style="font-size:14px">' + esc(x.name) + '</div><div style="margin-top:4px">' + (x.sid ? '<span class="tag">' + x.sid + '</span>' : '') + '<span class="tag b">' + esc(x.symbol || '—') + '</span><span class="tag ' + (dirOf(x) === 'LARGO' ? 'g' : dirOf(x) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(x) + '</span></div></div>' +
+    '<div style="flex:1;min-width:0"><div class="sub">' + esc(a.name) + '</div>' + eaHead(x, a) + (noClick ? '' : eaBtns(x, a.id)) + '</div>' +
     chip(lv.t, lv.k) + (noClick ? '' : starHtml(x)) + '</div>' +
     '<div style="margin-top:12px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Trades seguidos en negativo</span><span class="mono" style="font-size:11px;color:' + lv.c + '">' + x.curTradeStreak + ' / ' + sq.maxStreak + '</span></div>' + barHtml(r.p, lv.c) + '</div>' +
     '<div style="margin-top:9px"><div class="row" style="align-items:center;margin-bottom:4px"><span class="lbl">Meses seguidos en negativo</span><span class="mono" style="font-size:11px;color:' + lm.c + '">' + x.curMonthStreak + ' / ' + sq.maxMonthStreak + '</span></div>' + barHtml(r.pm, lm.c) + '</div>' +
@@ -743,28 +1823,36 @@ function vRachaAcc(e) {
   var items = a.eas.map(function (x) { var sq = x.sid && D.sqx[x.sid]; return { x: x, sq: sq, risk: sq ? rachaOf(x, sq).risk : -1 }; }).sort(function (p, q) { return q.risk - p.risk; });
   return backBar(a.name, 'Rachas · ' + items.filter(function (i) { return i.sq; }).length + ' EAs con SQX', a.color) + items.map(function (i) {
     if (i.sq) return rachaCard(i.x, i.sq, a);
-    return '<div class="card click" data-a="ea" data-k="' + enc([a.id, i.x.key]) + '" style="opacity:.55"><div class="nm" style="font-size:13px">' + esc(i.x.name) + '</div><div style="margin:5px 0"><span class="tag b">' + esc(i.x.symbol || '—') + '</span>' + (i.x.sid ? '<span class="tag">' + i.x.sid + '</span>' : '') + '</div><div class="lbl">Sin CSV de SQX para esta estrategia</div></div>';
+    return '<div class="card click" data-a="ea" data-k="' + enc([a.id, i.x.key]) + '" style="opacity:.7">' + eaHead(i.x, a) + '<div class="lbl" style="margin-top:6px">Sin CSV de SQX para esta estrategia</div>' + eaBtns(i.x, a.id) + '</div>';
   }).join('');
 }
 
 /* ---------- favoritos ---------- */
 function vFavs() {
   var h = '<h1 class="pt">Favoritos</h1>' + noteHtml();
-  var items = favGroups();
-  if (!items.length) return h + emptyHtml('⭐', 'Aún no tienes favoritos', 'Toca la estrella ☆ en cualquier EA (Ranking, cuentas, Rachas o detalle). Aquí verás cada EA una sola vez, con todas las cuentas donde corre.');
+  var items = favGroups(), solo = FAVS.filter(function (k) { return !favGroup(k) && D.sqx[k] && D.sqx[k].s; });
+  if (!items.length && !solo.length) return h + emptyHtml('⭐', 'Aún no tienes favoritos', 'Toca la estrella ☆ en cualquier EA (Ranking, cuentas, Rachas o detalle). Aquí verás cada EA una sola vez, con todas las cuentas donde corre.');
   var today = new Date(), tot = 0; items.forEach(function (g) { g.day = dayPnl(g.raw, today); tot += g.day; });
+  if (!items.length) h += '<div class="card hero"><div class="lbl">Favoritos</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + solo.length + ' solo con backtest', 'a') + '</div></div>';
   items.sort(function (p, q) { return q.net - p.net; });
   h += '<div class="card hero' + (tot < 0 ? ' neg' : '') + '"><div class="lbl">Favoritos · P&amp;L de hoy</div><div class="big ' + cl(tot) + '" style="font-size:30px;margin:5px 0 2px">' + money(tot, 2) + '</div><div class="chips" style="margin-top:6px">' + chip('⭐ ' + items.length + ' EAs', 'a') + '</div></div>';
   items.forEach(function (g) {
     var sq = g.sid && D.sqx[g.sid], di = idle(g), col = g.net < 0 ? '#ff5d78' : '#2ee6a0', rc = '';
     if (sq) { var lv = level(rachaOf(g.prim.x, sq).p); rc = chip('Racha ' + lv.t, lv.k); }
-    h += '<div class="card click favc" data-a="fav2" data-k="' + enc(g.key) + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="nm" style="white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2;word-break:break-word">' + esc(g.name) + '</div>' +
-      '<div style="margin-top:4px">' + (g.sid ? '<span class="tag">' + g.sid + '</span>' : '') + '<span class="tag b">' + esc(g.symbol || '—') + '</span><span class="tag ' + (dirOf(g) === 'LARGO' ? 'g' : dirOf(g) === 'CORTO' ? 'r' : 'a') + '">' + dirOf(g) + '</span></div></div>' +
+    h += '<div class="card click favc" data-a="fav2" data-k="' + enc(g.key) + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0">' + eaHead(g, g.prim.a) + eaBtns(g.prim.x, g.prim.a.id) + '</div>' +
       '<div style="text-align:right"><div class="lbl">Hoy</div><div class="mono ' + cl(g.day) + '" style="font-weight:600;font-size:15px">' + money(g.day, 0) + '</div><div class="lbl" style="margin-top:4px">Net</div><div class="mono ' + cl(g.net) + '" style="font-weight:600;font-size:15px">' + money(g.net) + '</div></div>' + starHtml(g) + '</div>' +
       '<div style="margin:10px 0 4px">' + spark(equity(g.raw), col) + '</div>' +
       '<div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">' + mBox('Win rate', (g.wr * 100).toFixed(0) + '%', g.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', g.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(g.maxdd), 'r') + mBox('Sin op.', di > 9000 ? '—' : di + 'd', di > ALERT_DAYS ? 'r' : 'g') + '</div>' +
       '<div class="chips">' + chip('🖥 ' + esc(g.prim.a.name), 'b') + (g.inst.length > 1 ? chip('+' + (g.inst.length - 1) + ' cuentas más') : '') + chip(g.n + ' trades') + rc + '</div></div>';
   });
+  if (solo.length) {
+    h += '<div class="sec">Sin operaciones en demo (solo backtest SQX)</div>';
+    solo.forEach(function (k) {
+      var x = pseudoEA(k), sq = D.sqx[k], r = rddOf(k), net = sq.s.reduce(function (a, b) { return a + b[1]; }, 0);
+      var eq = [0], c = 0; sq.s.forEach(function (z) { c += z[1]; eq.push(c); });
+      h += '<div class="card click" data-a="vsid" data-k="' + enc([k, 'sqx', '']) + '"><div class="row" style="align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x) + '</div>' + eaBtns(x, '') + '</div><div style="text-align:right"><div class="lbl">Net SQX</div><div class="mono ' + cl(net) + '" style="font-weight:600;font-size:15px">' + money(net) + '</div><div class="lbl" style="margin-top:4px">Ret/DD ' + r.toFixed(1).replace('.', ',') + '</div></div>' + starHtml(x) + '</div><div style="margin:10px 0 2px">' + spark(eq, net < 0 ? '#ff5d78' : '#18b4ff') + '</div></div>';
+    });
+  }
   return h;
 }
 
@@ -772,7 +1860,7 @@ function vFavs() {
 function vFavDetail(e) {
   var g = favGroup(e.k);
   if (!g) return backBar('Favorito', '') + emptyHtml('❓', 'EA no encontrado', 'Ya no aparece en ninguna cuenta. Vuelve atrás.');
-  var h = backBar(g.name, esc(g.prim.a.name) + (g.inst.length > 1 ? ' (+' + (g.inst.length - 1) + ' más)' : '') + ' · ' + esc(g.symbol || '—') + ' · ' + dirOf(g), null, starHtml(g)) +
+  var h = backBar(g.sid || g.name, esc(g.prim.a.name) + (g.inst.length > 1 ? ' (+' + (g.inst.length - 1) + ' más)' : '') + ' · ' + eaMeta(g, g.prim.a.name).asset + ' · ' + eaMeta(g, g.prim.a.name).tf + ' · ' + eaMeta(g, g.prim.a.name).dir, null, starHtml(g)) +
     segHtml([['stats', 'Resumen'], ['comp', 'Comparar'], ['mens', 'Mensual'], ['ops', 'Operaciones']], e.tab, 'eaTab');
   var sq = g.sid && D.sqx[g.sid];
   if (e.tab === 'stats') {
@@ -833,7 +1921,7 @@ function vRanking() {
   h += '<div class="lbl" style="margin-bottom:8px">' + list.length + ' EAs</div>';
   list.forEach(function (i, n) {
     var x = i.x, mp = x.byMonth[cm] || 0;
-    h += '<div class="card click" data-a="ea" data-k="' + enc([i.a.id, x.key]) + '" style="--ac:' + i.a.color + ';padding:12px"><div class="row" style="align-items:center"><div class="rk ' + (n < 3 ? 'rk' + (n + 1) : '') + '">' + (n + 1) + '</div><div style="flex:1;min-width:0"><div class="nm" style="font-size:13px">' + esc(x.name) + '</div><div style="margin-top:3px"><span class="tag b">' + esc(x.symbol || '—') + '</span>' + (S.rankFilter === 'global' ? '<span class="tag">' + esc(i.a.name) + '</span>' : '') + '</div></div>' +
+    h += '<div class="card click" data-a="ea" data-k="' + enc([i.a.id, x.key]) + '" style="--ac:' + i.a.color + ';padding:12px"><div class="row" style="align-items:center"><div class="rk ' + (n < 3 ? 'rk' + (n + 1) : '') + '">' + (n + 1) + '</div><div style="flex:1;min-width:0">' + eaHead(x, i.a) + (S.rankFilter === 'global' ? '<div style="margin-top:4px"><span class="tag">' + esc(i.a.name) + '</span></div>' : '') + eaBtns(x, i.a.id) + '</div>' +
       '<div style="text-align:right"><div class="mono ' + cl(x.net) + '" style="font-weight:600;font-size:15px">' + money(x.net) + '</div><div class="lbl" style="margin-top:2px">Mes ' + money(mp) + '</div></div>' + starHtml(x) + '</div>' +
       '<div class="grid3" style="margin-top:10px">' + mBox('Trades', x.n, 'b') + mBox('Win rate', (x.wr * 100).toFixed(0) + '%', x.wr >= .5 ? 'g' : 'r') + mBox('Ret/DD', x.rdd.toFixed(2).replace('.', ','), 'a') + '</div></div>';
   });
@@ -845,15 +1933,16 @@ function folderId(v) { v = String(v || '').trim(); var m = /folders\/([\w-]{10,}
 function vAjustes() {
   var ok = tokenOk();
   var h = '<h1 class="pt">Ajustes</h1><div class="set"><div class="st">Google Drive</div>' +
-    '<div class="sr"><div><div>Estado</div><div class="ss">' + (ok ? 'Conectado (solo lectura)' : 'No conectado') + (D.updated ? ' · datos de ' + pad(D.updated.getHours()) + ':' + pad(D.updated.getMinutes()) : '') + '</div></div><div>' + (ok ? '✅' : '❌') + '</div></div></div>' +
+    '<div class="sr"><div><div>Estado</div><div class="ss">' + (ok ? 'Conectado (lee tus CSV; solo escribe tus portafolios)' : 'No conectado') + (D.updated ? ' · datos de ' + pad(D.updated.getHours()) + ':' + pad(D.updated.getMinutes()) : '') + '</div></div><div>' + (ok ? '✅' : '❌') + '</div></div></div>' +
     '<button class="btn pri" data-a="connect">' + (ok ? '🔄 Reconectar' : '🔗 Conectar con Google Drive') + '</button>' +
     '<div class="set"><div class="st">📁 SQX históricos</div><div class="sr"><input id="fSqx" value="' + esc(F.sqx) + '" placeholder="ID o enlace de carpeta"></div></div>' +
+    '<div class="set"><div class="st">📚 Librería (FGX LIBRERIA)</div><div class="sr"><input id="fLib" value="' + esc(F.lib) + '" placeholder="Vacío = la busco por nombre en tu Drive"></div></div>' +
     '<div class="set"><div class="st">☁️ Cuentas VPS</div><div class="sr"><input id="fVps" value="' + esc(F.vps) + '" placeholder="ID o enlace de carpeta"></div></div>' +
     '<div class="set"><div class="st">🖥️ Demo PC</div><div class="sr"><input id="fDemo" value="' + esc(F.demo) + '" placeholder="ID o enlace de carpeta"></div></div>' +
     '<button class="btn sec2" data-a="saveF">💾 Guardar carpetas</button>' +
     '<div class="set"><div class="st">Alertas</div><div class="sr"><div><div>Días sin operar</div><div class="ss">Marca "sin operar" a un EA pasado este nº de días</div></div><input class="n" id="alertIn" type="number" min="1" max="90" value="' + ALERT_DAYS + '"></div></div>' +
     '<button class="btn sec2" data-a="refresh">🔄 Actualizar datos</button>' +
-    '<div class="set"><div class="st">Lectura</div><div class="sr"><div><div>Cuentas VPS / Demo / SQX</div><div class="ss">' + D.vps.length + ' / ' + D.demo.length + ' / ' + Object.keys(D.sqx).length + ' estrategias (' + D.sqxFiles + ' CSV en la carpeta)</div></div></div></div>';
+    '<div class="set"><div class="st">Lectura</div><div class="sr"><div><div>Cuentas VPS / Demo / SQX</div><div class="ss">' + D.vps.length + ' / ' + D.demo.length + ' / ' + Object.keys(D.sqx).length + ' estrategias (' + D.sqxFiles + ' CSV en la carpeta) · Librería: ' + Object.keys(D.lib.meta).length + ' EAs clasificados</div></div></div></div>';
   if (D.warn.length) h += '<div class="set"><div class="st" style="color:var(--gold)">⚠ Archivos con avisos (' + D.warn.length + ')</div>' + D.warn.slice(0, 25).map(function (w) { return '<div class="sr" style="font-size:11px;color:var(--dim)">' + esc(w) + '</div>'; }).join('') + '</div>';
   h += '<div class="lbl" style="text-align:center;margin:14px 0">FGX Trading Monitor v' + VERSION + '</div>';
   return h;
@@ -865,10 +1954,10 @@ function render() {
   if (S.loading && !D.vps.length && !D.demo.length) return;
   CH = [];
   try {
-    if (top) h = top.t === 'acc' ? vAcc(top) : top.t === 'ea' ? vEA(top) : top.t === 'fav' ? vFavDetail(top) : vRachaAcc(top);
-    else h = S.tab === 'cuentas' ? vAccounts('vps') : S.tab === 'demo' ? vAccounts('demo') : S.tab === 'rachas' ? vRachas() : S.tab === 'favs' ? vFavs() : S.tab === 'ranking' ? vRanking() : vAjustes();
+    if (top) h = top.t === 'acc' ? vAcc(top) : top.t === 'ea' ? vEA(top) : top.t === 'sid' ? vSid(top) : top.t === 'pf' ? vPort(top) : top.t === 'pick' ? vPick(top) : top.t === 'fav' ? vFavDetail(top) : vRachaAcc(top);
+    else h = S.tab === 'cuentas' ? vAccounts('vps') : S.tab === 'demo' ? vAccounts('demo') : S.tab === 'lib' ? vLibreria() : S.tab === 'port' ? vPorts() : S.tab === 'fond' ? vFond() : S.tab === 'mas' ? vMas() : S.tab === 'rachas' ? vRachas() : S.tab === 'favs' ? vFavs() : S.tab === 'ranking' ? vRanking() : vAjustes();
   } catch (err) { console.error(err); h = emptyHtml('⚠️', 'Algo falló al mostrar esta pantalla', esc(err.message), '<button class="btn pri" data-a="back">Volver</button>'); }
-  var id = viewId(); el.innerHTML = h; drawCharts();
+  var id = viewId(); el.innerHTML = h; drawCharts(); loadImgs();
   el.scrollTop = scrollMem[id] || 0;
 }
 document.getElementById('content').addEventListener('scroll', function () { scrollMem[viewId()] = this.scrollTop; }, { passive: true });
@@ -879,7 +1968,47 @@ var ACT = {
   fav: function (k) { toggleFav(JSON.parse(k)); render(); },
   fav2: function (k) { push({ t: 'fav', k: JSON.parse(k), tab: 'stats' }); },
   acc: function (k) { push({ t: 'acc', id: JSON.parse(k), tab: 'rend' }); },
-  ea: function (k) { var p = JSON.parse(k); push({ t: 'ea', acc: p[0], ea: p[1], tab: 'stats' }); },
+  ea: function (k) { var p = JSON.parse(k), x = eaBy(accBy(p[0]), p[1]); if (x && x.sid) push({ t: 'sid', sid: x.sid, src: 'demo', acc: p[0], tab: 'stats' }); else push({ t: 'ea', acc: p[0], ea: p[1], tab: 'stats' }); },
+  vsid: function (k) { var p = JSON.parse(k); if (p[0]) push({ t: 'sid', sid: p[0], src: p[1], acc: p[2] || null, tab: 'stats' }); else if (p[2] && p[3]) push({ t: 'ea', acc: p[2], ea: p[3], tab: 'stats' }); },
+  fdSrc: function (k) { FD.src = JSON.parse(k); FD.res = null; FA.res = null; fdSave(); render(); },
+  fdT: function (k) { k = JSON.parse(k); if (k.indexOf('fa.obj:') === 0) FAD.obj = k.slice(7); else { var v = fdGet(k); if (k === 'fd.rz.mode') fdSet(k, v === 'burn' ? 'warn' : 'burn'); else fdSet(k, !v); } FD.res = null; fdSave(); render(); },
+  fdGo: function () { fdRun(); },
+  faGo: function () { faRun(); }, faStop: function () { FA.stop = true; },
+  faOpen: function (k) { var i = JSON.parse(k); FA.open = FA.open === i ? -1 : i; render(); },
+  faUse: function (k) { var o = FA.res.top[JSON.parse(k)], risk = {}; o.m.forEach(function (x) { risk[x.E.id] = x.r; }); FD.work = { id: 'work', name: 'Combinación elegida', ids: o.m.map(function (x) { return x.E.id; }), risk: risk, base: FAD.rmin }; FD.pid = 'work'; FD.risk = {}; FD.res = null; scrollMem[viewId()] = 0; toast('Cargada arriba: pulsa «Simular mes a mes»'); render(); },
+  faSave: function (k) { var i = JSON.parse(k), o = FA.res.top[i], risk = {}; o.m.forEach(function (x) { risk[x.E.id] = x.r; }); pfCreate('🎯 Fondeo #' + (i + 1) + ' · ' + new Date().toLocaleDateString('es-ES'), o.m.map(function (x) { return x.E.id; }), risk, FAD.rmin, FD.src); toast('✅ Guardado en Portafolios (Manuales)'); render(); },
+  faMC: function (k) { var i = JSON.parse(k), o = FA.res.top[i]; FA.mc[i] = mcRun(o.tr.map(function (x) { return x[1]; }), { cap: CAP, limDD: Math.min(FD.p1.m, FD.p2.on ? FD.p2.m : 100) }); render(); },
+  pfMode: function (k) { S.pfMode = JSON.parse(k); render(); },
+  cfgT: function (k) { k = JSON.parse(k); if (k.indexOf('dir:') === 0) { var d = k.slice(4), i = AU.dirs.indexOf(d); if (i >= 0) { if (AU.dirs.length > 1) AU.dirs.splice(i, 1); } else AU.dirs.push(d); } else if (k === 'au.favOnly') AU.favOnly = !AU.favOnly; else if (k === 'lp.bad') LP.bad = LP.bad === 'discard' ? 'warn' : 'discard'; else LP[k.slice(3)] = !LP[k.slice(3)]; cfgSave(); render(); },
+  discT: function (k) { k = JSON.parse(k); S.discOpen = S.discOpen === k ? '' : k; render(); },
+  auGo: function () { toast('Construyendo…'); S.auMC = {}; S.auOpen = 0; setTimeout(function () { try { auBuild(); } catch (e) { console.error(e); toast('⚠ ' + e.message); } render(); }, 30); },
+  auOpen: function (k) { var i = JSON.parse(k); S.auOpen = S.auOpen === i ? -1 : i; render(); },
+  auMC: function (k) { var i = JSON.parse(k), o = S.auRes.res[i]; S.auMC = S.auMC || {}; S.auMC[i] = mcRun(auPnl(o, S.auRes.src), { cap: CAP, limDD: AU.dd }); render(); },
+  auSave: function (k) { var i = JSON.parse(k), o = S.auRes.res[i], p = pfCreate('Auto ' + o.ids.length + ' EAs · ' + new Date().toLocaleDateString('es-ES'), o.ids, o.risk, AU.risk, S.auRes.src); p.kind = 'auto'; pfTouch(p); toast('✅ Guardado en Automático'); render(); },
+  lpGo: function () { lpRun(); },
+  lpStop: function () { LP.stop = true; },
+  lpOpen: function (k) { var i = JSON.parse(k); S.lpOpen = S.lpOpen === i ? -1 : i; render(); },
+  lpMC: function (k) { var i = JSON.parse(k), o = LP.res.top[i]; S.lpMC = S.lpMC || {}; S.lpMC[i] = mcRun(o.pnl, { cap: CAP, limDD: LP.dd }); render(); },
+  lpSave: function (k) { var i = JSON.parse(k), o = LP.res.top[i], risk = {}; o.m.forEach(function (x) { risk[x.id] = x.r; }); var p = pfCreate('Robusto ' + o.m.length + ' EAs · ' + new Date().toLocaleDateString('es-ES'), o.m.map(function (x) { return x.id; }), risk, LP.rmin, o.key === 'bt' ? 'sqx' : 'demo'); p.kind = 'robust'; pfTouch(p); toast('✅ Guardado en Robustos'); render(); },
+  pfMC: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid), src = p.src || 'demo', c = pfCalc(p, src); S.pfMC = S.pfMC || {}; S.pfMC[p.id + ':' + src] = mcRun(c.trades.map(function (x) { return x.pnl; }), { cap: CAP, limDD: MCD.limDD }); render(); },
+  noop: function () {},
+  pfSrc: function (k) { S.pfSrc = JSON.parse(k); render(); },
+  pfSrcD: function (k) { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (p) { p.src = JSON.parse(k); pfLocalSave(); render(); } },
+  pfNew: function () { var n = pfLive().length + 1, p = { id: 'p' + Date.now().toString(36), name: 'Portafolio ' + n, ids: [], risk: {}, base: 200, src: S.pfSrc, created: Date.now() }; PF.list.push(p); pfTouch(p); push({ t: 'pf', pid: p.id }); },
+  pfOpen: function (k) { push({ t: 'pf', pid: JSON.parse(k) }); },
+  pfAdd: function () { var t = S.stack[S.stack.length - 1]; S.pick = {}; S.pkF = {}; S.pkQ = ''; push({ t: 'pick', pid: t.pid }); },
+  pfRm: function (k) { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid), id = JSON.parse(k); if (p) { p.ids = p.ids.filter(function (x) { return x !== id; }); delete p.risk[id]; pfTouch(p); render(); } },
+  pfBaseAll: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid), b = +document.getElementById('pfBase').value; if (p && b > 0) { p.base = b; p.ids.forEach(function (id) { p.risk[id] = b; }); pfTouch(p); render(); } },
+  pfSave: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (p) { p.updated = Date.now(); pfLocalSave(); } clearTimeout(PF.timer); pfPush(false); },
+  pfDel: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (!p) return; if (S.delArm !== p.id) { S.delArm = p.id; render(); return; } S.delArm = ''; p.deleted = true; pfTouch(p); pop(); },
+  pkT: function (k) { var id = JSON.parse(k); S.pick[id] = !S.pick[id]; var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); document.getElementById('pkList').innerHTML = pkList(p); document.getElementById('pkBar').outerHTML = pkBar(); },
+  pkF: function (k) { var f = JSON.parse(k); S.pkF[f] = !S.pkF[f]; render(); },
+  pkGo: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (!p) return; Object.keys(S.pick).forEach(function (id) { if (S.pick[id] && p.ids.indexOf(id) < 0) { p.ids.push(id); p.risk[id] = p.base; } }); S.pick = {}; pfTouch(p); pop(); },
+  goT: function (k) { goTab(JSON.parse(k)); },
+  libT: function (k) { var p = JSON.parse(k); S.libOpen[p] = !S.libOpen[p]; render(); },
+  libF: function (k) { S.libF = JSON.parse(k); render(); },
+  srcSet: function (k) { var t = S.stack[S.stack.length - 1]; if (t && t.t === 'sid') { t.src = JSON.parse(k); if (t.tab === 'ops' && t.src === 'sqx') t.tab = 'stats'; S.opsDay = null; render(); } },
+  accSet2: function (k) { var t = S.stack[S.stack.length - 1]; if (t && t.t === 'sid') { t.acc = JSON.parse(k); S.opsDay = null; render(); } },
   racha: function (k) { push({ t: 'racha', id: JSON.parse(k) }); },
   accTab: function (k) { S.stack[S.stack.length - 1].tab = JSON.parse(k); S.opsDay = null; render(); },
   eaTab: function (k) { S.stack[S.stack.length - 1].tab = JSON.parse(k); S.opsDay = null; render(); },
@@ -888,7 +2017,8 @@ var ACT = {
   dayprev: function () { var d = new Date(S.opsDay || new Date()); d.setDate(d.getDate() - 1); S.opsDay = d; render(); },
   daynext: function () { var d = new Date(S.opsDay || new Date()); d.setDate(d.getDate() + 1); S.opsDay = sameDay(d, new Date()) || d > new Date() ? null : d; render(); },
   saveF: function () {
-    var a = folderId(document.getElementById('fVps').value), b = folderId(document.getElementById('fDemo').value), c = folderId(document.getElementById('fSqx').value);
+    var a = folderId(document.getElementById('fVps').value), b = folderId(document.getElementById('fDemo').value), c = folderId(document.getElementById('fSqx').value), l = folderId(document.getElementById('fLib').value);
+    F.lib = l || ''; lsSet('tm_folder_lib_id', F.lib); kvSet('libroot', null);
     if (a) { F.vps = a; lsSet('tm_folder_id', a); } if (b) { F.demo = b; lsSet('tm_folder2_id', b); } if (c) { F.sqx = c; lsSet('tm_folder_sqx_id', c); }
     toast('✅ Carpetas guardadas'); D.vps = []; D.demo = []; D.sqx = {}; if (tokenOk()) loadAll(false); else render();
   }
@@ -897,7 +2027,16 @@ document.getElementById('content').addEventListener('click', function (ev) {
   var t = ev.target.closest('[data-a]'); if (!t || t.disabled) return;
   var f = ACT[t.dataset.a]; if (f) f(t.dataset.k != null ? decodeURIComponent(t.dataset.k) : '', t);
 });
+document.getElementById('content').addEventListener('input', function (ev) {
+  if (ev.target.id === 'pkQ') { S.pkQ = ev.target.value; var t0 = S.stack[S.stack.length - 1], p0 = t0 && pfBy(t0.pid), l0 = document.getElementById('pkList'); if (p0 && l0) l0.innerHTML = pkList(p0); return; } if (ev.target.id === 'libQ') { S.libQ = ev.target.value; var l = document.getElementById('libList'); if (l) l.innerHTML = libList(); } });
 document.getElementById('content').addEventListener('change', function (ev) {
+  if (ev.target.dataset.cfg) { var ck = ev.target.dataset.cfg; if (ck.indexOf('fd.') === 0 || ck.indexOf('fa.') === 0) fdApply(ck, ev.target.value); else { cfgApply(ck, ev.target.value); if (ck === 'cap') { FD.res = null; fdSave(); } } render(); return; }
+  if (ev.target.id === 'fdSel') { FD.pid = ev.target.value; FD.risk = {}; FD.res = null; render(); return; }
+  if (ev.target.dataset.fr) { var rv = +String(ev.target.value).replace(',', '.'); if (rv > 0) { FD.risk[ev.target.dataset.fr] = rv; FD.res = null; } render(); return; }
+  var t0 = S.stack[S.stack.length - 1], p0 = t0 && t0.t === 'pf' ? pfBy(t0.pid) : null;
+  if (p0 && ev.target.dataset.rk) { var v = +String(ev.target.value).replace(',', '.'); if (v > 0) { p0.risk[ev.target.dataset.rk] = v; pfTouch(p0); } render(); return; }
+  if (p0 && ev.target.id === 'pfName') { p0.name = ev.target.value.trim() || p0.name; pfTouch(p0); render(); return; }
+  if (p0 && ev.target.id === 'pfBase') { var b = +String(ev.target.value).replace(',', '.'); if (b > 0) { p0.base = b; pfTouch(p0); } return; }
   if (ev.target.id === 'alertIn') { ALERT_DAYS = Math.min(90, Math.max(1, parseInt(ev.target.value) || 7)); lsSet('tm_alert_days', ALERT_DAYS); toast('✅ ' + ALERT_DAYS + ' días'); }
 });
 document.getElementById('nav').addEventListener('click', function (ev) { var t = ev.target.closest('.it'); if (t) goTab(t.dataset.tab); });

@@ -1,4 +1,33 @@
-FGX Trading Monitor v1.0.0 (app móvil, solo lectura)
+FGX Trading Monitor v1.7.0 (app móvil)
+
+NOVEDADES v1.7.0 (fase 5)
+- Nueva pestaña 🏦 Fondeos (Favoritos pasa a «Más»): simulador de cuenta fondeada como en el PC. Elige un portafolio guardado, fuente (Demo real / SQX), capital, Fase 1 y Fase 2 (objetivo, DD diario, DD total), modo realista y riesgo por EA.
+- «Simular mes a mes»: desafíos uno tras otro, pasadas/quemadas, Monte Carlo, DD histórico, peor día, correlación, equity y detalle de cada desafío.
+- «Elegir EAs para pasar el examen»: busca combinaciones y riesgos con el simulador, con pruebas de estabilidad, Monte Carlo, sin el mejor EA y peso máximo. Botones Usar (carga en el simulador), Guardar (a Portafolios) y MC.
+
+NOVEDADES v1.6.0 (fase 4)
+- Portafolios > Automático: constructor igual que en el PC (capital, DD máx., máx. EAs, correlación máx., riesgo por EA, dirección, solo favoritos). Muestra hasta 15 combinaciones, con botón Monte Carlo y Guardar.
+- Portafolios > Robustos: búsqueda con riesgo variable, límites de DD, correlación, peso por EA y por activo, mitades positivas, sin depender del mejor EA, y Monte Carlo completo (backtest + demo). Muestra los 5 mejores, con barra de progreso y botón Parar.
+- Monte Carlo (4 pruebas: orden, saltar trades, bloques, degradar ejecución) también en cualquier portafolio manual.
+- Todo lo que guardas queda en tu archivo de Drive de portafolios móvil (la Librería y el PC no se tocan).
+- Cada EA mantiene número, activo, timeframe, dirección y los botones SQX / Demo real.
+
+NOVEDADES v1.5.0
+- Pestaña 🧩 Portafolios (manuales): crea portafolios, añade EAs (buscador + filtros activo/timeframe/dirección), pon el riesgo en $ por trade a cada EA y mira curva y métricas con SQX o Demo real. Cada EA lleva sus botones 📚 SQX y 🖥 Demo real.
+- Se guardan en el móvil y, solo en un archivo propio de tu Drive (FGX_portafolios_movil.json), como copia. No toca portafolios.json ni nada de FGX Digital.
+- PERMISO NUEVO: la primera vez toca «Reconectar» (arriba a la derecha) y acepta el permiso de guardado de Google. Ese permiso solo deja a la app tocar el archivo que ella misma crea; sigue sin poder modificar tus CSV ni tu Librería.
+
+NOVEDADES v1.4.0
+- Pestaña 📚 Librería: árbol Activo > Timeframe > Dirección > BL (como en FGX Digital), buscador y filtros (Todos / Favoritos / Largo / Corto / L+C), EAs ordenados por Ret/DD.
+- Ficha de un EA de la Librería: etiquetas, botón 🖥 Ver en Demo real (meses, ops y cuentas), métricas y curva SQX, snapshots y las capturas overview / equity de la Librería.
+- Favoritos: también salen los favoritos que solo tienen backtest (sin demo).
+- Rachas, Ranking y Ajustes pasan a la pestaña ☰ Más.
+
+NOVEDADES v1.3.0
+- Cada EA muestra su número en grande + activo + timeframe + dirección en TODAS las pestañas.
+- Botones 📚 SQX y 🖥 Demo real en cada EA (ficha con curva y métricas de cada fuente; en Demo real puedes elegir cuenta).
+- Lee tu carpeta FGX LIBRERIA de Drive (solo lectura) para saber activo/timeframe/dirección/BL. Si no la encuentra, indícala en Ajustes.
+- Para EAs que no están en la Librería (p. ej. divisas) el activo y la dirección salen de las operaciones y el timeframe del nombre de la cuenta.
 
 CÓMO ACTUALIZARLA EN GITHUB (https://github.com/sucoleire-max/sucoleire-max.github.io)
 1. Abre el repositorio en GitHub -> "Add file" -> "Upload files".
