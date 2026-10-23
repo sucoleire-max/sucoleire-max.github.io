@@ -1,4 +1,9 @@
-FGX Trading Monitor v1.7.0 (app móvil)
+FGX Trading Monitor v1.8.0 (app móvil)
+
+NOVEDADES v1.8.0
+- Capturas de la Librería (overview y equity) y las de la ficha del EA: toca la foto y se abre a pantalla completa. Zoom con dos dedos, arrastrar para moverla, doble toque para ampliar/reducir, y se cierra con la ✕, tocando fuera o con el botón atrás del móvil.
+- Portafolios > Manuales: nueva sección «De FGX Library» con los portafolios que tienes en la Library (solo lectura, se leen de portafolios.json de la carpeta FGX LIBRERIA y se actualizan solos). Se pueden ver con métricas SQX / Demo real, Monte Carlo y usar en Fondeos. Botón «Copiar a editable» para hacer una copia propia en el móvil.
+- Los riesgos por EA se toman como en el PC: el fijado en el portafolio, si no el específico de la Library y si no el riesgo general de la Library.
 
 NOVEDADES v1.7.0 (fase 5)
 - Nueva pestaña 🏦 Fondeos (Favoritos pasa a «Más»): simulador de cuenta fondeada como en el PC. Elige un portafolio guardado, fuente (Demo real / SQX), capital, Fase 1 y Fase 2 (objetivo, DD diario, DD total), modo realista y riesgo por EA.

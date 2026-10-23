@@ -116,6 +116,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 .num.big2{font-size:19px;padding:3px 11px}
 .fold{display:flex;align-items:center;gap:8px;padding:10px 6px;font-size:13px;font-weight:600;color:#c3cfdd;cursor:pointer;border-bottom:1px solid var(--line)}.fold .fa{color:var(--blue);width:10px}
 .srch{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(9,17,32,.8);color:var(--text);font-size:14px;margin-bottom:10px;font-family:inherit;outline:none}
+.lb{position:fixed;inset:0;z-index:99;background:rgba(2,6,14,.97);display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}.lb[hidden]{display:none}.lb img{max-width:100%;max-height:100%;transform-origin:center;user-select:none;-webkit-user-drag:none;will-change:transform}.lbx{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:12px;z-index:2;width:42px;height:42px;border-radius:50%;border:1px solid rgba(24,180,255,.5);background:rgba(10,20,36,.85);color:#fff;font-size:20px;cursor:pointer}.lbh{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);left:0;right:0;text-align:center;font-size:11px;color:#8aa;letter-spacing:.06em;pointer-events:none}img.cap{cursor:zoom-in}
 .cap{width:100%;border-radius:10px;display:block;min-height:70px;background:#0a1220}
 .chk{width:24px;height:24px;border-radius:8px;border:1.5px solid #2a3b57;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#18b4ff;font-size:15px;margin-top:2px}.chk.on{border-color:#18b4ff;background:rgba(24,180,255,.22)}
 .crow .ri{width:116px}.crow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}.crow:first-child{border-top:0}.ss{font-size:10px;color:var(--dimmer);margin-top:2px}.mcb{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(9,17,32,.6)}.pbar{height:8px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#18b4ff,#2ee6a0)}.cfgc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.cfgc button{font-size:11px;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer}.cfgc button.on{color:#fff;border-color:rgba(24,180,255,.6);background:rgba(24,180,255,.18)}
@@ -216,12 +217,13 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
   </nav>
 </div>
 <div class="toast" id="toast"></div>
+<div class="lb" id="lb" hidden><button class="lbx" id="lbx" aria-label="Cerrar">✕</button><img id="lbi" alt=""><div class="lbh">Pellizca para ampliar · doble toque · toca fuera para cerrar</div></div>
 <script>
 'use strict';
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.7.0';
+var VERSION = '1.8.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -382,7 +384,7 @@ function sqxIdFromName(name) {
 }
 
 /* ---------- Google Drive (solo lectura) ---------- */
-var D = { vps: [], demo: [], sqx: {}, lib: { files: {}, meta: {}, imgs: {}, snaps: {} }, warn: [], updated: null, fromCache: false, sqxFiles: 0 };
+var D = { vps: [], demo: [], sqx: {}, lib: { files: {}, meta: {}, imgs: {}, snaps: {} }, warn: [], updated: null, fromCache: false, sqxFiles: 0, libPorts: [] };
 var S = { tab: 'cuentas', stack: [], pfSrc: 'demo', pfMode: 'man', pick: {}, pkF: {}, pkQ: '', delArm: '', pfNote: '', libQ: '', libF: 'all', libOpen: {}, rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
 function authErr() { var e = new Error('Sesión caducada'); e.auth = true; return e; }
 function tokenOk() { return !!token && (!tokenExp || Date.now() < tokenExp - 30000); }
@@ -493,6 +495,21 @@ async function findLibRoot() {
   if (f) { kvSet('libroot', f.id); return f.id; }
   return null;
 }
+/* portafolios de FGX Library (portafolios.json en la carpeta FGX LIBRERIA): solo lectura */
+async function loadLibPorts(co) {
+  var cached = async function () { var c = await kvGet('libports'); D.libPorts = Array.isArray(c) ? c : []; };
+  try {
+    if (co) return await cached();
+    var root = await findLibRoot(); if (!root) return await cached();
+    var q = encodeURIComponent("name='portafolios.json' and '" + root + "' in parents and trashed=false");
+    var r = await dget('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true');
+    var f = ((await r.json()).files || [])[0]; if (!f) { D.libPorts = []; kvSet('libports', []); return; }
+    var j = await (await dget('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media&supportsAllDrives=true')).json();
+    var base = j.settings && +j.settings.risk > 0 ? +j.settings.risk : 200;
+    D.libPorts = (j.portfolios || []).map(function (x) { return { id: 'L' + x.id, name: x.name || 'Portafolio', ids: (x.ids || []).map(String), risk: Object.assign({}, (j.settings && j.settings.over) || {}, x.risk || {}), base: base, src: x.source === 'bt' ? 'sqx' : 'demo', created: x.created || 0, updated: x.created || 0, kind: 'lib', ro: true }; });
+    kvSet('libports', D.libPorts);
+  } catch (e) { if (e && e.auth) throw e; console.error(e); await cached(); }
+}
 async function loadLib(co) {
   var idx = { files: {}, meta: {}, imgs: {}, snaps: {} };
   try {
@@ -567,7 +584,7 @@ async function loadAll(co) {
   try {
     var libP = loadLib(co);
     var r = await Promise.all([loadAccounts('vps', co), loadAccounts('demo', co), loadSqx(co, libP)]);
-    D.vps = r[0]; D.demo = r[1]; D.sqx = r[2]; D.lib = await libP; D.lib.imgs = D.lib.imgs || {}; D.lib.snaps = D.lib.snaps || {};
+    D.vps = r[0]; D.demo = r[1]; D.sqx = r[2]; D.lib = await libP; D.lib.imgs = D.lib.imgs || {}; D.lib.snaps = D.lib.snaps || {}; await loadLibPorts(co);
     D.vps.concat(D.demo).forEach(function (a) { buildEAs(a, D.sqx); });
     D.updated = new Date(); D.fromCache = !!co;
     if (!co) pfPull().then(function () { if (S.tab === 'port' && !S.stack.length) render(); }).catch(function () {});
@@ -1426,8 +1443,8 @@ var PF = { list: [], remote: null, timer: null, dirty: false, status: '' };
 var PF_FILE = 'FGX_portafolios_movil.json';
 (function pfLocalLoad() { try { var v = JSON.parse(ls('tm_pf', 'null')); if (v && Array.isArray(v.list)) PF.list = v.list; } catch (e) {} })();
 function pfLocalSave() { lsSet('tm_pf', JSON.stringify({ list: PF.list })); }
-function pfLive() { return PF.list.filter(function (p) { return !p.deleted; }); }
-function pfBy(id) { return PF.list.filter(function (p) { return p.id === id && !p.deleted; })[0]; }
+function pfLive() { return PF.list.filter(function (p) { return !p.deleted; }).concat(D.libPorts || []); }
+function pfBy(id) { return pfLive().filter(function (p) { return p.id === id; })[0]; }
 function pfTouch(p) { p.updated = Date.now(); pfLocalSave(); PF.dirty = true; clearTimeout(PF.timer); PF.timer = setTimeout(function () { pfPush(true); }, 2500); }
 async function dsend(url, method, headers, body) {
   var h = { Authorization: 'Bearer ' + token }; for (var k in headers) h[k] = headers[k];
@@ -1514,7 +1531,8 @@ function vPorts() {
   h += segHtml([['demo', '🖥 Demo real'], ['sqx', '📚 Backtest SQX']], S.pfSrc, 'pfSrc') +
     '<div class="row" style="margin:0 4px 8px;align-items:center"><span class="lbl">' + list.length + ' portafolios</span>' + pfStat() + '</div>';
   if (!list.length) h += emptyHtml('🧩', 'Aún no tienes portafolios', 'Crea uno, añade EAs de la Librería o de tus cuentas y ponles el riesgo en $ por trade.');
-  return h + pfCards(list) + '<button class="btn pri" data-a="pfNew" style="margin-top:6px">＋ Nuevo portafolio</button>' + (PF.status === 'perm' ? '<button class="btn sec2" data-a="connect">🔗 Reconectar para dar permiso de guardado</button>' : '');
+  var lib = all.filter(function (p) { return p.kind === 'lib'; });
+  return h + pfCards(list) + (lib.length ? '<div class="sec" style="margin:16px 4px 2px">📚 De FGX Library (' + lib.length + ')</div><div class="lbl" style="text-transform:none;margin:0 4px 8px">Solo lectura: se actualizan solos cuando los cambias en el PC.</div>' + pfCards(lib) : '') + '<button class="btn pri" data-a="pfNew" style="margin-top:6px">＋ Nuevo portafolio</button>' + (PF.status === 'perm' ? '<button class="btn sec2" data-a="connect">🔗 Reconectar para dar permiso de guardado</button>' : '');
 }
 function cfgCard(title, body) { return '<div class="card" style="padding:6px 14px"><div class="sec" style="margin:8px 0 2px">' + title + '</div>' + body + '</div>'; }
 function discHtml(disc, key) {
@@ -1586,7 +1604,7 @@ function vPort(e) {
   var p = pfBy(e.pid); if (!p) return backBar('Portafolio', '') + emptyHtml('❓', 'Portafolio no encontrado', '');
   var src = p.src || 'demo', c = pfCalc(p, src), m = c.m, tot = 0;
   p.ids.forEach(function (id) { tot += c.per[id].r; });
-  var h = backBar(p.name, p.ids.length + ' EAs · riesgo total $' + fmt(tot) + ' por trade', '#18b4ff', '') + '<div class="row" style="margin:0 4px 8px;align-items:center"><input id="pfName" class="srch" style="margin:0 8px 0 0;padding:9px 12px;font-size:13px" value="' + esc(p.name) + '">' + pfStat() + '</div>' +
+  var h = backBar(p.name, p.ids.length + ' EAs · riesgo total $' + fmt(tot) + ' por trade', '#18b4ff', '') + '<div class="row" style="margin:0 4px 8px;align-items:center"><input id="pfName" class="srch"' + (p.ro ? ' disabled' : '') + ' style="margin:0 8px 0 0;padding:9px 12px;font-size:13px" value="' + esc(p.name) + '">' + pfStat() + '</div>' +
     segHtml([['sqx', '📚 Métricas SQX'], ['demo', '🖥 Métricas Demo real']], src, 'pfSrcD');
   if (!p.ids.length) h += emptyHtml('🧩', 'Portafolio vacío', 'Añade EAs de la Librería o de tus cuentas.');
   else if (!m.n) h += emptyHtml(src === 'demo' ? '🖥' : '📚', 'Sin datos en ' + (src === 'demo' ? 'Demo real' : 'SQX'), 'Ninguno de estos EAs tiene operaciones en esta fuente.');
@@ -1596,14 +1614,17 @@ function vPort(e) {
       '<div class="grid3" style="margin:0 0 4px">' + mBox('Ret/DD', m.rdd.toFixed(2).replace('.', ','), 'a') + mBox('Max DD', '-$' + fmt(m.maxdd), 'r') + mBox('Win rate', (m.wr * 100).toFixed(0) + '%', m.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') + mBox('Trades', m.n, 'b') + mBox('Racha actual', m.curTradeStreak + ' ✗', m.curTradeStreak ? 'r' : 'g') + '</div>';
   }
   if (m.n >= 20) h += '<button class="btn" style="margin-top:8px" data-a="pfMC">🎲 Monte Carlo de este portafolio</button>' + (S.pfMC && S.pfMC[p.id + ':' + src] ? mcHtml(S.pfMC[p.id + ':' + src]) : '');
-  h += '<div class="row" style="align-items:center;margin:12px 4px 6px;gap:8px"><div class="sec" style="margin:0">Riesgo por EA ($ por trade)</div><div style="display:flex;gap:6px;align-items:center"><input id="pfBase" class="ri" type="number" inputmode="decimal" min="1" value="' + p.base + '"><button class="btn sm" data-a="pfBaseAll">A todos</button></div></div>';
+  h += '<div class="row" style="align-items:center;margin:12px 4px 6px;gap:8px"><div class="sec" style="margin:0">Riesgo por EA ($ por trade)</div><div style="display:flex;gap:6px;align-items:center"><input id="pfBase" class="ri"' + (p.ro ? ' disabled' : '') + ' type="number" inputmode="decimal" min="1" value="' + p.base + '">' + (p.ro ? '' : '<button class="btn sm" data-a="pfBaseAll">A todos</button>') + '</div></div>';
   if (p.ids.length) h += '<div class="card" style="padding:2px 14px">' + p.ids.map(function (id) {
     var r = eaRef(id), x = r.x, n = c.per[id].n;
     return '<div class="ea" style="align-items:flex-start;cursor:default"><div class="in"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x, r.a) + (n ? '' : '<span class="tag r">sin datos</span>') + '</div>' + eaBtns(x, '') + '</div>' +
-      '<div style="text-align:right"><div class="lbl" style="font-size:9px;margin-bottom:3px">$ por trade</div><input class="ri" data-rk="' + esc(id) + '" type="number" inputmode="decimal" min="1" value="' + c.per[id].r + '"></div><button class="rm" data-a="pfRm" data-k="' + enc(id) + '" aria-label="Quitar">✕</button></div>';
+      '<div style="text-align:right"><div class="lbl" style="font-size:9px;margin-bottom:3px">$ por trade</div><input class="ri" data-rk="' + esc(id) + '"' + (p.ro ? ' disabled' : '') + ' type="number" inputmode="decimal" min="1" value="' + c.per[id].r + '"></div>' + (p.ro ? '' : '<button class="rm" data-a="pfRm" data-k="' + enc(id) + '" aria-label="Quitar">✕</button>') + '</div>';
   }).join('') + '</div>';
+  if (p.ro) h += '<div class="lbl" style="text-transform:none;margin:12px 4px 6px;line-height:1.5">📚 Portafolio de FGX Library · solo lectura (riesgo $' + fmt(p.base) + ' por EA salvo el que tenga fijado en la Library).</div><button class="btn pri" data-a="pfCopy">📋 Copiar a editable</button>';
+  else {
   h += '<div class="row" style="gap:8px;margin-top:12px"><button class="btn" style="flex:1;padding:13px" data-a="pfAdd">＋ Añadir EA</button><button class="btn pri" style="flex:1;margin:0" data-a="pfSave">💾 Guardar ahora</button></div>' +
-    '<button class="btn sec2" style="margin-top:10px;color:' + (S.delArm === p.id ? '#ff5d78' : 'var(--dim)') + '" data-a="pfDel">' + (S.delArm === p.id ? '⚠ Toca otra vez para eliminar' : '🗑 Eliminar portafolio') + '</button>';
+      '<button class="btn sec2" style="margin-top:10px;color:' + (S.delArm === p.id ? '#ff5d78' : 'var(--dim)') + '" data-a="pfDel">' + (S.delArm === p.id ? '⚠ Toca otra vez para eliminar' : '🗑 Eliminar portafolio') + '</button>';
+    }
   return h;
 }
 function pkIds() { var set = {}; Object.keys(D.sqx).forEach(function (k) { set[k] = 1; }); allAccs().forEach(function (a) { a.eas.forEach(function (x) { if (x.sid) set[x.sid] = 1; }); }); return Object.keys(set); }
@@ -1962,6 +1983,36 @@ function render() {
 }
 document.getElementById('content').addEventListener('scroll', function () { scrollMem[viewId()] = this.scrollTop; }, { passive: true });
 
+/* ---------- visor de capturas a pantalla completa (zoom con dos dedos, arrastrar, doble toque) ---------- */
+(function () {
+  var lb = document.getElementById('lb'), im = document.getElementById('lbi'), st = { s: 1, x: 0, y: 0 }, ptr = {}, d0 = 0, s0 = 1, moved = false, lastTap = 0;
+  function ap() { if (st.s <= 1.001) { st.s = 1; st.x = 0; st.y = 0; } im.style.transform = 'translate(' + st.x + 'px,' + st.y + 'px) scale(' + st.s + ')'; }
+  function open(src) { im.src = src; st = { s: 1, x: 0, y: 0 }; ptr = {}; ap(); lb.hidden = false; history.pushState({ d: S.stack.length, lb: 1 }, ''); }
+  function close(fromPop) { if (lb.hidden) return; lb.hidden = true; im.removeAttribute('src'); if (!fromPop && history.state && history.state.lb) history.back(); }
+  window.lbOpen = open; window.lbClose = close; window.lbIsOpen = function () { return !lb.hidden; };
+  document.getElementById('lbx').addEventListener('click', function (e) { e.stopPropagation(); close(); });
+  function dist() { var k = Object.keys(ptr); if (k.length < 2) return 0; var a = ptr[k[0]], b = ptr[k[1]]; return Math.hypot(a.x - b.x, a.y - b.y); }
+  lb.addEventListener('pointerdown', function (e) { if (e.target.id === 'lbx') return; try { lb.setPointerCapture(e.pointerId); } catch (x) {} ptr[e.pointerId] = { x: e.clientX, y: e.clientY }; moved = false; if (Object.keys(ptr).length === 2) { d0 = dist(); s0 = st.s; } });
+  lb.addEventListener('pointermove', function (e) {
+    var p = ptr[e.pointerId]; if (!p) return; var n = Object.keys(ptr).length;
+    if (n >= 2) { ptr[e.pointerId] = { x: e.clientX, y: e.clientY }; var d = dist(); if (d0 > 0) { st.s = Math.min(6, Math.max(1, s0 * d / d0)); moved = true; ap(); } }
+    else if (st.s > 1) { st.x += e.clientX - p.x; st.y += e.clientY - p.y; ptr[e.pointerId] = { x: e.clientX, y: e.clientY }; moved = true; ap(); }
+    else if (Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 8) moved = true;
+  });
+  function up(e) {
+    if (!ptr[e.pointerId]) return; var n = Object.keys(ptr).length; delete ptr[e.pointerId];
+    if (n === 1 && !moved) {
+      var now = Date.now();
+      if (now - lastTap < 320) { st.s = st.s > 1 ? 1 : 2.5; st.x = 0; st.y = 0; ap(); lastTap = 0; }
+      else { lastTap = now; if (e.target === lb) close(); }
+    }
+    if (Object.keys(ptr).length === 1) { var k = Object.keys(ptr)[0]; d0 = 0; moved = true; }
+  }
+  lb.addEventListener('pointerup', up); lb.addEventListener('pointercancel', up);
+  lb.addEventListener('wheel', function (e) { e.preventDefault(); st.s = Math.min(6, Math.max(1, st.s * (e.deltaY < 0 ? 1.15 : 0.87))); ap(); }, { passive: false });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  window.addEventListener('popstate', function () { if (!lb.hidden) close(true); });
+})();
 var ACT = {
   back: function () { if (S.stack.length) pop(); else render(); },
   connect: connect, refresh: refresh,
@@ -1978,6 +2029,7 @@ var ACT = {
   faUse: function (k) { var o = FA.res.top[JSON.parse(k)], risk = {}; o.m.forEach(function (x) { risk[x.E.id] = x.r; }); FD.work = { id: 'work', name: 'Combinación elegida', ids: o.m.map(function (x) { return x.E.id; }), risk: risk, base: FAD.rmin }; FD.pid = 'work'; FD.risk = {}; FD.res = null; scrollMem[viewId()] = 0; toast('Cargada arriba: pulsa «Simular mes a mes»'); render(); },
   faSave: function (k) { var i = JSON.parse(k), o = FA.res.top[i], risk = {}; o.m.forEach(function (x) { risk[x.E.id] = x.r; }); pfCreate('🎯 Fondeo #' + (i + 1) + ' · ' + new Date().toLocaleDateString('es-ES'), o.m.map(function (x) { return x.E.id; }), risk, FAD.rmin, FD.src); toast('✅ Guardado en Portafolios (Manuales)'); render(); },
   faMC: function (k) { var i = JSON.parse(k), o = FA.res.top[i]; FA.mc[i] = mcRun(o.tr.map(function (x) { return x[1]; }), { cap: CAP, limDD: Math.min(FD.p1.m, FD.p2.on ? FD.p2.m : 100) }); render(); },
+  pfCopy: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (!p) return; var n = pfCreate(p.name + ' (copia)', p.ids, p.risk, p.base, p.src); toast('✅ Copiado a Manuales'); S.stack.pop(); push({ t: 'pf', pid: n.id }); },
   pfMode: function (k) { S.pfMode = JSON.parse(k); render(); },
   cfgT: function (k) { k = JSON.parse(k); if (k.indexOf('dir:') === 0) { var d = k.slice(4), i = AU.dirs.indexOf(d); if (i >= 0) { if (AU.dirs.length > 1) AU.dirs.splice(i, 1); } else AU.dirs.push(d); } else if (k === 'au.favOnly') AU.favOnly = !AU.favOnly; else if (k === 'lp.bad') LP.bad = LP.bad === 'discard' ? 'warn' : 'discard'; else LP[k.slice(3)] = !LP[k.slice(3)]; cfgSave(); render(); },
   discT: function (k) { k = JSON.parse(k); S.discOpen = S.discOpen === k ? '' : k; render(); },
@@ -2024,6 +2076,7 @@ var ACT = {
   }
 };
 document.getElementById('content').addEventListener('click', function (ev) {
+  var im0 = ev.target.closest && ev.target.closest('img.cap'); if (im0 && im0.src && im0.getAttribute('src')) { lbOpen(im0.src); return; }
   var t = ev.target.closest('[data-a]'); if (!t || t.disabled) return;
   var f = ACT[t.dataset.a]; if (f) f(t.dataset.k != null ? decodeURIComponent(t.dataset.k) : '', t);
 });
@@ -2034,6 +2087,7 @@ document.getElementById('content').addEventListener('change', function (ev) {
   if (ev.target.id === 'fdSel') { FD.pid = ev.target.value; FD.risk = {}; FD.res = null; render(); return; }
   if (ev.target.dataset.fr) { var rv = +String(ev.target.value).replace(',', '.'); if (rv > 0) { FD.risk[ev.target.dataset.fr] = rv; FD.res = null; } render(); return; }
   var t0 = S.stack[S.stack.length - 1], p0 = t0 && t0.t === 'pf' ? pfBy(t0.pid) : null;
+  if (p0 && p0.ro) { render(); return; }
   if (p0 && ev.target.dataset.rk) { var v = +String(ev.target.value).replace(',', '.'); if (v > 0) { p0.risk[ev.target.dataset.rk] = v; pfTouch(p0); } render(); return; }
   if (p0 && ev.target.id === 'pfName') { p0.name = ev.target.value.trim() || p0.name; pfTouch(p0); render(); return; }
   if (p0 && ev.target.id === 'pfBase') { var b = +String(ev.target.value).replace(',', '.'); if (b > 0) { p0.base = b; pfTouch(p0); } return; }
