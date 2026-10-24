@@ -223,7 +223,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.8.0';
+var VERSION = '1.8.2';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -934,7 +934,7 @@ function pfCreate(name, ids, risk, base, src) {
   var p = { id: 'p' + Date.now().toString(36) + Math.floor(Math.random() * 99), name: name, ids: ids.slice(), risk: Object.assign({}, risk), base: base, src: src, created: Date.now() };
   PF.list.push(p); pfTouch(p); return p;
 }
-function eaRow(id, right, note) {
+function eaRowI(id, right, note) {
   var r = eaRef(id), x = r.x;
   return '<div class="ea" style="align-items:flex-start;cursor:default"><div class="in"><div class="t">' + eaBadge(x) + '</div><div style="margin-top:5px">' + eaTags(x, r.a) + (note || '') + '</div>' + eaBtns(x, '') + '</div>' + (right ? '<div style="text-align:right">' + right + '</div>' : '') + '</div>';
 }
@@ -1266,7 +1266,7 @@ function vFond() {
     (FD.rz.on ? fdInput('Margen de seguridad (% del límite DD)', 'fd.rz.mg') + '<div class="crow" style="display:block"><div class="cfgc">' + fdChip('Si lo supera: ' + (FD.rz.mode === 'burn' ? 'contar como quemada' : 'solo avisar'), 'fd.rz.mode', FD.rz.mode === 'burn') + '</div></div>' + fdInput('Ganancias recortadas (%)', 'fd.rz.w') + fdInput('Pérdidas alargadas (%)', 'fd.rz.l') : ''));
   if (p && p.ids.length) {
     h += '<div class="sec" style="margin:14px 4px 6px">⚖ Riesgo por EA ($ por trade)</div><div class="card" style="padding:2px 14px">' + p.ids.map(function (id) {
-      var n = eaTrades(id, FD.src).length; return eaRow(id, '<div class="lbl" style="font-size:9px;margin-bottom:3px">$ por trade</div><input class="ri" data-fr="' + esc(id) + '" type="number" inputmode="decimal" min="1" value="' + fdRisk(p, id) + '">', n ? '' : '<span class="tag r">sin datos</span>');
+      var n = eaTrades(id, FD.src).length; return eaRowI(id, '<div class="lbl" style="font-size:9px;margin-bottom:3px">$ por trade</div><input class="ri" data-fr="' + esc(id) + '" type="number" inputmode="decimal" min="1" value="' + fdRisk(p, id) + '">', n ? '' : '<span class="tag r">sin datos</span>');
     }).join('') + '</div>';
   }
   h += FD.run ? '<div class="card"><div id="fdProg" class="lbl" style="text-transform:none">' + esc(FD.prog || 'Simulando…') + '</div><div class="pbar"><i style="width:60%"></i></div></div>' : '<button class="btn pri" data-a="fdGo" style="margin-top:12px">📅 Simular mes a mes</button>';
@@ -1425,10 +1425,10 @@ function vFondAuto() {
       var open = FA.open === i;
       h += '<div class="card" style="padding:11px 13px"><div class="row click" data-a="faOpen" data-k="' + enc(i) + '" style="align-items:center"><div style="min-width:0"><div class="sub">#' + (i + 1) + ' · ' + o.m.length + ' EAs · ' + o.st.fin + ' pruebas · ' + (o.good ? '✔ pasa las pruebas' : '✖ no pasa') + '</div><div class="nm">' + o.m.map(function (x) { return x.E.id; }).sort().join(' · ') + '</div></div><div style="text-align:right">' + chip('✔ ' + f1(o.st.pass, 0) + '%', 'g') + '<div class="lbl" style="margin-top:4px;color:var(--red)">🔥 ' + f1(o.st.burn, 0) + '%</div></div></div>';
       if (open) {
-        h += '<div class="grid3" style="margin:8px 0 4px">' + mBox('Días medios', o.st.days ? Math.round(o.st.days) : '—', 'b') + mBox('Corr. media', o.cavg === null ? '—' : f1(o.cavg * 100, 0) + '%', 'p') + mBox('Estabilidad', o.ok ? f1(o.h[0].pass, 0) + '·' + f1(o.h[1].pass, 0) + '%' : 'pocos datos', o.ok ? 'g' : 'a') +
+        h += '<div style="margin-top:8px">' + resMetrics(o.m.map(function (x) { return x.E.id; }), (function () { var rk = {}; o.m.forEach(function (x) { rk[x.E.id] = x.r; }); return rk; })(), FAD.rmin, FD.src) + '</div><div class="grid3" style="margin:8px 0 4px">' + mBox('Días medios', o.st.days ? Math.round(o.st.days) : '—', 'b') + mBox('Corr. media', o.cavg === null ? '—' : f1(o.cavg * 100, 0) + '%', 'p') + mBox('Estabilidad', o.ok ? f1(o.h[0].pass, 0) + '·' + f1(o.h[1].pass, 0) + '%' : 'pocos datos', o.ok ? 'g' : 'a') +
           mBox('Monte Carlo', o.mcPct === undefined ? '—' : f1(o.mcPct * 100, 0) + '%', o.mcPct === undefined ? '' : o.mcPct * 100 >= FAD.passMC ? 'g' : 'r') + mBox('Sin ' + (o.bestId || '·'), o.nbPass === undefined ? '—' : f1(o.nbPass, 0) + '%', o.nbOk === false ? 'r' : 'g') + mBox('Mayor peso', o.m.length > 1 ? f1(o.shMax * 100, 0) + '%' : '—', o.shMax * 100 > FAD.shP && o.m.length >= 3 ? 'r' : 'a') + '</div>' +
           (o.good ? '' : '<div class="lbl" style="text-transform:none;margin:4px 2px;color:var(--red);line-height:1.5">' + o.why.map(function (w) { return '· ' + esc(w); }).join('<br>') + '</div>') +
-          '<div style="margin-top:8px">' + o.m.slice().sort(function (a, b) { return a.E.id < b.E.id ? -1 : 1; }).map(function (x) { return eaRow(x.E.id, '<span class="tag a">$' + fmt(x.r) + '</span>'); }).join('') + '</div>' + (FA.mc[i] ? mcHtml(FA.mc[i]) : '') +
+          '<div style="margin-top:8px">' + o.m.slice().sort(function (a, b) { return a.E.id < b.E.id ? -1 : 1; }).map(function (x) { return eaRowI(x.E.id, '<span class="tag a">$' + fmt(x.r) + '</span>'); }).join('') + '</div>' + (FA.mc[i] ? mcHtml(FA.mc[i]) : '') +
           '<div class="row" style="gap:8px;margin-top:10px"><button class="btn pri" style="flex:1;margin:0;padding:12px" data-a="faUse" data-k="' + enc(i) + '">Usar</button><button class="btn" style="flex:1;padding:12px" data-a="faSave" data-k="' + enc(i) + '">💾 Guardar</button><button class="btn" style="flex:1;padding:12px" data-a="faMC" data-k="' + enc(i) + '">🎲 MC</button></div>';
       }
       h += '</div>';
@@ -1521,6 +1521,14 @@ function pfCards(list) {
   });
   return h;
 }
+function resMetrics(ids, risk, base, defSrc) {
+  var src = S.resSrc || defSrc || 'sqx', c = pfCalc({ ids: ids, risk: risk || {}, base: base || 200 }, src), m = c.m;
+  var h = segHtml([['sqx', '📚 Métricas SQX'], ['demo', '🖥 Métricas Demo real']], src, 'resSrc');
+  if (!m.n) return h + '<div class="lbl" style="text-transform:none;padding:8px 4px">Sin operaciones en ' + (src === 'demo' ? 'Demo real' : 'SQX') + ' para estos EAs.</div>';
+  var pf = isFinite(m.pf) ? f1(m.pf, 2) : '∞';
+  return h + '<div class="card hero' + (m.net < 0 ? ' neg' : '') + '" style="padding-bottom:8px;margin:0 0 6px"><div class="row" style="align-items:center"><div class="lbl">Net P&amp;L · ' + (src === 'demo' ? 'Demo real' : 'Backtest SQX') + ' con estos riesgos</div>' + chip(m.n + ' trades', 'b') + '</div><div class="big ' + cl(m.net) + '" style="font-size:26px;margin:2px 0">' + money(m.net) + '</div>' + chartHtml(equity(c.trades), m.net < 0 ? '#ff5d78' : '#2ee6a0', span(c.trades)) + '</div>' +
+    '<div class="grid3" style="margin:0 0 4px">' + mBox('Ret/DD', f1(m.rdd, 2), 'a') + mBox('Max DD', '-$' + fmt(m.maxdd), 'r') + mBox('Win rate', (m.wr * 100).toFixed(0) + '%', m.wr >= .5 ? 'g' : 'r') + mBox('Prof. factor', pf, 'p') + mBox('Trades', m.n, 'b') + mBox('Racha actual', m.curTradeStreak + ' ✗', m.curTradeStreak ? 'r' : 'g') + '</div>';
+}
 function pfSegModes() { return '<div class="seg">' + [['man', '✋ Manuales'], ['au', '⚙ Automático'], ['lp', '🛡 Robustos']].map(function (i) { return '<button class="' + (S.pfMode === i[0] ? 'on' : '') + '" data-a="pfMode" data-k="' + enc(i[0]) + '">' + i[1] + '</button>'; }).join('') + '</div>'; }
 function vPorts() {
   var mode = S.pfMode || 'man', all = pfLive().sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); });
@@ -1556,7 +1564,7 @@ function vAuto(saved) {
       var open = S.auOpen === i, mc = S.auMC && S.auMC[i];
       h += '<div class="card" style="padding:11px 13px"><div class="row click" data-a="auOpen" data-k="' + enc(i) + '" style="align-items:center"><div><div class="sub">#' + (i + 1) + ' · ' + o.ids.length + ' EAs · DD ' + money(o.dd, 0, true) + ' · corr. media ' + (o.corr === null ? '—' : f1(o.corr * 100, 0) + '%') + '</div><div class="nm">' + o.ids.join(' · ') + '</div></div><div style="text-align:right"><div class="big ' + cl(o.net) + '" style="font-size:18px">' + money(o.net) + '</div><div class="lbl">Ret/DD ' + f1(o.ratio, 2) + '</div></div></div>';
       if (open) {
-        h += '<div style="margin-top:8px">' + o.ids.map(function (id) { return eaRow(id, '<span class="tag a">$' + fmt(o.risk[id]) + '</span>'); }).join('') + '</div>' + (mc ? mcHtml(mc) : '') +
+        h += '<div style="margin-top:8px">' + resMetrics(o.ids, o.risk, AU.risk, S.auRes.src) + '</div><div class="sec" style="margin:10px 4px 4px">EAs y riesgo</div><div>' + o.ids.map(function (id) { return eaRowI(id, '<span class="tag a">$' + fmt(o.risk[id]) + '</span>'); }).join('') + '</div>' + (mc ? mcHtml(mc) : '') +
           '<div class="row" style="gap:8px;margin-top:10px"><button class="btn" style="flex:1;padding:12px" data-a="auMC" data-k="' + enc(i) + '">🎲 Monte Carlo</button><button class="btn pri" style="flex:1;margin:0" data-a="auSave" data-k="' + enc(i) + '">💾 Guardar</button></div>';
       }
       h += '</div>';
@@ -1586,11 +1594,11 @@ function vRobust(saved) {
       var open = S.lpOpen === i, lvl = o.pass ? 'g' : 'r';
       h += '<div class="card" style="padding:11px 13px"><div class="row click" data-a="lpOpen" data-k="' + enc(i) + '" style="align-items:center"><div style="min-width:0"><div class="sub">#' + (i + 1) + ' · ' + o.m.length + ' EAs · riesgo $' + fmt(o.m.reduce(function (a, x) { return a + x.r; }, 0)) + ' total</div><div class="nm">' + o.m.map(function (x) { return x.id; }).join(' · ') + '</div></div><div style="text-align:right">' + chip('MC ' + f1(o.pct * 100, 0) + '%', lvl) + '<div class="lbl" style="margin-top:4px">Ret/DD ' + f1(o.rd) + '</div></div></div>';
       if (open) {
-        h += '<div class="grid3" style="margin:8px 0 4px">' + mBox('DD histórico', money(o.ddHist, 0, true), 'r') + mBox('DD MC ' + MCD.conf + '%', money(o.dd95, 0, true), o.dd95 <= CAP * LP.dd / 100 ? 'g' : 'r') + mBox('Corr. media', o.cavg === null ? '—' : f1(o.cavg * 100, 0) + '%', 'b') +
+        h += '<div style="margin-top:8px">' + resMetrics(o.m.map(function (x) { return x.id; }), (function () { var rk = {}; o.m.forEach(function (x) { rk[x.id] = x.r; }); return rk; })(), LP.rmin, o.key === 'bt' ? 'sqx' : 'demo') + '</div><div class="grid3" style="margin:8px 0 4px">' + mBox('DD histórico', money(o.ddHist, 0, true), 'r') + mBox('DD MC ' + MCD.conf + '%', money(o.dd95, 0, true), o.dd95 <= CAP * LP.dd / 100 ? 'g' : 'r') + mBox('Corr. media', o.cavg === null ? '—' : f1(o.cavg * 100, 0) + '%', 'b') +
           mBox('Ret/DD SQX', o.rdB === null ? '—' : f1(o.rdB), 'p') + mBox('Ret/DD Demo', o.rdD === null ? '—' : f1(o.rdD), 'p') + mBox('Peor racha mensual', o.streak + ' m', o.streak > 3 ? 'r' : 'g') + '</div>' +
           '<div class="lbl" style="text-transform:none;margin:4px 2px">' + (o.halvesOk ? '✓ Las dos mitades del histórico son positivas' : '✗ Una mitad del histórico es negativa') + ' · ' + (o.nb.ok ? '✓ Aguanta sin ' + o.nb.id : '✗ Depende de ' + o.nb.id) + '</div>' +
           (o.warns.length ? '<div class="lbl" style="text-transform:none;margin:4px 2px;color:var(--gold)">⚠ ' + o.warns.map(esc).join(' · ') + '</div>' : '') +
-          '<div style="margin-top:8px">' + o.m.map(function (x) { return eaRow(x.id, '<span class="tag a">$' + fmt(x.r) + '</span>', x.warn.length ? '<span class="tag a">⚠</span>' : ''); }).join('') + '</div>' +
+          '<div style="margin-top:8px">' + o.m.map(function (x) { return eaRowI(x.id, '<span class="tag a">$' + fmt(x.r) + '</span>', x.warn.length ? '<span class="tag a">⚠</span>' : ''); }).join('') + '</div>' +
           '<div class="row" style="gap:8px;margin-top:10px"><button class="btn" style="flex:1;padding:12px" data-a="lpMC" data-k="' + enc(i) + '">🎲 Ver Monte Carlo</button><button class="btn pri" style="flex:1;margin:0" data-a="lpSave" data-k="' + enc(i) + '">💾 Guardar</button></div>' + (S.lpMC && S.lpMC[i] ? mcHtml(S.lpMC[i]) : '');
       }
       h += '</div>';
@@ -2030,6 +2038,7 @@ var ACT = {
   faSave: function (k) { var i = JSON.parse(k), o = FA.res.top[i], risk = {}; o.m.forEach(function (x) { risk[x.E.id] = x.r; }); pfCreate('🎯 Fondeo #' + (i + 1) + ' · ' + new Date().toLocaleDateString('es-ES'), o.m.map(function (x) { return x.E.id; }), risk, FAD.rmin, FD.src); toast('✅ Guardado en Portafolios (Manuales)'); render(); },
   faMC: function (k) { var i = JSON.parse(k), o = FA.res.top[i]; FA.mc[i] = mcRun(o.tr.map(function (x) { return x[1]; }), { cap: CAP, limDD: Math.min(FD.p1.m, FD.p2.on ? FD.p2.m : 100) }); render(); },
   pfCopy: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (!p) return; var n = pfCreate(p.name + ' (copia)', p.ids, p.risk, p.base, p.src); toast('✅ Copiado a Manuales'); S.stack.pop(); push({ t: 'pf', pid: n.id }); },
+  resSrc: function (k) { S.resSrc = JSON.parse(k); render(); },
   pfMode: function (k) { S.pfMode = JSON.parse(k); render(); },
   cfgT: function (k) { k = JSON.parse(k); if (k.indexOf('dir:') === 0) { var d = k.slice(4), i = AU.dirs.indexOf(d); if (i >= 0) { if (AU.dirs.length > 1) AU.dirs.splice(i, 1); } else AU.dirs.push(d); } else if (k === 'au.favOnly') AU.favOnly = !AU.favOnly; else if (k === 'lp.bad') LP.bad = LP.bad === 'discard' ? 'warn' : 'discard'; else LP[k.slice(3)] = !LP[k.slice(3)]; cfgSave(); render(); },
   discT: function (k) { k = JSON.parse(k); S.discOpen = S.discOpen === k ? '' : k; render(); },
