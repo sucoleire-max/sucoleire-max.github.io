@@ -1,6 +1,6 @@
 // FGX Trading Monitor · service worker: red primero (siempre la versión nueva), caché solo como respaldo sin conexión.
 // Solo toca archivos de la propia app: Google Drive / Google Identity / fuentes pasan directos.
-const V = 'fgx-tm-v11';
+const V = 'fgx-tm-v12';
 const SHELL = ['./', 'index.html', 'manifest.json', 'logo.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).catch(() => {}));

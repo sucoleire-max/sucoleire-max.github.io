@@ -1,4 +1,12 @@
-FGX Trading Monitor v1.8.2 (app móvil)
+FGX Trading Monitor v1.9.0 (app móvil)
+
+NOVEDADES v1.9.0
+- Nueva pestaña 🔁 Copiador (entre Fondeos y Más), solo lectura. Lee la carpeta «FGX Copier» de tu Drive (la que llenan el emisor y los receptores del copiador; si tiene otro nombre, ponla en Ajustes).
+- Cuentas: la cuenta madre (se detecta por el ticket de sus operaciones en su CSV) y cada receptor, con su saldo (si su cuenta está en la app), última copia, copias abiertas y avisos.
+- Seguimiento: hoy / semana / mes / todo, por receptor. Curva madre contra receptor, diferencia, riesgo medio y operación por operación (EA, activo, madre, receptor, riesgo). Se resaltan las que tardaron 500 ms o más o salieron mucho distintas. Por mes al final.
+- Calidad: retraso medio, deslizamiento, comparativa de resultado y detalle por receptor.
+- Avisos: copia sin cerrar (arriba, en rojo), símbolo no encontrado, lote mínimo, copia fallida, receptor caído/reconectado. Agrupados con contador. Globito rojo en la pestaña con los avisos sin ver y botón «Marcar todo como visto».
+- La app necesita el ticket de la madre: lo lee de la columna Ticket de su CSV. Las operaciones manuales salen como «manual».
 
 NOVEDADES v1.8.2
 - ARREGLO IMPORTANTE: al entrar en una cuenta (VPS o Demo), en Rendimiento, la app se quedaba bloqueada. Era un fallo introducido en la v1.6.0 (dos funciones con el mismo nombre). Corregido: ahora abre al instante.
