@@ -1,4 +1,13 @@
-FGX Trading Monitor v1.9.0 (app móvil)
+FGX Trading Monitor v1.9.3 (app móvil)
+
+NOVEDADES v1.9.3
+- Copiador > Avisos: «Madre sin señal» y «Emisor ocupado» salen como un solo aviso con contador (antes un aviso por cada corte). Se marca como recuperada cuando vuelve la señal.
+
+NOVEDADES v1.9.2
+- Copiador: los nombres salen de los EAs del copiador. El emisor de la madre tiene ahora el parámetro «Nombre de esta madre» y los receptores su «Etiqueta». La madre se reconoce por su número de cuenta (lo escribe el emisor), ya no por ticket ni por nombre del CSV. Hace falta poner el emisor y el receptor nuevos.
+
+NOVEDADES v1.9.1
+- Copiador > Cuentas: ya no se adivina la cuenta madre por el nombre. Solo sale la cuenta cuyo CSV contiene el ticket de las operaciones copiadas.
 
 NOVEDADES v1.9.0
 - Nueva pestaña 🔁 Copiador (entre Fondeos y Más), solo lectura. Lee la carpeta «FGX Copier» de tu Drive (la que llenan el emisor y los receptores del copiador; si tiene otro nombre, ponla en Ajustes).

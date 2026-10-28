@@ -240,7 +240,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.9.0';
+var VERSION = '1.9.3';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -1981,8 +1981,11 @@ D.cop = null;
 function evDate(sec) { var d = new Date(sec * 1000); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()); }
 function parseEvFile(res, name, txt) {
   var m = /^ev_(\d+)_(.+)\.txt$/i.exec(name); if (!m) return;
+  res.names = res.names || {}; res.mothers = res.mothers || {};
   String(txt).split(/\r?\n/).forEach(function (ln) {
-    var p = ln.split('|'); if (p[0] !== 'EV' || p.length < 8) return;
+    var p = ln.split('|');
+    if (p[0] === 'FGXEV' && p.length >= 4) { res.names[m[1] + '|' + m[2]] = p.slice(3).join('|'); if (m[2] === 'master') res.mothers[m[1]] = { ch: m[1], login: p[2], name: p.slice(3).join('|') }; return; }
+    if (p[0] !== 'EV' || p.length < 8) return;
     res.ev.push({ ch: m[1], who: m[2], key: p[1], sev: p[2], cnt: +p[3] || 1, t1: evDate(+p[4]), t2: evDate(+p[5]), tg: +p[6] || 0, txt: p.slice(7).join('|') });
   });
 }
@@ -2011,7 +2014,7 @@ function copBuild(rows, ch) {
   return Object.keys(ops).map(function (k) { return ops[k]; }).sort(function (a, b) { return ((a.tClose || a.tOpen || 0) - (b.tClose || b.tOpen || 0)); });
 }
 async function loadCop(co) {
-  var res = { ev: [], ops: [], files: 0 };
+  var res = { ev: [], ops: [], files: 0, names: {}, mothers: {} };
   try {
     var id = F.cop;
     if (!id) {
@@ -2057,9 +2060,10 @@ function copRecvs() {
   var o = {}, c = D.cop || { ops: [], ev: [] };
   c.ops.forEach(function (x) { o[x.ch + '|' + x.login] = { ch: x.ch, login: x.login, name: x.name || x.login }; });
   c.ev.forEach(function (e) { if (e.who !== 'master' && !o[e.ch + '|' + e.who]) o[e.ch + '|' + e.who] = { ch: e.ch, login: e.who, name: e.who }; });
+  Object.keys(c.names || {}).forEach(function (k) { var p = k.split('|'); if (p[1] === 'master') return; if (!o[k]) o[k] = { ch: p[0], login: p[1], name: c.names[k] }; else o[k].name = c.names[k]; });
   return Object.keys(o).map(function (k) { return o[k]; }).sort(function (a, b) { return (a.ch + a.name).localeCompare(b.ch + b.name, 'es', { numeric: true }); });
 }
-function copWho(e) { if (e.who === 'master') return 'Madre · canal ' + e.ch; var r = copRecvs().filter(function (x) { return x.ch === e.ch && x.login === e.who; })[0]; return (r ? r.name : e.who) + ' · canal ' + e.ch; }
+function copWho(e) { if (e.who === 'master') return ((D.cop.mothers[e.ch] || {}).name || 'Madre') + ' · canal ' + e.ch; var r = copRecvs().filter(function (x) { return x.ch === e.ch && x.login === e.who; })[0]; return (r ? r.name : e.who) + ' · canal ' + e.ch; }
 function copEvTitle(e) {
   var k = e.key;
   if (/^UNCL_/.test(k)) return e.sev === 'I' ? 'Resuelto · copia cerrada' : 'Copia sin cerrar';
@@ -2067,7 +2071,7 @@ function copEvTitle(e) {
   if (/^SYM_/.test(k)) return 'Símbolo no encontrado'; if (/^SMALL_/.test(k)) return 'Lote por debajo del mínimo';
   if (/^ERR_/.test(k)) return 'Copia fallida'; if (/^GIVEUP_/.test(k)) return 'Reintentos agotados';
   if (/^DOWN_/.test(k)) return 'Receptor sin latido'; if (/^UP_/.test(k)) return 'Reconectado';
-  if (/^STALE_/.test(k)) return 'Madre sin señal'; return 'Aviso';
+  if (/^STALE/.test(k)) return e.sev === 'E' ? 'Madre sin señal' : 'Madre sin señal (recuperada)'; if (k === 'LAG') return 'Emisor ocupado'; return 'Aviso';
 }
 function copEvColor(e) { if (e.sev === 'E') return 'var(--red)'; if (e.sev === 'W') return 'var(--gold)'; return /^(UNCL_|RES_)/.test(e.key) ? 'var(--green)' : 'var(--blue)'; }
 function copAgo(d) { if (!d) return '—'; var s = Math.max(0, (Date.now() - d) / 1000); if (s < 90) return 'hace ' + Math.round(s) + ' s'; if (s < 5400) return 'hace ' + Math.round(s / 60) + ' min'; if (s < 129600) return 'hace ' + Math.round(s / 3600) + ' h'; return 'hace ' + Math.round(s / 86400) + ' d'; }
@@ -2094,19 +2098,19 @@ function copRangeBar() {
 }
 function vCopCuentas() {
   var c = D.cop, h = '', now = new Date();
-  var mothers = {}, hasM = false;
-  c.ops.forEach(function (o) { var m = copMother(o.m); if (m) { mothers[m.a.id] = m.a; hasM = true; } });
-  if (!hasM) allAccs().forEach(function (a) { if (/copy/i.test(a.name)) mothers[a.id] = a; });
-  var ms = Object.keys(mothers).map(function (k) { return mothers[k]; });
+  var ms = Object.keys(c.mothers || {}).sort().map(function (k) {
+    var mo = c.mothers[k], a = allAccs().filter(function (x) { return String(x.number) === String(mo.login); })[0];
+    return { ch: k, name: mo.name, login: mo.login, a: a };
+  });
   var rs = copRecvs();
   h += '<div class="sec">Cuenta madre</div>';
-  if (!ms.length) h += '<div class="note">Todavía no he encontrado la cuenta madre entre tus CSV. Aparecerá cuando una copia cierre y su ticket esté en el CSV de la madre.</div>';
-  ms.forEach(function (a) {
-    var tr = a.trades || [], td = 0, mo = 0;
-    tr.forEach(function (t) { if (sameDay(t.close, now)) td += t.pnl; if (t.close.getFullYear() === now.getFullYear() && t.close.getMonth() === now.getMonth()) mo += t.pnl; });
-    var bal = a.equity != null ? a.equity : a.balance;
-    h += '<div class="card click hero" data-a="acc" data-k="' + enc(a.id) + '"><div class="sub">' + esc(a.name) + '</div><div class="row" style="align-items:center"><div class="big g">' + (bal != null ? '$ ' + fmt(bal) : '—') + '</div>' + chip('● ' + rs.length + ' receptores', 'g') + '</div>' +
-      '<div class="grid3"><div class="m"><div class="lbl">P/L hoy</div><div class="v ' + cl(td) + '">' + sgn(td) + '</div></div><div class="m"><div class="lbl">P/L mes</div><div class="v ' + cl(mo) + '">' + sgn(mo) + '</div></div><div class="m"><div class="lbl">Copias hoy</div><div class="v">' + c.ops.filter(function (o) { return sameDay(o.tOpen || new Date(0), now); }).length + '</div></div></div></div>';
+  if (!ms.length) h += '<div class="note">Todavía no hay ninguna madre en la carpeta. Pon el emisor nuevo en la cuenta madre (con su nombre y su canal) y aparecerá aquí.</div>';
+  ms.forEach(function (mo) {
+    var a = mo.a, tr = a ? (a.trades || []) : [], td = 0, mon = 0, nr = rs.filter(function (r) { return r.ch === mo.ch; }).length;
+    tr.forEach(function (t) { if (sameDay(t.close, now)) td += t.pnl; if (t.close.getFullYear() === now.getFullYear() && t.close.getMonth() === now.getMonth()) mon += t.pnl; });
+    var bal = a ? (a.equity != null ? a.equity : a.balance) : null;
+    h += '<div class="card ' + (a ? 'click ' : '') + 'hero"' + (a ? ' data-a="acc" data-k="' + enc(a.id) + '"' : '') + '><div class="sub">' + esc(mo.name) + ' · canal ' + esc(mo.ch) + '</div><div class="row" style="align-items:center"><div class="big g">' + (bal != null ? '$ ' + fmt(bal) : '—') + '</div>' + chip('● ' + nr + ' receptor' + (nr === 1 ? '' : 'es'), 'g') + '</div>' +
+      (a ? '<div class="grid3"><div class="m"><div class="lbl">P/L hoy</div><div class="v ' + cl(td) + '">' + sgn(td) + '</div></div><div class="m"><div class="lbl">P/L mes</div><div class="v ' + cl(mon) + '">' + sgn(mon) + '</div></div><div class="m"><div class="lbl">Copias hoy</div><div class="v">' + c.ops.filter(function (o) { return o.ch === mo.ch && sameDay(o.tOpen || new Date(0), now); }).length + '</div></div></div>' : '<div class="cdet" style="margin-top:8px">Cuenta ' + esc(mo.login) + ': su CSV todavía no está en la app.</div>') + '</div>';
   });
   h += '<div class="sec">Receptores</div>';
   if (!rs.length) h += '<div class="note">Todavía no hay receptores en la carpeta.</div>';
