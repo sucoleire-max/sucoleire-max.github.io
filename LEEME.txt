@@ -1,4 +1,7 @@
-FGX Trading Monitor v1.9.3 (app móvil)
+FGX Trading Monitor v1.9.4 (app móvil)
+
+NOVEDADES v1.9.4
+- Cuentas fondeadas sin operar: toda cuenta con «fondeada» en el nombre (Cuentas VPS o Demo PC) avisa a los 20 días sin operar (naranja) y a los 25 (rojo). Cartel arriba en Cuentas/Demo y dentro de la cuenta, marca en su tarjeta y un punto con el número en la pestaña. Los límites y las cuentas a no vigilar se cambian en Más > Ajustes > Cuentas fondeadas. Los días cuentan desde la última operación abierta o cerrada.
 
 NOVEDADES v1.9.3
 - Copiador > Avisos: «Madre sin señal» y «Emisor ocupado» salen como un solo aviso con contador (antes un aviso por cada corte). Se marca como recuperada cuando vuelve la señal.

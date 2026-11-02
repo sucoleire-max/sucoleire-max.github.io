@@ -224,8 +224,8 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
   </header>
   <main class="content" id="content"></main>
   <nav class="nav" id="nav">
-    <div class="it on" data-tab="cuentas"><i>☁</i>Cuentas</div>
-    <div class="it" data-tab="demo"><i>🖥</i>Demo</div>
+    <div class="it on" data-tab="cuentas"><i>☁</i>Cuentas<span class="cbadge" id="fondBadgeV" hidden></span></div>
+    <div class="it" data-tab="demo"><i>🖥</i>Demo<span class="cbadge" id="fondBadgeD" hidden></span></div>
     <div class="it" data-tab="lib"><i>📚</i>Librería</div>
     <div class="it" data-tab="port"><i>🧩</i>Portafolios</div>
     <div class="it" data-tab="fond"><i>🏦</i>Fondeos</div>
@@ -240,7 +240,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.9.3';
+var VERSION = '1.9.4';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -366,6 +366,39 @@ function buildEAs(acc, known) {
 }
 function dayPnl(trades, day) { return trades.reduce(function (s, t) { return sameDay(t.close, day) ? s + t.pnl : s; }, 0); }
 function idle(e) { return e.last ? Math.floor((Date.now() - e.last) / 86400000) : 9999; }
+
+/* ---------- cuentas fondeadas sin operar: aviso naranja a los 20 días y rojo a los 25 (configurable) ---------- */
+var FOND_W = parseInt(ls('tm_fond_w', '')) || 20, FOND_R = parseInt(ls('tm_fond_r', '')) || 25, FOND_SKIP = ls('tm_fond_skip', '');
+function normS(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function fdate(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
+function fondInfo(a) {
+  if (!a || !a.trades || !a.trades.length) return null;
+  var nm = normS(a.name); if (nm.indexOf('fondead') < 0) return null;
+  var skip = FOND_SKIP.split(',').map(function (x) { return normS(x).trim(); }).filter(Boolean);
+  for (var i = 0; i < skip.length; i++) if (nm.indexOf(skip[i]) >= 0) return null;
+  var last = 0; a.trades.forEach(function (t) { var c = t.close ? +t.close : 0, o = t.open ? +t.open : 0; if (c > last) last = c; if (o > last) last = o; });
+  if (!last) return null;
+  var days = Math.max(0, Math.floor((Date.now() - last) / 86400000));
+  return { days: days, last: new Date(last), lvl: days >= FOND_R ? 2 : days >= FOND_W ? 1 : 0 };
+}
+function fondList(accs) { var o = []; (accs || D.vps.concat(D.demo)).forEach(function (a) { var f = fondInfo(a); if (f) o.push({ a: a, f: f }); }); return o.sort(function (x, y) { return y.f.days - x.f.days; }); }
+function fondChip(a) {
+  var f = fondInfo(a); if (!f) return '';
+  return chip((f.lvl === 2 ? '🔴' : f.lvl === 1 ? '🟠' : '🏦') + ' Fondeada · ' + (f.lvl ? (f.days === 1 ? '1 día' : f.days + ' días') + ' sin operar' : 'operó hace ' + f.days + ' d'), f.lvl === 2 ? 'r' : f.lvl === 1 ? 'a' : 'g');
+}
+function fondBanner(accs, noGo) {
+  return fondList(accs).filter(function (x) { return x.f.lvl > 0; }).map(function (x) {
+    var red = x.f.lvl === 2;
+    return '<div class="card' + (noGo ? '' : ' click') + '"' + (noGo ? '' : ' data-a="acc" data-k="' + enc(x.a.id) + '"') + ' style="border-color:' + (red ? 'rgba(255,93,120,.55)' : 'rgba(255,176,46,.5)') + ';background:' + (red ? 'rgba(255,93,120,.09)' : 'rgba(255,176,46,.09)') + '"><div class="row" style="align-items:center"><div style="min-width:0"><div class="nm" style="color:' + (red ? 'var(--red)' : '#ffb02e') + '">' + (red ? '🔴 ' : '🟠 ') + esc(x.a.name) + '</div><div class="d" style="font-size:11.5px;margin-top:3px">Fondeada · ' + (x.f.days === 1 ? '1 día' : x.f.days + ' días') + ' sin operar · última operación ' + fdate(x.f.last) + '. Las empresas suelen dar de baja la cuenta a los 30 días.</div></div>' + (noGo ? '' : '<span style="font-size:20px;color:var(--dim)">›</span>') + '</div></div>';
+  }).join('');
+}
+function fondBadges() {
+  [['fondBadgeV', D.vps], ['fondBadgeD', D.demo]].forEach(function (p) {
+    var b = document.getElementById(p[0]); if (!b) return;
+    var l = fondList(p[1]).filter(function (x) { return x.f.lvl > 0; }), red = l.some(function (x) { return x.f.lvl === 2; });
+    b.hidden = !l.length; b.textContent = l.length; b.style.background = red ? 'var(--red)' : '#ffb02e'; b.style.boxShadow = '0 0 10px ' + (red ? 'rgba(255,93,120,.7)' : 'rgba(255,176,46,.7)');
+  });
+}
 function dirOf(e) { return e.buys && e.sells ? 'L+C' : e.sells ? 'CORTO' : 'LARGO'; }
 
 /* ---------- SQX históricos ---------- */
@@ -755,7 +788,7 @@ function vAccounts(src) {
   }
   var today = new Date(), net = 0, day = 0, nEA = 0, nIdle = 0;
   accs.forEach(function (a) { net += a.net; day += dayPnl(a.trades, today); nEA += a.eas.length; a._idle = a.eas.filter(function (e) { return idle(e) > ALERT_DAYS; }).length; nIdle += a._idle; });
-  var h = '<h1 class="pt">' + title + '</h1>' + noteHtml();
+  var h = '<h1 class="pt">' + title + '</h1>' + noteHtml() + fondBanner(accs);
   var nToday = 0; accs.forEach(function (a) { a.trades.forEach(function (t) { if (sameDay(t.close, today)) nToday++; }); });
   h += '<div class="card hero' + (day < 0 ? ' neg' : '') + '"><div class="lbl">P&amp;L total de hoy</div><div class="big ' + cl(day) + '" style="font-size:36px;margin:5px 0 2px;text-shadow:0 0 26px ' + (day < 0 ? 'rgba(255,93,120,.4)' : 'rgba(46,230,160,.4)') + '">' + money(day, 2) + '</div>' +
     '<div class="mono" style="font-size:12px;color:var(--dim)">' + DIAS[today.getDay()] + ' ' + today.getDate() + ' ' + MES[today.getMonth()] + ' · Net total <span class="' + cl(net) + '">' + money(net) + '</span></div>' +
@@ -765,7 +798,7 @@ function vAccounts(src) {
     h += '<div class="card click" data-a="acc" data-k="' + enc(a.id) + '" style="--ac:' + a.color + '"><div class="row"><div style="min-width:0"><div class="sub">' + (a.number ? 'Cuenta ' + esc(a.number) : esc(a.file)) + ' · ' + a.n + ' trades</div><div class="nm">' + esc(a.name) + '</div></div>' +
       '<div style="text-align:right"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(a.net) + '" style="font-size:21px">' + money(a.net) + '</div></div></div>' +
       '<div class="grid3">' + mBox('Balance', a.balance ? money(a.balance, 0, true) : '—') + mBox('Hoy', money(d, 0), cl(d)) + mBox('Max DD', '-$' + fmt(a.maxdd), 'r') + '</div>' +
-      '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle ? chip('⚠ ' + a._idle + ' sin operar', 'a') : '') + '</div></div>';
+      '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle ? chip('⚠ ' + a._idle + ' sin operar', 'a') : '') + fondChip(a) + '</div></div>';
   });
   return h;
 }
@@ -789,7 +822,7 @@ function opsHtml(trades, withEA) {
 function vAcc(e) {
   var a = accBy(e.id); if (!a) return backBar('Cuenta', '') + emptyHtml('❓', 'Cuenta no encontrada', 'Vuelve atrás y actualiza.');
   var h = backBar(a.name, (a.number ? 'Cuenta ' + esc(a.number) + ' · ' : '') + a.eas.length + ' EAs · ' + a.n + ' trades', a.color) +
-    segHtml([['rend', 'Rendimiento'], ['mens', 'Mensual EAs'], ['ops', 'Operaciones']], e.tab, 'accTab');
+    segHtml([['rend', 'Rendimiento'], ['mens', 'Mensual EAs'], ['ops', 'Operaciones']], e.tab, 'accTab') + fondBanner([a], true);
   if (e.tab === 'rend') {
     var d = dayPnl(a.trades, new Date());
     h += '<div class="card hero' + (a.net < 0 ? ' neg' : '') + '"><div class="row" style="align-items:center"><div class="lbl">Equity (P&amp;L acumulado)</div>' + chip(a.n + ' trades', 'b') + '</div><div class="big ' + cl(a.net) + '" style="font-size:32px;margin:4px 0 8px">' + money(a.net) + '</div>' + chartHtml(equity(a.trades), a.net < 0 ? '#ff5d78' : '#2ee6a0', span(a.trades)) + '</div>' +
@@ -2237,6 +2270,7 @@ function vAjustes() {
     '<div class="set"><div class="st">🖥️ Demo PC</div><div class="sr"><input id="fDemo" value="' + esc(F.demo) + '" placeholder="ID o enlace de carpeta"></div></div>' +
     '<button class="btn sec2" data-a="saveF">💾 Guardar carpetas</button>' +
     '<div class="set"><div class="st">Alertas</div><div class="sr"><div><div>Días sin operar</div><div class="ss">Marca "sin operar" a un EA pasado este nº de días</div></div><input class="n" id="alertIn" type="number" min="1" max="90" value="' + ALERT_DAYS + '"></div></div>' +
+    '<div class="set"><div class="st">Cuentas fondeadas</div><div class="sr"><div><div>Aviso naranja (días sin operar)</div><div class="ss">Las cuentas con «fondeada» en el nombre</div></div><input class="n" id="fondW" type="number" min="1" max="90" value="' + FOND_W + '"></div><div class="sr"><div><div>Aviso rojo (días sin operar)</div><div class="ss">Las empresas suelen dar de baja a los 30</div></div><input class="n" id="fondR" type="number" min="1" max="90" value="' + FOND_R + '"></div><div class="sr"><input id="fondS" value="' + esc(FOND_SKIP) + '" placeholder="No vigilar (separadas por coma), p. ej. COPY FONDEADAS"></div></div>' +
     '<button class="btn sec2" data-a="refresh">🔄 Actualizar datos</button>' +
     '<div class="set"><div class="st">Lectura</div><div class="sr"><div><div>Cuentas VPS / Demo / SQX</div><div class="ss">' + D.vps.length + ' / ' + D.demo.length + ' / ' + Object.keys(D.sqx).length + ' estrategias (' + D.sqxFiles + ' CSV en la carpeta) · Librería: ' + Object.keys(D.lib.meta).length + ' EAs clasificados</div></div></div></div>';
   if (D.warn.length) h += '<div class="set"><div class="st" style="color:var(--gold)">⚠ Archivos con avisos (' + D.warn.length + ')</div>' + D.warn.slice(0, 25).map(function (w) { return '<div class="sr" style="font-size:11px;color:var(--dim)">' + esc(w) + '</div>'; }).join('') + '</div>';
@@ -2253,7 +2287,7 @@ function render() {
     if (top) h = top.t === 'acc' ? vAcc(top) : top.t === 'ea' ? vEA(top) : top.t === 'sid' ? vSid(top) : top.t === 'pf' ? vPort(top) : top.t === 'pick' ? vPick(top) : top.t === 'fav' ? vFavDetail(top) : vRachaAcc(top);
     else h = S.tab === 'cuentas' ? vAccounts('vps') : S.tab === 'demo' ? vAccounts('demo') : S.tab === 'lib' ? vLibreria() : S.tab === 'port' ? vPorts() : S.tab === 'fond' ? vFond() : S.tab === 'cop' ? vCop() : S.tab === 'mas' ? vMas() : S.tab === 'rachas' ? vRachas() : S.tab === 'favs' ? vFavs() : S.tab === 'ranking' ? vRanking() : vAjustes();
   } catch (err) { console.error(err); h = emptyHtml('⚠️', 'Algo falló al mostrar esta pantalla', esc(err.message), '<button class="btn pri" data-a="back">Volver</button>'); }
-  var id = viewId(); el.innerHTML = h; drawCharts(); loadImgs(); copBadge();
+  var id = viewId(); el.innerHTML = h; drawCharts(); loadImgs(); copBadge(); fondBadges();
   el.scrollTop = scrollMem[id] || 0;
 }
 document.getElementById('content').addEventListener('scroll', function () { scrollMem[viewId()] = this.scrollTop; }, { passive: true });
@@ -2373,6 +2407,8 @@ document.getElementById('content').addEventListener('change', function (ev) {
   if (p0 && ev.target.dataset.rk) { var v = +String(ev.target.value).replace(',', '.'); if (v > 0) { p0.risk[ev.target.dataset.rk] = v; pfTouch(p0); } render(); return; }
   if (p0 && ev.target.id === 'pfName') { p0.name = ev.target.value.trim() || p0.name; pfTouch(p0); render(); return; }
   if (p0 && ev.target.id === 'pfBase') { var b = +String(ev.target.value).replace(',', '.'); if (b > 0) { p0.base = b; pfTouch(p0); } return; }
+  if (ev.target.id === 'fondW' || ev.target.id === 'fondR') { var fv = Math.min(90, Math.max(1, parseInt(ev.target.value) || (ev.target.id === 'fondW' ? 20 : 25))); if (ev.target.id === 'fondW') { FOND_W = fv; lsSet('tm_fond_w', fv); } else { FOND_R = fv; lsSet('tm_fond_r', fv); } fondBadges(); toast('✅ ' + fv + ' días'); }
+  if (ev.target.id === 'fondS') { FOND_SKIP = ev.target.value; lsSet('tm_fond_skip', FOND_SKIP); fondBadges(); toast('✅ Guardado'); }
   if (ev.target.id === 'alertIn') { ALERT_DAYS = Math.min(90, Math.max(1, parseInt(ev.target.value) || 7)); lsSet('tm_alert_days', ALERT_DAYS); toast('✅ ' + ALERT_DAYS + ' días'); }
 });
 document.getElementById('nav').addEventListener('click', function (ev) { var t = ev.target.closest('.it'); if (t) goTab(t.dataset.tab); });
