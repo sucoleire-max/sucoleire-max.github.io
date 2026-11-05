@@ -1,4 +1,10 @@
-FGX Trading Monitor v1.9.4 (app móvil)
+FGX Trading Monitor v1.10.0 (app móvil)
+
+NOVEDADES v1.10.0
+- Copiador rehecho igual que en FGX Library: Resumen · Coste · Calidad · Seguim. · Avisos, con filtros de canal, periodo y receptor.
+- El coste de copiar compara la copia con la madre escalada al MISMO RIESGO en dólares (antes comparaba sin escalar y salía un desfase). La madre se busca en el CSV de su propia cuenta.
+- Seguimiento: toca una fila para ver madre, copia y diferencia. Cada EA lleva sus botones SQX / Demo real.
+- Avisos: se pueden marcar como vistos uno a uno; los vistos de más de 1 día se ocultan (con botón para mostrarlos).
 
 NOVEDADES v1.9.4
 - Cuentas fondeadas sin operar: toda cuenta con «fondeada» en el nombre (Cuentas VPS o Demo PC) avisa a los 20 días sin operar (naranja) y a los 25 (rojo). Cartel arriba en Cuentas/Demo y dentro de la cuenta, marca en su tarjeta y un punto con el número en la pestaña. Los límites y las cuentas a no vigilar se cambian en Más > Ajustes > Cuentas fondeadas. Los días cuentan desde la última operación abierta o cerrada.

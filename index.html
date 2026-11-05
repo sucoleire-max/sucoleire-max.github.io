@@ -240,7 +240,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.9.4';
+var VERSION = '1.10.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -2071,31 +2071,6 @@ async function loadCop(co) {
   } catch (e) { if (e.auth) throw e; D.warn.push('Copiador: ' + e.message); }
   return res;
 }
-/* operaciones de la madre por ticket (vienen del CSV de la cuenta madre) */
-function copMother(tk) {
-  var key = (D.updated ? +D.updated : 0) + ':' + allAccs().length;
-  if (!D._mti || D._mtk !== key) {
-    var m = {}; allAccs().forEach(function (a) { (a.trades || []).forEach(function (t) { if (t.ticket) (m[t.ticket] = m[t.ticket] || []).push({ t: t, a: a }); }); });
-    D._mti = m; D._mtk = key;
-  }
-  var c = D._mti[tk]; if (!c) return null;
-  if (c.length > 1) { var p = c.filter(function (x) { return /copy/i.test(x.a.name); }); if (p.length) return p[0]; }
-  return c[0];
-}
-function copSid(o) { if (o.ea) return o.ea; var mt = copMother(o.m); return mt && mt.t.sid ? mt.t.sid : ''; }
-function copRangeOk(d) {
-  if (!d) return false; var n = new Date(), r = S.copRange || 'mes';
-  if (r === 'todo') return true; if (r === 'hoy') return sameDay(d, n); if (r === 'sem') return n - d < 7 * 864e5;
-  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
-}
-function copSel(o) { return !S.copAcc || (o.ch + '|' + o.login) === S.copAcc; }
-function copRecvs() {
-  var o = {}, c = D.cop || { ops: [], ev: [] };
-  c.ops.forEach(function (x) { o[x.ch + '|' + x.login] = { ch: x.ch, login: x.login, name: x.name || x.login }; });
-  c.ev.forEach(function (e) { if (e.who !== 'master' && !o[e.ch + '|' + e.who]) o[e.ch + '|' + e.who] = { ch: e.ch, login: e.who, name: e.who }; });
-  Object.keys(c.names || {}).forEach(function (k) { var p = k.split('|'); if (p[1] === 'master') return; if (!o[k]) o[k] = { ch: p[0], login: p[1], name: c.names[k] }; else o[k].name = c.names[k]; });
-  return Object.keys(o).map(function (k) { return o[k]; }).sort(function (a, b) { return (a.ch + a.name).localeCompare(b.ch + b.name, 'es', { numeric: true }); });
-}
 function copWho(e) { if (e.who === 'master') return ((D.cop.mothers[e.ch] || {}).name || 'Madre') + ' · canal ' + e.ch; var r = copRecvs().filter(function (x) { return x.ch === e.ch && x.login === e.who; })[0]; return (r ? r.name : e.who) + ' · canal ' + e.ch; }
 function copEvTitle(e) {
   var k = e.key;
@@ -2110,148 +2085,211 @@ function copEvColor(e) { if (e.sev === 'E') return 'var(--red)'; if (e.sev === '
 function copAgo(d) { if (!d) return '—'; var s = Math.max(0, (Date.now() - d) / 1000); if (s < 90) return 'hace ' + Math.round(s) + ' s'; if (s < 5400) return 'hace ' + Math.round(s / 60) + ' min'; if (s < 129600) return 'hace ' + Math.round(s / 3600) + ' h'; return 'hace ' + Math.round(s / 86400) + ' d'; }
 function copHm(d) { return d ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : '—'; }
 function copDm(d) { var M = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']; return d ? d.getDate() + ' ' + M[d.getMonth()] : '—'; }
-function copNew() { var seen = +ls('tm_cop_seen', '0'); return ((D.cop && D.cop.ev) || []).filter(function (e) { return e.sev !== 'I' && +e.t2 > seen; }).length; }
 function copBadge() { var b = document.getElementById('copBadge'); if (!b) return; var n = copNew(); b.hidden = !n; b.textContent = n > 9 ? '9+' : n; }
 function sgn(n, d) { return (n < 0 ? '-' : '+') + '$' + fmt(Math.abs(n), d || 0); }
 function cl(n) { return n < 0 ? 'r' : 'g'; }
-function copOpTitle(o) { var sid = copSid(o); return copDm(o.tClose || o.tOpen) + ' · ' + esc(o.sym) + ' ' + (o.type === 'BUY' ? 'Buy' : 'Sell') + (sid ? ' · ' + esc(sid.replace(/_/g, '.')) : ' · manual'); }
-function vCop() {
-  var nAv = copNew(), tab = S.copTab || 'cuentas';
-  var h = '<h1 class="pt">Copiador</h1>' + segHtml([['cuentas', 'Cuentas'], ['seg', 'Seguimiento'], ['cal', 'Calidad'], ['av', 'Avisos' + (nAv ? ' · ' + nAv : '')]], tab, 'copTab');
-  if (!D.cop || (!D.cop.files && !D.cop.ops.length && !D.cop.ev.length)) {
-    return h + emptyHtml('🔁', 'Aún no hay datos del copiador', 'Aquí aparecerán las copias y los avisos cuando los EAs escriban en la carpeta <b>FGX Copier</b> de tu Drive. Ejecuta <b>Enlazar_Drive.bat</b> en el VPS una vez y vuelve a actualizar. Si la carpeta tiene otro nombre, ponla en Ajustes.', '<button class="btn pri" data-a="refresh">🔄 Actualizar</button>');
+function copRangeOk(d) {
+  if (!d) return false; var n = new Date(), r = S.copRange || 'mes';
+  if (r === 'todo') return true; if (r === 'hoy') return sameDay(d, n); if (r === 'sem') return n - d < 7 * 864e5;
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+}
+/* ---- Copiador (mismo contenido que la pestaña Copiador de FGX Library, en formato móvil) ---- */
+var COP_COLS = ['#18b4ff', '#2ee6a0', '#e6b84a', '#ff5d78', '#b48cff', '#48cae4'];
+/* La madre de un canal: su cuenta (por número de login) y sus operaciones por ticket (del CSV de la cuenta madre) */
+function copMotherAcc(ch) { var mo = ((D.cop && D.cop.mothers) || {})[ch]; if (!mo) return null; return allAccs().filter(function (x) { return String(x.number) === String(mo.login); })[0] || null; }
+function copMother(o) {
+  var key = (D.updated ? +D.updated : 0) + ':' + allAccs().length;
+  if (!D._mti || D._mtk !== key) { D._mti = {}; D._mtk = key; }
+  var ma = copMotherAcc(o.ch), ck = o.ch;
+  if (ma) {
+    if (!D._mti[ck]) { var m = {}; (ma.trades || []).forEach(function (t) { if (t.ticket) m[t.ticket] = t; }); D._mti[ck] = m; }
+    var t = D._mti[ck][o.m]; return t ? { t: t, a: ma } : null;
   }
-  return h + (tab === 'cuentas' ? vCopCuentas() : tab === 'seg' ? vCopSeg() : tab === 'cal' ? vCopCal() : vCopAv());
+  return null;
 }
-function copRangeBar() {
-  var h = segHtml([['hoy', 'Hoy'], ['sem', 'Semana'], ['mes', 'Mes'], ['todo', 'Todo']], S.copRange || 'mes', 'copRange');
-  var rs = copRecvs();
-  if (rs.length > 1) h += '<div class="fil"><button class="' + (!S.copAcc ? 'on' : '') + '" data-a="copAcc" data-k="' + enc('') + '">Todos los receptores</button>' + rs.map(function (r) { var k = r.ch + '|' + r.login; return '<button class="' + (S.copAcc === k ? 'on' : '') + '" data-a="copAcc" data-k="' + enc(k) + '">' + esc(r.name) + '</button>'; }).join('') + '</div>';
+function copSid(o) { if (o.ea) return o.ea; var mt = copMother(o); return mt && mt.t.sid ? mt.t.sid : ''; }
+/* La copia se dimensiona por riesgo en dólares, no por lotes: la madre se escala por la razón de riesgos */
+function copScale(o) { if (o.riskM > 0 && o.riskR > 0) return o.riskR / o.riskM; var m = copMother(o); return m && m.t.lots > 0 && o.lotsR > 0 ? o.lotsR / m.t.lots : 0; }
+function copMNet(o) { var m = copMother(o); return m && o.tClose && o.pf != null && copScale(o) > 0 ? m.t.pnl * copScale(o) : null; }
+function copCost(o) { var mn = copMNet(o); return mn == null ? null : o.pf - mn; }
+function copSame(o) { return !(o.riskM > 0) || Math.abs(o.riskR - o.riskM) <= o.riskM * 0.05; }
+function copAdv(o) { return o.pM && o.pR ? (/BUY/i.test(o.type) ? o.pR - o.pM : o.pM - o.pR) : null; }
+function copAvg(a) { return a.length ? a.reduce(function (s, v) { return s + v; }, 0) / a.length : null; }
+function copF1(v, d) { return v == null ? '—' : (v < 0 ? '-' : '') + fmt(Math.abs(v), d || 0); }
+var COP_SEEN = null;
+function copSeenSet() { if (!COP_SEEN) { try { COP_SEEN = new Set(JSON.parse(ls('tm_cop_seen2', '[]'))); } catch (e) { COP_SEEN = new Set(); } } return COP_SEEN; }
+function copSaveSeen() { lsSet('tm_cop_seen2', JSON.stringify(Array.from(copSeenSet()).slice(-800))); }
+function copEvKey(e) { return e.key + '@' + (+e.t2); }
+function copEvOpen(e) { return !copSeenSet().has(copEvKey(e)) && !(+ls('tm_cop_seen', '0') >= +e.t2); }
+function copNew() { return ((D.cop && D.cop.ev) || []).filter(function (e) { return e.sev !== 'I' && copEvOpen(e); }).length; }
+function copSel(o) { return (!S.copCh || o.ch === S.copCh) && (!S.copAcc || (o.ch + '|' + o.login) === S.copAcc); }
+function copRecvs() {
+  var o = {}, c = D.cop || { ops: [], ev: [] };
+  c.ops.forEach(function (x) { o[x.ch + '|' + x.login] = { key: x.ch + '|' + x.login, ch: x.ch, login: x.login, name: x.name || x.login }; });
+  c.ev.forEach(function (e) { if (e.who !== 'master' && !o[e.ch + '|' + e.who]) o[e.ch + '|' + e.who] = { key: e.ch + '|' + e.who, ch: e.ch, login: e.who, name: e.who }; });
+  Object.keys(c.names || {}).forEach(function (k) { var p = k.split('|'); if (p[1] === 'master') return; if (!o[k]) o[k] = { key: k, ch: p[0], login: p[1], name: c.names[k] }; else o[k].name = c.names[k]; });
+  return Object.keys(o).map(function (k) { return o[k]; }).filter(function (r) { return !S.copCh || r.ch === S.copCh; }).sort(function (a, b) { return (a.ch + a.name).localeCompare(b.ch + b.name, 'es', { numeric: true }); });
+}
+function copChannels() { var c = D.cop, s = {}; Object.keys(c.mothers || {}).forEach(function (k) { s[k] = 1; }); c.ops.forEach(function (o) { s[o.ch] = 1; }); Object.keys(c.names || {}).forEach(function (k) { s[k.split('|')[0]] = 1; }); return Object.keys(s).sort(function (a, b) { return (+a - +b) || (a < b ? -1 : 1); }); }
+function copOps() { return D.cop.ops.filter(function (o) { return copSel(o) && copRangeOk(o.tClose || o.tOpen); }); }
+function copRxStatus(r) {
+  var c = D.cop, evs = c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && (e.who === r.login || e.key.indexOf('DOWN_' + r.login + '_') === 0 || e.key.indexOf('UP_' + r.login + '_') === 0); });
+  var du = evs.filter(function (e) { return /^(DOWN|UP)_/.test(e.key); }).sort(function (a, b) { return b.t2 - a.t2; })[0];
+  if (du && /^DOWN_/.test(du.key)) return ['er', 'Sin latido'];
+  var n = new Date(), rec = evs.filter(function (e) { return e.sev !== 'I' && !/^DOWN_/.test(e.key) && copEvOpen(e) && n - e.t2 < 3600e3; });
+  return rec.length ? ['wa', 'Avisos recientes'] : ['ok', 'En línea'];
+}
+function copBtns(sid) {
+  if (!sid) return '';
+  var hasSqx = !!(D.sqx[sid] && D.sqx[sid].s), hasDemo = !!eaInst(sid).length;
+  return '<div class="eb" style="margin-top:5px"><button class="btn sm" data-a="vsid" data-k="' + enc([sid, 'sqx', '']) + '"' + (hasSqx ? '' : ' disabled title="Sin CSV de SQX"') + '>📚 SQX</button><button class="btn sm" data-a="vsid" data-k="' + enc([sid, 'demo', '', '']) + '"' + (hasDemo ? '' : ' disabled title="Sin operaciones en Demo real"') + '>🖥 Demo real</button></div>';
+}
+function copOpTitle(o) { var sid = copSid(o); return copDm(o.tClose || o.tOpen) + ' · ' + esc(o.sym) + ' ' + (o.type === 'BUY' ? 'Buy' : 'Sell') + (sid ? ' · ' + esc(sid.replace(/_/g, '.')) : ' · manual'); }
+function copLine(series, cols) {
+  var W = 300, H = 120, all = []; series.forEach(function (s) { s.forEach(function (p) { all.push(p[1]); }); });
+  if (!all.length) return '<div class="d" style="font-size:12px;padding:18px 0;text-align:center">Sin datos en este periodo</div>';
+  all.push(0); var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all); if (mx === mn) mx = mn + 1;
+  var ts = []; series.forEach(function (s) { s.forEach(function (p) { ts.push(+p[0]); }); }); var t0 = Math.min.apply(null, ts), t1 = Math.max.apply(null, ts); if (t1 === t0) t1 = t0 + 1;
+  var X = function (t) { return ((t - t0) / (t1 - t0) * (W - 4) + 2).toFixed(1); }, Y = function (v) { return (H - 8 - (v - mn) / (mx - mn) * (H - 16)).toFixed(1); };
+  var o = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;margin-top:8px"><line x1="0" x2="' + W + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="rgba(210,225,245,.3)" stroke-dasharray="3 4"/>';
+  series.forEach(function (s, i) { if (s.length) o += '<polyline points="' + s.map(function (p) { return X(+p[0]) + ',' + Y(p[1]); }).join(' ') + '" fill="none" stroke="' + cols[i % cols.length] + '" stroke-width="2"/>'; });
+  return o + '</svg>';
+}
+function copBars(vals, labs, col) {
+  var W = 300, H = 90, n = vals.length, mx = Math.max.apply(null, vals.concat([1])), bw = W / n, o = '<svg viewBox="0 0 ' + W + ' ' + (H + 14) + '" style="width:100%;height:auto;display:block;margin-top:8px">';
+  vals.forEach(function (v, i) { var bh = (H - 6) * v / mx; o += '<rect x="' + (i * bw + 2).toFixed(1) + '" y="' + (H - bh).toFixed(1) + '" width="' + (bw - 4).toFixed(1) + '" height="' + Math.max(bh, 0.5).toFixed(1) + '" rx="2" fill="' + col + '" opacity=".85"/><text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H + 11) + '" fill="#55657d" font-size="7" text-anchor="middle">' + esc(labs[i]) + '</text>'; });
+  return o + '</svg>';
+}
+function vCop() {
+  var nAv = copNew(), tab = S.copTab || 'res';
+  var h = '<h1 class="pt">Copiador</h1>' + segHtml([['res', 'Resumen'], ['cos', 'Coste'], ['cal', 'Calidad'], ['seg', 'Seguim.'], ['av', 'Avisos' + (nAv ? ' ' + nAv : '')]], tab, 'copTab');
+  if (!D.cop || (!D.cop.files && !D.cop.ops.length && !D.cop.ev.length)) {
+    return h + emptyHtml('🔁', 'Aún no hay datos del copiador', 'Aquí aparecerán las copias y los avisos cuando los EAs escriban en la carpeta <b>FGX Copier</b> de tu Drive. Ejecuta <b>Enlazar_Drive.bat</b> en el VPS y pulsa Actualizar.');
+  }
+  return h + (tab === 'res' ? vCopRes() : tab === 'cos' ? vCopCos() : tab === 'cal' ? vCopCal() : tab === 'seg' ? vCopSeg() : vCopAv());
+}
+function copFilters(withRx) {
+  var h = '', chs = copChannels(), rs = copRecvs(), c = D.cop;
+  if (chs.length > 1) h += '<div class="fil"><button class="' + (!S.copCh ? 'on' : '') + '" data-a="copCh" data-k="' + enc('') + '">Todos los canales</button>' + chs.map(function (k) { var m = (c.mothers || {})[k]; return '<button class="' + (S.copCh === k ? 'on' : '') + '" data-a="copCh" data-k="' + enc(k) + '">Canal ' + esc(k) + (m ? ' · ' + esc(m.name) : '') + '</button>'; }).join('') + '</div>';
+  h += segHtml([['hoy', 'Hoy'], ['sem', '7 días'], ['mes', 'Este mes'], ['todo', 'Todo']], S.copRange || 'mes', 'copRange');
+  if (withRx && rs.length > 1) h += '<div class="fil"><button class="' + (!S.copAcc ? 'on' : '') + '" data-a="copAcc" data-k="' + enc('') + '">Todos los receptores</button>' + rs.map(function (r) { return '<button class="' + (S.copAcc === r.key ? 'on' : '') + '" data-a="copAcc" data-k="' + enc(r.key) + '">' + esc(r.name) + '</button>'; }).join('') + '</div>';
   return h;
 }
-function vCopCuentas() {
-  var c = D.cop, h = '', now = new Date();
-  var ms = Object.keys(c.mothers || {}).sort().map(function (k) {
-    var mo = c.mothers[k], a = allAccs().filter(function (x) { return String(x.number) === String(mo.login); })[0];
-    return { ch: k, name: mo.name, login: mo.login, a: a };
-  });
-  var rs = copRecvs();
-  h += '<div class="sec">Cuenta madre</div>';
-  if (!ms.length) h += '<div class="note">Todavía no hay ninguna madre en la carpeta. Pon el emisor nuevo en la cuenta madre (con su nombre y su canal) y aparecerá aquí.</div>';
-  ms.forEach(function (mo) {
-    var a = mo.a, tr = a ? (a.trades || []) : [], td = 0, mon = 0, nr = rs.filter(function (r) { return r.ch === mo.ch; }).length;
-    tr.forEach(function (t) { if (sameDay(t.close, now)) td += t.pnl; if (t.close.getFullYear() === now.getFullYear() && t.close.getMonth() === now.getMonth()) mon += t.pnl; });
-    var bal = a ? (a.equity != null ? a.equity : a.balance) : null;
-    h += '<div class="card ' + (a ? 'click ' : '') + 'hero"' + (a ? ' data-a="acc" data-k="' + enc(a.id) + '"' : '') + '><div class="sub">' + esc(mo.name) + ' · canal ' + esc(mo.ch) + '</div><div class="row" style="align-items:center"><div class="big g">' + (bal != null ? '$ ' + fmt(bal) : '—') + '</div>' + chip('● ' + nr + ' receptor' + (nr === 1 ? '' : 'es'), 'g') + '</div>' +
-      (a ? '<div class="grid3"><div class="m"><div class="lbl">P/L hoy</div><div class="v ' + cl(td) + '">' + sgn(td) + '</div></div><div class="m"><div class="lbl">P/L mes</div><div class="v ' + cl(mon) + '">' + sgn(mon) + '</div></div><div class="m"><div class="lbl">Copias hoy</div><div class="v">' + c.ops.filter(function (o) { return o.ch === mo.ch && sameDay(o.tOpen || new Date(0), now); }).length + '</div></div></div>' : '<div class="cdet" style="margin-top:8px">Cuenta ' + esc(mo.login) + ': su CSV todavía no está en la app.</div>') + '</div>';
-  });
-  h += '<div class="sec">Receptores</div>';
-  if (!rs.length) h += '<div class="note">Todavía no hay receptores en la carpeta.</div>';
-  rs.forEach(function (r) {
-    var acc = allAccs().filter(function (a) { return String(a.number) === String(r.login); })[0];
-    var ops = c.ops.filter(function (o) { return o.ch === r.ch && o.login === r.login; });
-    var last = null; ops.forEach(function (o) { var t = o.tClose || o.tOpen; if (t && (!last || t > last)) last = t; });
-    var open = ops.filter(function (o) { return !o.tClose; }).length;
-    var evs = c.ev.filter(function (e) { return e.ch === r.ch && e.who === r.login; });
-    var crit = evs.filter(function (e) { return e.sev === 'E'; }).length, warn = evs.filter(function (e) { return e.sev === 'W' && /^(SYM_|SMALL_|ERR_|GIVEUP_)/.test(e.key); }).length;
-    var down = evs.filter(function (e) { return /^(DOWN_|UP_)/.test(e.key); }).sort(function (a, b) { return a.t2 - b.t2; });
-    var isDown = false;
-    c.ev.filter(function (e) { return e.ch === r.ch && e.who === 'master' && e.key.indexOf('_' + r.login + '_') > 0 && /^(DOWN_|UP_)/.test(e.key); }).sort(function (a, b) { return a.t2 - b.t2; }).forEach(function (e) { isDown = /^DOWN_/.test(e.key); });
-    var today = 0; ops.forEach(function (o) { if (o.tClose && sameDay(o.tClose, now) && o.pf != null) today += o.pf; });
-    var cls = isDown ? 'cdown' : crit ? 'ccrit' : warn ? 'cwarn' : '';
-    var bal = acc ? (acc.equity != null ? acc.equity : acc.balance) : null;
-    h += '<div class="card ' + cls + '"><div class="row" style="align-items:center"><div style="min-width:0"><div class="nm">' + esc(r.name) + '</div><div class="lbl" style="margin-top:3px;letter-spacing:.1em;' + (isDown ? 'color:var(--red)' : '') + '">' +
-      (isDown ? 'Sin latido' : (last ? 'Última copia ' + copAgo(last) : 'Sin copias aún')) + ' · canal ' + esc(r.ch) + '</div></div>' +
-      '<div style="text-align:right"><div class="big" style="font-size:20px">' + (bal != null ? '$ ' + fmt(bal) : '<span class="d" style="font-size:13px">' + esc(r.login) + '</span>') + '</div><div class="mono ' + cl(today) + '" style="font-size:11px">hoy ' + sgn(today) + '</div></div></div>' +
-      '<div class="chips">' + chip('Abiertas ' + open) + chip('Copias ' + ops.length) + (crit ? chip('⚠ ' + crit + ' crítico' + (crit > 1 ? 's' : ''), 'r') : '') + (warn ? chip(warn + ' aviso' + (warn > 1 ? 's' : ''), 'a') : '') + '</div></div>';
-  });
+function copCard(k, v, c, s) { return '<div class="card" style="margin:0"><div class="sub">' + k + '</div><div class="big ' + (c || '') + '" style="font-size:22px">' + v + '</div>' + (s ? '<div class="cdet" style="margin-top:3px">' + s + '</div>' : '') + '</div>'; }
+function copRow(o, detail) {
+  var sid = copSid(o), cs = copCost(o), flag = (o.delay != null && o.delay >= 500), open = S.copOpen === (o.ch + '|' + o.login + '|' + o.m);
+  var sub = esc(o.name || o.login) + (o.delay != null ? ' · ' + o.delay + ' ms' : '') + (o.riskM ? ' · riesgo ' + Math.round(o.riskM) + '/' + Math.round(o.riskR) : '') + (o.tClose ? '' : ' · abierta');
+  var right = o.tClose ? '<span class="' + cl(o.pf) + '">' + sgn(o.pf, 0) + '</span>' + (cs != null ? '<br><span class="d">coste ' + sgn(cs, 0) + '</span>' : '') : '<span class="a">abierta</span>';
+  var h = '<div class="ctr' + (flag ? ' can' : '') + '"' + (detail ? ' data-a="copOpen" data-k="' + enc(o.ch + '|' + o.login + '|' + o.m) + '" style="cursor:pointer"' : '') + '><div class="l"><b>' + copOpTitle(o) + '</b><span class="d">' + sub + '</span></div><div class="r2">' + right + '</div></div>';
+  if (sid) h += copBtns(sid);
+  if (detail && open) {
+    var a = copAdv(o), m = copMother(o), row = function (k, v) { return '<div class="ctr" style="padding:3px 0;border:0"><div class="l d">' + k + '</div><div class="r2">' + v + '</div></div>'; };
+    h += '<div class="card" style="margin:8px 0;border-color:rgba(24,180,255,.4)"><div class="sub">Madre</div>' + row('Ticket', '#' + esc(o.m)) + row('Apertura', o.tOpen ? copDm(o.tOpen) + ' ' + copHm(o.tOpen) : '—') + row('Precio', o.pM ? fmt(o.pM, 2) : '—') + row('Lotes', o.lotsM ? fmt(o.lotsM, 2) : (m ? fmt(m.t.lots, 2) : '—')) + row('Riesgo', o.riskM ? '$' + fmt(o.riskM) : '—') + row('P&L neto', m ? sgn(m.t.pnl, 2) : 'sin CSV de la madre') +
+      '<div class="sub" style="margin-top:8px">Copia · ' + esc(o.name || o.login) + '</div>' + row('Ticket', '#' + esc(o.r)) + row('Precio', o.pR ? fmt(o.pR, 2) : '—') + row('Lotes', fmt(o.lotsR, 2)) + row('Riesgo', o.riskR ? '$' + fmt(o.riskR) : '—') + row('P&L', o.pf != null ? sgn(o.pf, 2) : 'abierta') +
+      '<div class="sub" style="margin-top:8px">Diferencia</div>' + row('Retraso', o.delay != null ? o.delay + ' ms' : '—') + row('Slippage', a == null ? '—' : (a > 0 ? '+' : '') + fmt(a, 2) + ' pts' + (a > 0 ? ' (en contra)' : a < 0 ? ' (a favor)' : '')) + row('Coste vs madre', cs != null ? sgn(cs, 2) : '—') + (o.reason ? row('Cierre', esc(o.reason)) : '') + '</div>';
+  }
   return h;
 }
-function vCopSeg() {
-  var c = D.cop, h = copRangeBar();
-  var ops = c.ops.filter(function (o) { return copSel(o) && copRangeOk(o.tClose || o.tOpen); });
-  var closed = ops.filter(function (o) { return o.tClose; });
-  var sM = 0, sR = 0, nM = 0, rm = 0, rr = 0, pts = [], cm = 0, cr = 0;
-  closed.forEach(function (o) {
-    var m = copMother(o.m);
-    if (m) { sM += m.t.pnl; sR += o.pf; nM++; cm += m.t.pnl; cr += o.pf; pts.push([o.tClose, cm, cr]); }
-    rm += o.riskM; rr += o.riskR;
+function vCopRes() {
+  var c = D.cop, h = copFilters(false), L = copOps(), dl = L.map(function (o) { return o.delay; }).filter(function (v) { return v != null && v > 0; }), cs = L.map(copCost).filter(function (v) { return v != null; });
+  var rk = L.filter(function (o) { return o.riskM > 0; }), same = rk.length ? rk.filter(copSame).length / rk.length * 100 : null, open = L.filter(function (o) { return !o.tClose; }).length;
+  var avs = c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && e.sev !== 'I' && copEvOpen(e); }), cost = cs.length ? cs.reduce(function (s, v) { return s + v; }, 0) : null, ad = copAvg(dl);
+  h += '<div class="grid2">' + copCard('Copias · periodo', L.length, '', open + ' abiertas ahora') + copCard('Retraso medio', dl.length ? Math.round(ad) + ' ms' : '—', dl.length && ad < 300 ? 'g' : '', dl.length ? 'máx ' + Math.round(Math.max.apply(null, dl)) + ' ms' : '') +
+    copCard('Riesgo igual', same == null ? '—' : fmt(same, 1) + '%', same == null ? '' : same >= 95 ? 'g' : 'r', rk.length ? (rk.length - rk.filter(copSame).length) + ' con desvío' : '') + copCard('Avisos sin ver', avs.length, avs.length ? 'r' : 'g', avs.filter(function (e) { return e.sev === 'E'; }).length + ' críticos') + '</div>';
+  h += '<div style="height:8px"></div>' + copCard('Coste de copiar', cost == null ? '—' : sgn(cost, 0), cost == null ? '' : cl(cost), cost == null ? 'falta el CSV de la cuenta madre en Cuentas VPS' : 'frente a la madre · ' + cs.length + ' operaciones');
+  var now = new Date();
+  (S.copCh ? [S.copCh] : copChannels()).forEach(function (ch) {
+    var mo = (c.mothers || {})[ch], ma = copMotherAcc(ch), rs2 = copRecvs().filter(function (r) { return r.ch === ch; }), lastOp = null;
+    c.ops.forEach(function (o) { if (o.ch === ch) { var t = o.tClose || o.tOpen; if (t && (!lastOp || t > lastOp)) lastOp = t; } });
+    var bal = ma ? (ma.equity != null ? ma.equity : ma.balance) : null;
+    h += '<div class="sec">Canal ' + esc(ch) + ' · madre → receptores</div><div class="card ' + (ma ? 'click ' : '') + 'hero"' + (ma ? ' data-a="acc" data-k="' + enc(ma.id) + '"' : '') + '><div class="sub">' + esc(mo ? mo.name : 'Madre') + (mo ? ' · cuenta ' + esc(mo.login) : '') + '</div><div class="row" style="align-items:center"><div class="big g">' + (bal != null ? '$ ' + fmt(bal) : '—') + '</div>' + chip('● ' + rs2.length + ' receptor' + (rs2.length === 1 ? '' : 'es'), 'g') + '</div><div class="cdet" style="margin-top:6px">' + (lastOp ? 'Última copia ' + copAgo(lastOp) : 'Sin copias todavía') + '</div></div>';
+    if (!rs2.length) h += '<div class="note">Todavía no hay receptores en este canal.</div>';
+    rs2.forEach(function (r) {
+      var st = copRxStatus(r), mine = c.ops.filter(function (o) { return o.ch === r.ch && o.login === r.login; }), lo = mine.filter(function (o) { return copRangeOk(o.tClose || o.tOpen); });
+      var d2 = lo.map(function (o) { return o.delay; }).filter(function (v) { return v > 0; }), op = mine.filter(function (o) { return !o.tClose; }).length, rr = lo.filter(function (o) { return o.riskM > 0; });
+      var acc = allAccs().filter(function (a) { return String(a.number) === String(r.login); })[0], today = 0; mine.forEach(function (o) { if (o.tClose && sameDay(o.tClose, now) && o.pf != null) today += o.pf; });
+      var b2 = acc ? (acc.equity != null ? acc.equity : acc.balance) : null;
+      h += '<div class="card ' + (st[0] === 'er' ? 'cdown' : st[0] === 'wa' ? 'cwarn' : '') + '"><div class="row" style="align-items:center"><div style="min-width:0"><div class="nm">' + esc(r.name) + '</div><div class="lbl" style="margin-top:3px;' + (st[0] === 'er' ? 'color:var(--red)' : st[0] === 'wa' ? 'color:var(--gold)' : '') + '">' + st[1] + '</div></div><div style="text-align:right"><div class="big" style="font-size:20px">' + (b2 != null ? '$ ' + fmt(b2) : '<span class="d" style="font-size:13px">' + esc(r.login) + '</span>') + '</div><div class="mono ' + cl(today) + '" style="font-size:11px">hoy ' + sgn(today, 0) + '</div></div></div><div class="chips">' + chip(op + ' abiertas') + chip(lo.length + ' copias') + chip('retraso ' + (d2.length ? Math.round(copAvg(d2)) + ' ms' : '—')) + chip('riesgo igual ' + (rr.length ? Math.round(rr.filter(copSame).length / rr.length * 100) + '%' : '—')) + '</div></div>';
+    });
   });
-  var n = closed.length, diff = sR - sM;
-  var W = 300, H = 110, svg = '';
-  if (pts.length >= 2) {
-    var all = []; pts.forEach(function (p) { all.push(p[1], p[2]); }); all.push(0);
-    var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all), rg = (mx - mn) || 1;
-    var X = function (i) { return (i / (pts.length - 1) * W).toFixed(1); }, Y = function (v) { return (H - 6 - (v - mn) / rg * (H - 12)).toFixed(1); };
-    var l1 = pts.map(function (p, i) { return X(i) + ',' + Y(p[1]); }).join(' '), l2 = pts.map(function (p, i) { return X(i) + ',' + Y(p[2]); }).join(' ');
-    svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;margin-top:10px"><polygon points="0,' + H + ' ' + l1 + ' ' + W + ',' + H + '" fill="rgba(46,230,160,.10)"/><polyline points="' + l1 + '" fill="none" stroke="#2ee6a0" stroke-width="2"/><polyline points="' + l2 + '" fill="none" stroke="#18b4ff" stroke-width="2" stroke-dasharray="5 3"/></svg>';
-  } else svg = '<div class="d" style="font-size:12px;padding:18px 0;text-align:center">Aún no hay suficientes copias cerradas con su operación en el CSV de la madre.</div>';
-  h += '<div class="card"><div class="row" style="align-items:flex-start"><div class="lbl">Resultado acumulado</div><div style="text-align:right">' + chip('— Madre ' + sgn(sM), 'g') + '<div style="height:5px"></div>' + chip('-- Receptor ' + sgn(sR), 'b') + '</div></div>' + svg +
-    '<div class="grid3"><div class="m"><div class="lbl">Diferencia</div><div class="v ' + (Math.abs(diff) < 0.5 ? '' : cl(diff)) + '">' + sgn(diff) + '</div></div><div class="m"><div class="lbl">Copiadas</div><div class="v g">' + n + '</div></div><div class="m"><div class="lbl">Riesgo medio</div><div class="v">' + (n ? Math.round(rm / n) + ' / ' + Math.round(rr / n) : '—') + '</div></div></div></div>';
-  h += '<div class="sec">Operación por operación</div>';
-  var list = ops.slice().sort(function (a, b) { return (b.tClose || b.tOpen) - (a.tClose || a.tOpen); }).slice(0, 40);
-  if (!list.length) h += '<div class="note">No hay operaciones en este periodo.</div>';
-  else h += '<div class="card">' + list.map(function (o) {
-    var m = o.tClose ? copMother(o.m) : null, flag = (o.delay != null && o.delay >= 500), right, sub;
-    if (!o.tClose) { sub = 'abierta · riesgo ' + Math.round(o.riskM) + '/' + Math.round(o.riskR); right = '<span class="a">abierta</span>'; }
-    else if (!m) { sub = 'receptor ' + sgn(o.pf) + ' · riesgo ' + Math.round(o.riskM) + '/' + Math.round(o.riskR) + ' · madre aún no está en su CSV'; right = '<span class="' + cl(o.pf) + '">' + sgn(o.pf) + '</span>'; }
-    else { var d = o.pf - m.t.pnl; if (Math.abs(d) > 10 && Math.abs(d) > Math.abs(m.t.pnl) * 0.1) flag = true; sub = 'madre ' + sgn(m.t.pnl) + ' · receptor ' + sgn(o.pf) + ' · riesgo ' + Math.round(o.riskM) + '/' + Math.round(o.riskR); right = '<span class="' + (Math.abs(d) < 0.5 ? 'd' : cl(d)) + '">' + sgn(d) + '</span>' + (o.delay != null && o.delay >= 500 ? '<br><span class="a">' + o.delay + ' ms</span>' : ''); }
-    return '<div class="ctr' + (flag ? ' can' : '') + '"><div class="l"><b>' + copOpTitle(o) + '</b><span class="d">' + sub + '</span></div><div class="r2">' + right + '</div></div>';
-  }).join('') + '</div>';
-  var mo = {};
-  c.ops.filter(copSel).forEach(function (o) {
-    if (!o.tClose) return; var k = mkey(o.tClose), x = mo[k] || (mo[k] = { n: 0, m: 0, r: 0 }), mm = copMother(o.m); x.n++; x.r += o.pf; if (mm) x.m += mm.t.pnl;
+  var tl = L.slice().sort(function (a, b) { return (b.tClose || b.tOpen) - (a.tClose || a.tOpen); }).slice(0, 8);
+  h += '<div class="sec">Últimas copias</div>' + (tl.length ? '<div class="card">' + tl.map(function (o) { return copRow(o, false); }).join('') + '</div>' : '<div class="note">Sin copias en este periodo.</div>');
+  return h;
+}
+function vCopCos() {
+  var c = D.cop, h = copFilters(true), L = copOps(), rs = copRecvs().filter(function (r) { return !S.copAcc || r.key === S.copAcc; });
+  if (!L.some(function (o) { return copCost(o) != null; })) {
+    var ms = Object.keys(c.mothers || {}).map(function (k) { return c.mothers[k].login; }).join(', ');
+    return h + '<div class="note">Para calcular el coste de copiar hace falta el CSV de la cuenta madre en la carpeta de <b>Cuentas VPS</b> (el EA_Trades_… cuyo número de cuenta coincide con el de la madre' + (ms ? ': <b>' + esc(ms) + '</b>' : '') + ').</div>';
+  }
+  var rows = rs.map(function (r) {
+    var m = L.filter(function (o) { return o.ch === r.ch && o.login === r.login; }), cs = m.map(copCost).filter(function (v) { return v != null; }), ad = m.map(copAdv).filter(function (v) { return v != null; }), dl = m.map(function (o) { return o.delay; }).filter(function (v) { return v > 0; });
+    var pc = m.filter(function (o) { return copMNet(o) != null; }), pm = 0, pr = 0; pc.forEach(function (o) { pm += copMNet(o); pr += o.pf; });
+    var rk = m.filter(function (o) { return o.riskM > 0; });
+    return { r: r, n: m.length, ad: copAvg(ad), dl: copAvg(dl), cost: cs.reduce(function (s, v) { return s + v; }, 0), pm: pm, pr: pr, nc: cs.length, risk: rk.length ? rk.filter(copSame).length / rk.length * 100 : null };
   });
-  var MN = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  var ks = Object.keys(mo).sort().reverse();
-  if (ks.length) h += '<div class="sec">Por mes</div><div class="card">' + ks.map(function (k) { var x = mo[k], p = k.split('-'); return '<div class="ctr"><div class="l"><b>' + MN[+p[1] - 1] + ' ' + p[0] + '</b><span class="d">' + x.n + ' copiadas</span></div><div class="r2">madre <span class="' + cl(x.m) + '">' + sgn(x.m) + '</span><br>receptor <span class="' + cl(x.r) + '">' + sgn(x.r) + '</span></div></div>'; }).join('') + '</div>';
+  var tot = rows.reduce(function (s, x) { return s + x.cost; }, 0), withC = rows.filter(function (x) { return x.nc; }), best = withC.slice().sort(function (a, b) { return b.cost - a.cost; })[0], worst = withC.slice().sort(function (a, b) { return a.cost - b.cost; })[0], adAll = copAvg(L.map(copAdv).filter(function (v) { return v != null; }));
+  h += '<div class="grid2">' + copCard('Coste total de copiar', sgn(tot, 0), cl(tot), 'periodo · ' + rows.length + ' receptores') + copCard('Slippage medio', adAll == null ? '—' : (adAll > 0 ? '+' : '') + fmt(adAll, 2) + ' pts', adAll > 0 ? 'r' : 'g', 'copia − madre (+ en contra)') +
+    copCard('Mejor receptor', best ? esc(best.r.name) : '—', 'g', best ? sgn(best.cost, 0) + ' vs madre' : '') + copCard('Peor receptor', worst ? esc(worst.r.name) : '—', 'r', worst ? sgn(worst.cost, 0) + ' vs madre' : '') + '</div>';
+  var cd = function (o) { return o.tClose; };
+  if (S.copAcc) {
+    var m = L.filter(function (o) { return copMNet(o) != null && o.tClose; }).sort(function (a, b) { return a.tClose - b.tClose; }), a = 0, b = 0;
+    h += '<div class="card" style="margin-top:12px"><div class="row" style="align-items:flex-start"><div class="lbl">Equity: madre (mismo riesgo) vs copia</div><div style="text-align:right">' + chip('— Madre', 'g') + '<div style="height:4px"></div>' + chip('-- Copia', 'b') + '</div></div>' + copLine([m.map(function (o) { return [cd(o), (a += copMNet(o))]; }), m.map(function (o) { return [cd(o), (b += o.pf)]; })], ['#e8eef7', '#18b4ff']) + '</div>';
+  } else {
+    var ser = rows.map(function (x) { var cc = 0; return L.filter(function (o) { return o.ch === x.r.ch && o.login === x.r.login && copCost(o) != null && o.tClose; }).sort(function (p, q) { return p.tClose - q.tClose; }).map(function (o) { return [o.tClose, (cc += copCost(o))]; }); });
+    h += '<div class="card" style="margin-top:12px"><div class="lbl">Coste de copiar acumulado ($) por receptor</div>' + copLine(ser, COP_COLS) + '<div class="chips" style="margin-top:8px">' + rows.map(function (x, i) { return '<span class="chip" style="border-color:' + COP_COLS[i % COP_COLS.length] + '">' + esc(x.r.name) + '</span>'; }).join('') + '</div></div>';
+  }
+  h += '<div class="sec">Por receptor</div><div class="card">' + rows.map(function (x) { return '<div class="ctr"><div class="l"><b>' + esc(x.r.name) + '</b><span class="d">' + x.n + ' copias · retraso ' + (x.dl == null ? '—' : Math.round(x.dl) + ' ms') + ' · riesgo igual ' + (x.risk == null ? '—' : Math.round(x.risk) + '%') + (x.ad == null ? '' : ' · desliz. ' + (x.ad > 0 ? '+' : '') + fmt(x.ad, 2)) + '<br>madre ' + sgn(x.pm, 0) + ' · copia ' + sgn(x.pr, 0) + '</span></div><div class="r2 ' + cl(x.cost) + '"><b>' + sgn(x.cost, 0) + '</b></div></div>'; }).join('') + '</div>' +
+    '<div class="cdet" style="margin-top:8px">Coste = P&amp;L de la copia − P&amp;L de la madre escalado al mismo riesgo en dólares que la copia (incluye slippage, retraso y comisiones).</div>';
   return h;
 }
 function vCopCal() {
-  var c = D.cop, h = copRangeBar();
-  var ops = c.ops.filter(function (o) { return copSel(o) && copRangeOk(o.tOpen || o.tClose); });
-  var wd = ops.filter(function (o) { return o.delay != null; });
-  var avgD = wd.length ? wd.reduce(function (s, o) { return s + o.delay; }, 0) / wd.length : null;
-  var sl = ops.filter(function (o) { return o.pM && o.pR; }).map(function (o) { return (o.type === 'BUY' ? o.pR - o.pM : o.pM - o.pR); });
-  var avgS = sl.length ? sl.reduce(function (a, b) { return a + b; }, 0) / sl.length : null;
-  var closed = ops.filter(function (o) { return o.tClose; }), sM = 0, sR = 0;
-  closed.forEach(function (o) { var m = copMother(o.m); if (m) { sM += m.t.pnl; sR += o.pf; } });
-  var pc = Math.abs(sM) > 0.5 ? (sR - sM) / Math.abs(sM) * 100 : null;
-  h += '<div class="sec">Resumen</div><div class="grid2">' +
-    '<div class="card" style="margin:0"><div class="sub">Retraso medio</div><div class="big b">' + (avgD != null ? Math.round(avgD) + ' ms' : '—') + '</div></div>' +
-    '<div class="card" style="margin:0"><div class="sub">Copias</div><div class="big g">' + ops.length + '</div></div>' +
-    '<div class="card" style="margin:0"><div class="sub">Deslizamiento medio</div><div class="big">' + (avgS != null ? (avgS < 0 ? '' : '+') + avgS.toFixed(2).replace('.', ',') : '—') + '</div></div>' +
-    '<div class="card" style="margin:0"><div class="sub">Receptor vs madre</div><div class="big ' + (pc == null ? '' : Math.abs(pc) < 2 ? 'g' : 'a') + '">' + (pc != null ? (pc > 0 ? '+' : '') + pc.toFixed(1).replace('.', ',') + '%' : '—') + '</div></div></div>';
+  var c = D.cop, h = copFilters(true), L = copOps(), dl = L.map(function (o) { return o.delay; }).filter(function (v) { return v != null && v > 0; });
+  var B = [50, 75, 100, 125, 150, 200, 300, 500], labs = ['<50'].concat(B.slice(1).map(function (v) { return '<' + v; }), ['500+']), cnt = []; for (var i = 0; i <= B.length; i++) cnt.push(0);
+  dl.forEach(function (v) { var k = -1; for (var j = 0; j < B.length; j++) if (v < B[j]) { k = j; break; } if (k < 0) k = B.length; cnt[k]++; });
+  h += '<div class="card"><div class="lbl">Distribución del retraso (ms)</div>' + (dl.length ? copBars(cnt, labs, '#18b4ff') : '<div class="d" style="font-size:12px;padding:16px 0;text-align:center">Sin datos de retraso</div>') + '</div>';
+  var g = {}; L.forEach(function (o) { var k = copSid(o); if (!k) return; var x = g[k] = g[k] || { id: k, n: 0, dl: [], ad: [], c: 0, nc: 0 }; x.n++; if (o.delay > 0) x.dl.push(o.delay); var a = copAdv(o); if (a != null) x.ad.push(a); var cc = copCost(o); if (cc != null) { x.c += cc; x.nc++; } });
+  var rk = Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return (copAvg(b.dl) || 0) - (copAvg(a.dl) || 0); }).slice(0, 8);
+  h += '<div class="sec">EAs con más retraso</div>' + (rk.length ? '<div class="card">' + rk.map(function (x) { return '<div class="ctr"><div class="l"><b>' + esc(x.id.replace(/_/g, '.')) + '</b><span class="d">' + x.n + ' copias · retraso ' + (x.dl.length ? Math.round(copAvg(x.dl)) + ' ms' : '—') + (x.ad.length ? ' · desliz. ' + fmt(copAvg(x.ad), 2) : '') + '</span>' + copBtns(x.id) + '</div><div class="r2 ' + (x.nc ? cl(x.c) : 'd') + '">' + (x.nc ? sgn(x.c, 0) : '—') + '</div></div>'; }).join('') + '</div>' : '<div class="note">Sin datos.</div>');
   var rs = copRecvs();
   h += '<div class="sec">Por receptor</div><div class="card">' + (rs.length ? rs.map(function (r) {
-    var x = ops.filter(function (o) { return o.ch === r.ch && o.login === r.login; }), w = x.filter(function (o) { return o.delay != null; });
-    var d = w.length ? Math.round(w.reduce(function (s, o) { return s + o.delay; }, 0) / w.length) : null;
-    return '<div class="ctr"><div class="l"><b>' + esc(r.name) + '</b><span class="d">retraso ' + (d != null ? d + ' ms' : '—') + ' · canal ' + esc(r.ch) + '</span></div><div class="r2 g">' + x.length + ' copias</div></div>';
+    var m = L.filter(function (o) { return o.ch === r.ch && o.login === r.login; }), d = m.map(function (o) { return o.delay; }).filter(function (v) { return v > 0; }).sort(function (a, b) { return a - b; }), rr = m.filter(function (o) { return o.riskM > 0; });
+    return '<div class="ctr"><div class="l"><b>' + esc(r.name) + '</b><span class="d">' + m.length + ' copias · media ' + (d.length ? Math.round(copAvg(d)) + ' ms' : '—') + ' · p95 ' + (d.length ? Math.round(d[Math.floor(d.length * 0.95)]) + ' ms' : '—') + ' · máx ' + (d.length ? Math.round(d[d.length - 1]) + ' ms' : '—') + '</span></div><div class="r2 ' + (rr.length && rr.filter(copSame).length / rr.length >= 0.95 ? 'g' : 'a') + '">' + (rr.length ? Math.round(rr.filter(copSame).length / rr.length * 100) + '%' : '—') + '<br><span class="d">riesgo igual</span></div></div>';
   }).join('') : '<div class="d" style="padding:6px 0">Sin receptores.</div>') + '</div>';
-  var last = ops.slice().sort(function (a, b) { return (b.tOpen || b.tClose) - (a.tOpen || a.tClose); }).slice(0, 8);
-  if (last.length) h += '<div class="sec">Últimas copias</div><div class="card">' + last.map(function (o) {
-    var slip = (o.pM && o.pR) ? (o.type === 'BUY' ? o.pR - o.pM : o.pM - o.pR) : null, flag = o.delay != null && o.delay >= 500;
-    return '<div class="ctr' + (flag ? ' can' : '') + '"><div class="l"><b>' + copOpTitle(o) + '</b><span class="d">' + esc(o.name) + (slip != null ? ' · desliz. ' + (slip > 0 ? '+' : '') + slip.toFixed(2).replace('.', ',') : '') + '</span></div><div class="r2 ' + (flag ? 'a' : 'd') + '">' + (o.delay != null ? o.delay + ' ms' : '—') + '</div></div>';
-  }).join('') + '</div>';
+  var cut = {}; c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && e.who === 'master' && (/^(STALE|LAG)/.test(e.key) || /sin señal|Emisor ocupado/i.test(e.txt || '')); }).forEach(function (e) { var k = mkey(e.t2) + '-' + pad(e.t2.getDate()); cut[k] = (cut[k] || 0) + (e.cnt || 1); });
+  var days = [], dl2 = []; for (var q = 13; q >= 0; q--) { var d = new Date(Date.now() - q * 864e5), k = mkey(d) + '-' + pad(d.getDate()); days.push(cut[k] || 0); dl2.push(pad(d.getDate())); }
+  h += '<div class="card" style="margin-top:12px"><div class="lbl">Cortes de la madre por día · 14 días</div>' + copBars(days, dl2, '#ffb02e') + '<div class="cdet">«Madre sin señal» + «Emisor ocupado»: cuándo se queda parada la MT4 madre.</div></div>';
+  return h;
+}
+function vCopSeg() {
+  var h = copFilters(true), st = S.copSt || '', L = copOps().slice().sort(function (a, b) { return (b.tClose || b.tOpen) - (a.tClose || a.tOpen); });
+  if (st) L = L.filter(function (o) { return st === 'ABIERTA' ? !o.tClose : o.reason === st; });
+  var chips = [['', 'Todos'], ['ABIERTA', 'Abiertas'], ['MADRE', 'Cierre madre'], ['SL', 'SL'], ['TP', 'TP'], ['STOPOUT', 'Stop out'], ['MANUAL', 'Manual']];
+  h += '<div class="fil">' + chips.map(function (x) { return '<button class="' + (st === x[0] ? 'on' : '') + '" data-a="copSt" data-k="' + enc(x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+  var n = S.copMore || 40, show = L.slice(0, n);
+  h += '<div class="sec">Operación a operación · ' + L.length + ' copias</div>' + (show.length ? '<div class="card">' + show.map(function (o) { return copRow(o, true); }).join('') + '</div>' : '<div class="note">No hay copias en este periodo.</div>');
+  if (L.length > n) h += '<button class="btn sec2" data-a="copMore">Ver más (' + (L.length - n) + ')</button>';
+  h += '<div class="cdet" style="margin:8px 2px">Pulsa una fila para ver madre, copia y diferencia.</div>';
   return h;
 }
 function vCopAv() {
-  var c = D.cop, f = S.copF || 'todos', h = '';
-  var chs = {}; c.ev.forEach(function (e) { chs[e.ch] = 1; });
-  var chips = [['todos', 'Todos'], ['crit', 'Críticos'], ['av', 'Avisos']].concat(Object.keys(chs).sort().map(function (k) { return ['ch:' + k, 'Madre ' + k]; }));
-  h += '<div class="fil">' + chips.map(function (x) { return '<button class="' + (f === x[0] ? 'on' : '') + '" data-a="copF" data-k="' + enc(x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
-  var evs = c.ev.filter(function (e) {
-    if (f === 'crit') return e.sev === 'E'; if (f === 'av') return e.sev === 'W' || e.sev === 'E'; if (f.indexOf('ch:') === 0) return e.ch === f.slice(3); return true;
-  }).sort(function (a, b) { return b.t2 - a.t2; });
+  var c = D.cop, sv = S.copSev || '', h = copFilters(true), n = new Date();
+  var evs = c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && (!sv || e.sev === sv); });
+  if (S.copAcc) { var lg = S.copAcc.split('|')[1]; evs = evs.filter(function (e) { return e.who === lg || e.key.indexOf('_' + lg + '_') > 0 || e.key.slice(-('_' + lg).length) === '_' + lg; }); }
+  var nOld = evs.filter(function (e) { return !copEvOpen(e) && n - e.t2 > 864e5; }).length;
+  if (!S.copOld) evs = evs.filter(function (e) { return copEvOpen(e) || n - e.t2 <= 864e5; });
+  evs.sort(function (a, b) { return b.t2 - a.t2; });
+  h += '<div class="fil">' + [['', 'Todas'], ['E', 'Críticos'], ['W', 'Avisos'], ['I', 'Info']].map(function (x) { return '<button class="' + (sv === x[0] ? 'on' : '') + '" data-a="copSev" data-k="' + enc(x[0]) + '">' + x[1] + '</button>'; }).join('') + (nOld || S.copOld ? '<button class="' + (S.copOld ? 'on' : '') + '" data-a="copOld">' + (S.copOld ? 'Ocultar vistos antiguos' : 'Mostrar ' + nOld + ' vistos antiguos') + '</button>' : '') + '</div>';
   var row = function (e) {
-    return '<div class="ctr" style="align-items:stretch"><span class="csev" style="background:' + copEvColor(e) + '"></span><div class="l"><b>' + copEvTitle(e) + (e.cnt > 1 ? '<span class="ccnt">×' + e.cnt + '</span>' : '') + (e.tg ? '<span class="ccnt">Telegram ✓</span>' : '') + '</b><span class="cdet">' + esc(String(e.txt).replace(/^(Copia sin cerrar|Resuelto): ?/, '')) + '<br>' + esc(copWho(e)) + '</span></div><div class="r2 d">' + copHm(e.t2) + '<br>' + copAgo(e.t2) + '</div></div>';
+    var vis = !copEvOpen(e);
+    return '<div class="ctr" style="align-items:stretch;' + (vis ? 'opacity:.55' : '') + '"><span class="csev" style="background:' + copEvColor(e) + '"></span><div class="l"><b>' + copEvTitle(e) + (e.cnt > 1 ? '<span class="ccnt">×' + e.cnt + '</span>' : '') + (e.tg ? '<span class="ccnt">Telegram ✓</span>' : '') + '</b><span class="cdet">' + esc(String(e.txt).replace(/^(Copia sin cerrar|Resuelto): ?/, '')) + '<br>' + esc(copWho(e)) + '</span></div><div class="r2 d">' + copHm(e.t2) + '<br>' + copAgo(e.t2) + (vis ? '' : '<br><span class="a" data-a="copSee" data-k="' + enc(copEvKey(e)) + '" style="cursor:pointer">✔ visto</span>') + '</div></div>';
   };
-  var att = evs.filter(function (e) { return e.sev === 'E'; }), rest = evs.filter(function (e) { return e.sev !== 'E'; });
-  if (att.length) h += '<div class="sec">Requiere atención</div><div class="card ccrit">' + att.map(row).join('') + '</div>';
   if (!evs.length) return h + '<div class="empty"><div class="ic">✅</div><div class="et">Sin avisos</div><div class="es">Todo está copiando bien.</div></div>';
-  var now = new Date(), groups = {}, order = [];
-  rest.forEach(function (e) { var k = sameDay(e.t2, now) ? 'Hoy' : (now - e.t2 < 2 * 864e5 && sameDay(e.t2, new Date(now - 864e5))) ? 'Ayer' : copDm(e.t2) + ' ' + e.t2.getFullYear(); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(e); });
-  order.forEach(function (k) { h += '<div class="sec">' + k + '</div><div class="card">' + groups[k].map(row).join('') + '</div>'; });
+  var att = evs.filter(function (e) { return e.sev === 'E' && copEvOpen(e); }), rest = evs.filter(function (e) { return !(e.sev === 'E' && copEvOpen(e)); });
+  if (att.length) h += '<div class="sec">Requiere atención</div><div class="card ccrit">' + att.map(row).join('') + '</div>';
+  var groups = {}, order = [];
+  rest.forEach(function (e) { var k = sameDay(e.t2, n) ? 'Hoy' : sameDay(e.t2, new Date(n - 864e5)) ? 'Ayer' : copDm(e.t2) + ' ' + e.t2.getFullYear(); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(e); });
+  order.forEach(function (k) { h += '<div class="sec">' + k + '</div><div class="card">' + groups[k].slice(0, 60).map(row).join('') + '</div>'; });
   h += '<button class="btn sec2" data-a="copSeen">Marcar todo como visto</button>';
   return h;
 }
@@ -2354,11 +2392,17 @@ var ACT = {
   lpSave: function (k) { var i = JSON.parse(k), o = LP.res.top[i], risk = {}; o.m.forEach(function (x) { risk[x.id] = x.r; }); var p = pfCreate('Robusto ' + o.m.length + ' EAs · ' + new Date().toLocaleDateString('es-ES'), o.m.map(function (x) { return x.id; }), risk, LP.rmin, o.key === 'bt' ? 'sqx' : 'demo'); p.kind = 'robust'; pfTouch(p); toast('✅ Guardado en Robustos'); render(); },
   pfMC: function () { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid), src = p.src || 'demo', c = pfCalc(p, src); S.pfMC = S.pfMC || {}; S.pfMC[p.id + ':' + src] = mcRun(c.trades.map(function (x) { return x.pnl; }), { cap: CAP, limDD: MCD.limDD }); render(); },
   noop: function () {},
-  copTab: function (k) { S.copTab = JSON.parse(k); render(); },
-  copRange: function (k) { S.copRange = JSON.parse(k); render(); },
-  copAcc: function (k) { S.copAcc = JSON.parse(k); render(); },
-  copF: function (k) { S.copF = JSON.parse(k); render(); },
-  copSeen: function () { lsSet('tm_cop_seen', String(Date.now())); render(); toast('✅ Marcado como visto'); },
+  copTab: function (k) { S.copTab = JSON.parse(k); S.copOpen = ''; S.copMore = 0; render(); },
+  copRange: function (k) { S.copRange = JSON.parse(k); S.copMore = 0; render(); },
+  copAcc: function (k) { S.copAcc = JSON.parse(k); S.copMore = 0; render(); },
+  copCh: function (k) { S.copCh = JSON.parse(k); S.copAcc = ''; S.copMore = 0; render(); },
+  copSt: function (k) { S.copSt = JSON.parse(k); S.copMore = 0; render(); },
+  copSev: function (k) { S.copSev = JSON.parse(k); render(); },
+  copOld: function () { S.copOld = !S.copOld; render(); },
+  copMore: function () { S.copMore = (S.copMore || 40) + 40; render(); },
+  copOpen: function (k) { k = JSON.parse(k); S.copOpen = S.copOpen === k ? '' : k; render(); },
+  copSee: function (k) { copSeenSet().add(JSON.parse(k)); copSaveSeen(); render(); },
+  copSeen: function () { lsSet('tm_cop_seen', String(Date.now())); ((D.cop && D.cop.ev) || []).forEach(function (e) { copSeenSet().add(copEvKey(e)); }); copSaveSeen(); render(); toast('✅ Marcado como visto'); },
   pfSrc: function (k) { S.pfSrc = JSON.parse(k); render(); },
   pfSrcD: function (k) { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (p) { p.src = JSON.parse(k); pfLocalSave(); render(); } },
   pfNew: function () { var n = pfLive().length + 1, p = { id: 'p' + Date.now().toString(36), name: 'Portafolio ' + n, ids: [], risk: {}, base: 200, src: S.pfSrc, created: Date.now() }; PF.list.push(p); pfTouch(p); push({ t: 'pf', pid: p.id }); },
