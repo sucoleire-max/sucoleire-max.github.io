@@ -1,4 +1,9 @@
-FGX Trading Monitor v1.10.2 (app móvil)
+FGX Trading Monitor v1.10.3 (app móvil)
+
+NOVEDADES v1.10.3
+- Copiador: si el receptor no pudo leer el cierre real de una copia, la fila sale «sin datos» (antes salía $0 y un coste falso) y no cuenta en el coste de copiar.
+- Copiador: si la madre ya cerró y la copia sigue abierta, la fila sale «⚠ abierta · la madre ya cerró» y el Resumen lo cuenta.
+- Ver también receptor v1.12 (paquete fgx-copier-paso3h).
 
 NOVEDADES v1.10.2
 - «⚠ N días sin operar» ahora es de la CUENTA ENTERA: días desde su última operación; sale cuando pasa el umbral de Ajustes (rojo al triple). En Inicio: «N cuentas sin operar». Ya no cuenta EAs sueltos del historial.

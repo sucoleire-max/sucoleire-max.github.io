@@ -240,7 +240,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.10.2';
+var VERSION = '1.10.3';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -2044,6 +2044,9 @@ function copBuild(rows, ch) {
       o.delay = r.delay_ms === '' ? null : +r.delay_ms; o.riskM = +r.risk_mother || 0; o.riskR = +r.risk_recv || 0; o.tOpen = parseDate(r.time_local); o.ea = String(r.ea || '').replace(/\./g, '_');
     } else if (r.kind === 'C') {
       o.tClose = parseDate(r.time_local); o.cPx = +r.close_price || 0; o.pf = +r.profit || 0; o.reason = r.reason || '';
+      /* el receptor no pudo leer el cierre real: el resultado es un relleno, no un dato */
+      o.nodata = /sin datos/i.test(o.reason) || (/^\?/.test(o.reason) && !o.cPx);
+      if (o.nodata) { o.pf = null; o.reason = o.reason.replace(/\(sin datos\)/i, '').replace(/^\?$/, ''); }
       if (!o.tOpen) { o.sym = r.symbol; o.type = r.type; o.lotsR = +r.lots_recv || 0; o.riskM = +r.risk_mother || 0; o.riskR = +r.risk_recv || 0; }
     }
   });
@@ -2182,13 +2185,14 @@ function copCard(k, v, c, s) { return '<div class="card" style="margin:0"><div c
 function copRow(o, detail) {
   var sid = copSid(o), cs = copCost(o), flag = (o.delay != null && o.delay >= 500), open = S.copOpen === (o.ch + '|' + o.login + '|' + o.m);
   var sub = esc(o.name || o.login) + (o.delay != null ? ' · ' + o.delay + ' ms' : '') + (o.riskM ? ' · riesgo ' + Math.round(o.riskM) + '/' + Math.round(o.riskR) : '') + (o.tClose ? '' : ' · abierta');
-  var right = o.tClose ? '<span class="' + cl(o.pf) + '">' + sgn(o.pf, 0) + '</span>' + (cs != null ? '<br><span class="d">coste ' + sgn(cs, 0) + '</span>' : '') : '<span class="a">abierta</span>';
+  var stale = !o.tClose && !!copMother(o);   /* la madre ya cerró y la copia sigue abierta */
+  var right = o.tClose ? (o.nodata ? '<span class="a">sin datos</span><br><span class="d">cierre no leído</span>' : '<span class="' + cl(o.pf) + '">' + sgn(o.pf, 0) + '</span>' + (cs != null ? '<br><span class="d">coste ' + sgn(cs, 0) + '</span>' : '')) : (stale ? '<span class="r">⚠ abierta</span><br><span class="d">la madre ya cerró</span>' : '<span class="a">abierta</span>');
   var h = '<div class="ctr' + (flag ? ' can' : '') + '"' + (detail ? ' data-a="copOpen" data-k="' + enc(o.ch + '|' + o.login + '|' + o.m) + '" style="cursor:pointer"' : '') + '><div class="l"><b>' + copOpTitle(o) + '</b><span class="d">' + sub + '</span></div><div class="r2">' + right + '</div></div>';
   if (sid) h += copBtns(sid);
   if (detail && open) {
     var a = copAdv(o), m = copMother(o), row = function (k, v) { return '<div class="ctr" style="padding:3px 0;border:0"><div class="l d">' + k + '</div><div class="r2">' + v + '</div></div>'; };
     h += '<div class="card" style="margin:8px 0;border-color:rgba(24,180,255,.4)"><div class="sub">Madre</div>' + row('Ticket', '#' + esc(o.m)) + row('Apertura', o.tOpen ? copDm(o.tOpen) + ' ' + copHm(o.tOpen) : '—') + row('Precio', o.pM ? fmt(o.pM, 2) : '—') + row('Lotes', o.lotsM ? fmt(o.lotsM, 2) : (m ? fmt(m.t.lots, 2) : '—')) + row('Riesgo', o.riskM ? '$' + fmt(o.riskM) : '—') + row('P&L neto', m ? sgn(m.t.pnl, 2) : 'sin CSV de la madre') +
-      '<div class="sub" style="margin-top:8px">Copia · ' + esc(o.name || o.login) + '</div>' + row('Ticket', '#' + esc(o.r)) + row('Precio', o.pR ? fmt(o.pR, 2) : '—') + row('Lotes', fmt(o.lotsR, 2)) + row('Riesgo', o.riskR ? '$' + fmt(o.riskR) : '—') + row('P&L', o.pf != null ? sgn(o.pf, 2) : 'abierta') +
+      '<div class="sub" style="margin-top:8px">Copia · ' + esc(o.name || o.login) + '</div>' + row('Ticket', '#' + esc(o.r)) + row('Precio', o.pR ? fmt(o.pR, 2) : '—') + row('Lotes', fmt(o.lotsR, 2)) + row('Riesgo', o.riskR ? '$' + fmt(o.riskR) : '—') + row('P&L', o.pf != null ? sgn(o.pf, 2) : (o.nodata ? 'sin datos (el receptor no leyó el cierre)' : stale ? '⚠ abierta, la madre ya cerró' : 'abierta')) +
       '<div class="sub" style="margin-top:8px">Diferencia</div>' + row('Retraso', o.delay != null ? o.delay + ' ms' : '—') + row('Slippage', a == null ? '—' : (a > 0 ? '+' : '') + fmt(a, 2) + ' pts' + (a > 0 ? ' (en contra)' : a < 0 ? ' (a favor)' : '')) + row('Coste vs madre', cs != null ? sgn(cs, 2) : '—') + (o.reason ? row('Cierre', esc(o.reason)) : '') + '</div>';
   }
   return h;
@@ -2197,7 +2201,7 @@ function vCopRes() {
   var c = D.cop, h = copFilters(false), L = copOps(), dl = L.map(function (o) { return o.delay; }).filter(function (v) { return v != null && v > 0; }), cs = L.map(copCost).filter(function (v) { return v != null; });
   var rk = L.filter(function (o) { return o.riskM > 0; }), same = rk.length ? rk.filter(copSame).length / rk.length * 100 : null, open = L.filter(function (o) { return !o.tClose; }).length;
   var avs = c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && e.sev !== 'I' && copEvOpen(e); }), cost = cs.length ? cs.reduce(function (s, v) { return s + v; }, 0) : null, ad = copAvg(dl);
-  h += '<div class="grid2">' + copCard('Copias · periodo', L.length, '', open + ' abiertas ahora') + copCard('Retraso medio', dl.length ? Math.round(ad) + ' ms' : '—', dl.length && ad < 300 ? 'g' : '', dl.length ? 'máx ' + Math.round(Math.max.apply(null, dl)) + ' ms' : '') +
+  h += '<div class="grid2">' + copCard('Copias · periodo', L.length, '', open + ' abiertas ahora' + (L.filter(function (o) { return !o.tClose && copMother(o); }).length ? ' · ⚠ ' + L.filter(function (o) { return !o.tClose && copMother(o); }).length + ' con la madre cerrada' : '') + (L.filter(function (o) { return o.nodata; }).length ? ' · ' + L.filter(function (o) { return o.nodata; }).length + ' sin datos' : '')) + copCard('Retraso medio', dl.length ? Math.round(ad) + ' ms' : '—', dl.length && ad < 300 ? 'g' : '', dl.length ? 'máx ' + Math.round(Math.max.apply(null, dl)) + ' ms' : '') +
     copCard('Riesgo igual', same == null ? '—' : fmt(same, 1) + '%', same == null ? '' : same >= 95 ? 'g' : 'r', rk.length ? (rk.length - rk.filter(copSame).length) + ' con desvío' : '') + copCard('Avisos sin ver', avs.length, avs.length ? 'r' : 'g', avs.filter(function (e) { return e.sev === 'E'; }).length + ' críticos') + '</div>';
   h += '<div style="height:8px"></div>' + copCard('Coste de copiar', cost == null ? '—' : sgn(cost, 0), cost == null ? '' : cl(cost), cost == null ? 'falta el CSV de la cuenta madre en Cuentas VPS' : 'frente a la madre · ' + cs.length + ' operaciones');
   var now = new Date();
