@@ -1,4 +1,10 @@
-FGX Trading Monitor v1.10.0 (app móvil)
+FGX Trading Monitor v1.10.2 (app móvil)
+
+NOVEDADES v1.10.2
+- «⚠ N días sin operar» ahora es de la CUENTA ENTERA: días desde su última operación; sale cuando pasa el umbral de Ajustes (rojo al triple). En Inicio: «N cuentas sin operar». Ya no cuenta EAs sueltos del historial.
+
+NOVEDADES v1.10.1
+- «⚠ N sin operar» (tarjetas de cuenta e Inicio) ya solo cuenta EAs que operaban hace poco y se pararon (entre el umbral de alerta y 60 días). Antes contaba también los grupos antiguos del historial (OTOD marcaba 1605).
 
 NOVEDADES v1.10.0
 - Copiador rehecho igual que en FGX Library: Resumen · Coste · Calidad · Seguim. · Avisos, con filtros de canal, periodo y receptor.

@@ -240,7 +240,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.10.0';
+var VERSION = '1.10.2';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -365,6 +365,9 @@ function buildEAs(acc, known) {
   var m = calc(acc.trades); for (var x in m) acc[x] = m[x];
 }
 function dayPnl(trades, day) { return trades.reduce(function (s, t) { return sameDay(t.close, day) ? s + t.pnl : s; }, 0); }
+/* «sin operar» solo avisa de EAs que operaban hace poco y se pararon (no de los que llevan meses o años parados, ni de grupos sueltos del historial) */
+var ALERT_MAX = 60;
+function idleAlert(e) { var d = idle(e); return d > ALERT_DAYS && d <= ALERT_MAX; }
 function idle(e) { return e.last ? Math.floor((Date.now() - e.last) / 86400000) : 9999; }
 
 /* ---------- cuentas fondeadas sin operar: aviso naranja a los 20 días y rojo a los 25 (configurable) ---------- */
@@ -787,18 +790,18 @@ function vAccounts(src) {
     return '<h1 class="pt">' + title + '</h1>' + noteHtml() + emptyHtml('📂', 'Sin cuentas', src === 'vps' ? 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta de cuentas VPS.' : 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta Demo PC. Comprueba que el exportador y la sincronización con Drive estén activos.');
   }
   var today = new Date(), net = 0, day = 0, nEA = 0, nIdle = 0;
-  accs.forEach(function (a) { net += a.net; day += dayPnl(a.trades, today); nEA += a.eas.length; a._idle = a.eas.filter(function (e) { return idle(e) > ALERT_DAYS; }).length; nIdle += a._idle; });
+  accs.forEach(function (a) { net += a.net; day += dayPnl(a.trades, today); nEA += a.eas.length; a._idle = a.last ? Math.floor((Date.now() - a.last) / 86400000) : 0; if (a._idle > ALERT_DAYS) nIdle++; });
   var h = '<h1 class="pt">' + title + '</h1>' + noteHtml() + fondBanner(accs);
   var nToday = 0; accs.forEach(function (a) { a.trades.forEach(function (t) { if (sameDay(t.close, today)) nToday++; }); });
   h += '<div class="card hero' + (day < 0 ? ' neg' : '') + '"><div class="lbl">P&amp;L total de hoy</div><div class="big ' + cl(day) + '" style="font-size:36px;margin:5px 0 2px;text-shadow:0 0 26px ' + (day < 0 ? 'rgba(255,93,120,.4)' : 'rgba(46,230,160,.4)') + '">' + money(day, 2) + '</div>' +
     '<div class="mono" style="font-size:12px;color:var(--dim)">' + DIAS[today.getDay()] + ' ' + today.getDate() + ' ' + MES[today.getMonth()] + ' · Net total <span class="' + cl(net) + '">' + money(net) + '</span></div>' +
-    '<div class="chips">' + chip(accs.length + ' cuentas', 'g') + chip(nEA + ' EAs') + chip(nToday + ' operaciones hoy', 'b') + (nIdle ? chip('⚠ ' + nIdle + ' sin operar', 'a') : '') + '</div></div>';
+    '<div class="chips">' + chip(accs.length + ' cuentas', 'g') + chip(nEA + ' EAs') + chip(nToday + ' operaciones hoy', 'b') + (nIdle ? chip('⚠ ' + nIdle + (nIdle === 1 ? ' cuenta sin operar' : ' cuentas sin operar'), 'a') : '') + '</div></div>';
   accs.forEach(function (a) {
     var d = dayPnl(a.trades, today);
     h += '<div class="card click" data-a="acc" data-k="' + enc(a.id) + '" style="--ac:' + a.color + '"><div class="row"><div style="min-width:0"><div class="sub">' + (a.number ? 'Cuenta ' + esc(a.number) : esc(a.file)) + ' · ' + a.n + ' trades</div><div class="nm">' + esc(a.name) + '</div></div>' +
       '<div style="text-align:right"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(a.net) + '" style="font-size:21px">' + money(a.net) + '</div></div></div>' +
       '<div class="grid3">' + mBox('Balance', a.balance ? money(a.balance, 0, true) : '—') + mBox('Hoy', money(d, 0), cl(d)) + mBox('Max DD', '-$' + fmt(a.maxdd), 'r') + '</div>' +
-      '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle ? chip('⚠ ' + a._idle + ' sin operar', 'a') : '') + fondChip(a) + '</div></div>';
+      '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle > ALERT_DAYS ? chip('⚠ ' + a._idle + (a._idle === 1 ? ' día' : ' días') + ' sin operar', a._idle >= 3 * ALERT_DAYS ? 'r' : 'a') : '') + fondChip(a) + '</div></div>';
   });
   return h;
 }
