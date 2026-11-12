@@ -1,4 +1,9 @@
-FGX Trading Monitor v1.10.3 (app móvil)
+FGX Trading Monitor v1.10.5 (app móvil)
+
+NOVEDADES v1.10.5 (= v1.10.4 con los umbrales de examen en 15 y 20 días)
+- Cuentas de EXAMEN (nombre con f1, f2, examen, challenge o verificación; palabras editables en Ajustes): aviso naranja a los 15 días sin operar y rojo a los 20 (configurable), también en el banner de Inicio y en los avisos de las pestañas.
+- Todas las tarjetas de cuenta muestran «última op. hace X d» (sin alerta, en gris) mientras no pasen el umbral.
+- Portafolios guardados: el nombre se muestra completo (varias líneas) en vez de cortarse con «…».
 
 NOVEDADES v1.10.3
 - Copiador: si el receptor no pudo leer el cierre real de una copia, la fila sale «sin datos» (antes salía $0 y un coste falso) y no cuenta en el coste de copiar.

@@ -78,6 +78,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 .row{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
 .big{font-family:var(--mono);font-weight:600;font-size:26px;letter-spacing:-.02em}
 .nm{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm.wrap{white-space:normal;overflow:visible;word-break:break-word;line-height:1.25}
 .sub{font-size:10px;letter-spacing:.14em;color:var(--dimmer);text-transform:uppercase;margin-bottom:2px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -240,7 +241,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.10.3';
+var VERSION = '1.10.5';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -372,27 +373,33 @@ function idle(e) { return e.last ? Math.floor((Date.now() - e.last) / 86400000) 
 
 /* ---------- cuentas fondeadas sin operar: aviso naranja a los 20 días y rojo a los 25 (configurable) ---------- */
 var FOND_W = parseInt(ls('tm_fond_w', '')) || 20, FOND_R = parseInt(ls('tm_fond_r', '')) || 25, FOND_SKIP = ls('tm_fond_skip', '');
+var EXAM_W = parseInt(ls('tm_exam_w', '')) || 15, EXAM_R = parseInt(ls('tm_exam_r', '')) || 20, EXAM_KW = ls('tm_exam_kw', 'f1,f2,examen,challenge,verificacion');
+function examKind(nm) {   // «f1», «f2» = palabra suelta; el resto de palabras, dentro del nombre
+  var toks = nm.split(/[^a-z0-9]+/), kws = EXAM_KW.split(',').map(function (x) { return normS(x).trim(); }).filter(Boolean);
+  return kws.some(function (k) { return k.length <= 3 ? toks.indexOf(k) >= 0 : nm.indexOf(k) >= 0; });
+}
 function normS(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 function fdate(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
 function fondInfo(a) {
   if (!a || !a.trades || !a.trades.length) return null;
-  var nm = normS(a.name); if (nm.indexOf('fondead') < 0) return null;
+  var nm = normS(a.name), kind = nm.indexOf('fondead') >= 0 ? 'fund' : examKind(nm) ? 'exam' : ''; if (!kind) return null;
   var skip = FOND_SKIP.split(',').map(function (x) { return normS(x).trim(); }).filter(Boolean);
   for (var i = 0; i < skip.length; i++) if (nm.indexOf(skip[i]) >= 0) return null;
   var last = 0; a.trades.forEach(function (t) { var c = t.close ? +t.close : 0, o = t.open ? +t.open : 0; if (c > last) last = c; if (o > last) last = o; });
   if (!last) return null;
   var days = Math.max(0, Math.floor((Date.now() - last) / 86400000));
-  return { days: days, last: new Date(last), lvl: days >= FOND_R ? 2 : days >= FOND_W ? 1 : 0 };
+  var W = kind === 'exam' ? EXAM_W : FOND_W, R = kind === 'exam' ? EXAM_R : FOND_R;
+  return { days: days, last: new Date(last), kind: kind, lvl: days >= R ? 2 : days >= W ? 1 : 0 };
 }
 function fondList(accs) { var o = []; (accs || D.vps.concat(D.demo)).forEach(function (a) { var f = fondInfo(a); if (f) o.push({ a: a, f: f }); }); return o.sort(function (x, y) { return y.f.days - x.f.days; }); }
 function fondChip(a) {
   var f = fondInfo(a); if (!f) return '';
-  return chip((f.lvl === 2 ? '🔴' : f.lvl === 1 ? '🟠' : '🏦') + ' Fondeada · ' + (f.lvl ? (f.days === 1 ? '1 día' : f.days + ' días') + ' sin operar' : 'operó hace ' + f.days + ' d'), f.lvl === 2 ? 'r' : f.lvl === 1 ? 'a' : 'g');
+  return chip((f.lvl === 2 ? '🔴' : f.lvl === 1 ? '🟠' : f.kind === 'exam' ? '📝' : '🏦') + (f.kind === 'exam' ? ' Examen · ' : ' Fondeada · ') + (f.lvl ? (f.days === 1 ? '1 día' : f.days + ' días') + ' sin operar' : (f.days === 0 ? 'operó hoy' : 'operó hace ' + f.days + ' d')), f.lvl === 2 ? 'r' : f.lvl === 1 ? 'a' : 'g');
 }
 function fondBanner(accs, noGo) {
   return fondList(accs).filter(function (x) { return x.f.lvl > 0; }).map(function (x) {
     var red = x.f.lvl === 2;
-    return '<div class="card' + (noGo ? '' : ' click') + '"' + (noGo ? '' : ' data-a="acc" data-k="' + enc(x.a.id) + '"') + ' style="border-color:' + (red ? 'rgba(255,93,120,.55)' : 'rgba(255,176,46,.5)') + ';background:' + (red ? 'rgba(255,93,120,.09)' : 'rgba(255,176,46,.09)') + '"><div class="row" style="align-items:center"><div style="min-width:0"><div class="nm" style="color:' + (red ? 'var(--red)' : '#ffb02e') + '">' + (red ? '🔴 ' : '🟠 ') + esc(x.a.name) + '</div><div class="d" style="font-size:11.5px;margin-top:3px">Fondeada · ' + (x.f.days === 1 ? '1 día' : x.f.days + ' días') + ' sin operar · última operación ' + fdate(x.f.last) + '. Las empresas suelen dar de baja la cuenta a los 30 días.</div></div>' + (noGo ? '' : '<span style="font-size:20px;color:var(--dim)">›</span>') + '</div></div>';
+    return '<div class="card' + (noGo ? '' : ' click') + '"' + (noGo ? '' : ' data-a="acc" data-k="' + enc(x.a.id) + '"') + ' style="border-color:' + (red ? 'rgba(255,93,120,.55)' : 'rgba(255,176,46,.5)') + ';background:' + (red ? 'rgba(255,93,120,.09)' : 'rgba(255,176,46,.09)') + '"><div class="row" style="align-items:center"><div style="min-width:0"><div class="nm" style="color:' + (red ? 'var(--red)' : '#ffb02e') + '">' + (red ? '🔴 ' : '🟠 ') + esc(x.a.name) + '</div><div class="d" style="font-size:11.5px;margin-top:3px">' + (x.f.kind === 'exam' ? 'Examen' : 'Fondeada') + ' · ' + (x.f.days === 1 ? '1 día' : x.f.days + ' días') + ' sin operar · última operación ' + fdate(x.f.last) + (x.f.kind === 'exam' ? '. Si no operas, el examen no avanza.' : '. Las empresas suelen dar de baja la cuenta a los 30 días.') + '</div></div>' + (noGo ? '' : '<span style="font-size:20px;color:var(--dim)">›</span>') + '</div></div>';
   }).join('');
 }
 function fondBadges() {
@@ -801,7 +808,7 @@ function vAccounts(src) {
     h += '<div class="card click" data-a="acc" data-k="' + enc(a.id) + '" style="--ac:' + a.color + '"><div class="row"><div style="min-width:0"><div class="sub">' + (a.number ? 'Cuenta ' + esc(a.number) : esc(a.file)) + ' · ' + a.n + ' trades</div><div class="nm">' + esc(a.name) + '</div></div>' +
       '<div style="text-align:right"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(a.net) + '" style="font-size:21px">' + money(a.net) + '</div></div></div>' +
       '<div class="grid3">' + mBox('Balance', a.balance ? money(a.balance, 0, true) : '—') + mBox('Hoy', money(d, 0), cl(d)) + mBox('Max DD', '-$' + fmt(a.maxdd), 'r') + '</div>' +
-      '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle > ALERT_DAYS ? chip('⚠ ' + a._idle + (a._idle === 1 ? ' día' : ' días') + ' sin operar', a._idle >= 3 * ALERT_DAYS ? 'r' : 'a') : '') + fondChip(a) + '</div></div>';
+      '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle > ALERT_DAYS ? chip('⚠ ' + a._idle + (a._idle === 1 ? ' día' : ' días') + ' sin operar', a._idle >= 3 * ALERT_DAYS ? 'r' : 'a') : '') + fondChip(a) + (a.last && a._idle <= ALERT_DAYS && !fondInfo(a) ? chip('última op. hace ' + (a._idle === 0 ? 'hoy' : a._idle + ' d')) : '') + '</div></div>';
   });
   return h;
 }
@@ -1570,7 +1577,7 @@ function pfCards(list) {
   var h = '';
   list.forEach(function (p) {
     var c = pfCalc(p, p.src || S.pfSrc), m = c.m, miss = p.ids.filter(function (id) { return !c.per[id].n; }).length;
-    h += '<div class="card click" data-a="pfOpen" data-k="' + enc(p.id) + '" style="padding:11px 13px"><div class="row" style="align-items:center"><div style="min-width:0"><div class="sub">' + p.ids.length + ' EAs · riesgo base $' + fmt(p.base) + (miss ? ' · ⚠ ' + miss + ' sin datos' : '') + '</div><div class="nm">' + esc(p.name) + '</div></div>' +
+    h += '<div class="card click" data-a="pfOpen" data-k="' + enc(p.id) + '" style="padding:11px 13px"><div class="row" style="align-items:center"><div style="min-width:0"><div class="sub">' + p.ids.length + ' EAs · riesgo base $' + fmt(p.base) + (miss ? ' · ⚠ ' + miss + ' sin datos' : '') + '</div><div class="nm wrap">' + esc(p.name) + '</div></div>' +
       '<div style="text-align:right"><div class="big ' + cl(m.net) + '" style="font-size:18px">' + money(m.net) + '</div><div class="lbl">Ret/DD ' + f1(m.rdd, 2) + '</div></div></div>' + (m.n > 1 ? '<div style="margin-top:6px">' + spark(equity(c.trades), m.net < 0 ? '#ff5d78' : '#2ee6a0') + '</div>' : '') + '</div>';
   });
   return h;
@@ -2316,6 +2323,7 @@ function vAjustes() {
     '<button class="btn sec2" data-a="saveF">💾 Guardar carpetas</button>' +
     '<div class="set"><div class="st">Alertas</div><div class="sr"><div><div>Días sin operar</div><div class="ss">Marca "sin operar" a un EA pasado este nº de días</div></div><input class="n" id="alertIn" type="number" min="1" max="90" value="' + ALERT_DAYS + '"></div></div>' +
     '<div class="set"><div class="st">Cuentas fondeadas</div><div class="sr"><div><div>Aviso naranja (días sin operar)</div><div class="ss">Las cuentas con «fondeada» en el nombre</div></div><input class="n" id="fondW" type="number" min="1" max="90" value="' + FOND_W + '"></div><div class="sr"><div><div>Aviso rojo (días sin operar)</div><div class="ss">Las empresas suelen dar de baja a los 30</div></div><input class="n" id="fondR" type="number" min="1" max="90" value="' + FOND_R + '"></div><div class="sr"><input id="fondS" value="' + esc(FOND_SKIP) + '" placeholder="No vigilar (separadas por coma), p. ej. COPY FONDEADAS"></div></div>' +
+    '<div class="set"><div class="st">Cuentas de examen</div><div class="sr"><div><div>Aviso naranja (días sin operar)</div><div class="ss">Cuentas cuyo nombre lleva una de las palabras de abajo</div></div><input class="n" id="examW" type="number" min="1" max="90" value="' + EXAM_W + '"></div><div class="sr"><div><div>Aviso rojo (días sin operar)</div></div><input class="n" id="examR" type="number" min="1" max="90" value="' + EXAM_R + '"></div><div class="sr"><input id="examK" value="' + esc(EXAM_KW) + '" placeholder="Palabras del nombre, separadas por coma"></div></div>' +
     '<button class="btn sec2" data-a="refresh">🔄 Actualizar datos</button>' +
     '<div class="set"><div class="st">Lectura</div><div class="sr"><div><div>Cuentas VPS / Demo / SQX</div><div class="ss">' + D.vps.length + ' / ' + D.demo.length + ' / ' + Object.keys(D.sqx).length + ' estrategias (' + D.sqxFiles + ' CSV en la carpeta) · Librería: ' + Object.keys(D.lib.meta).length + ' EAs clasificados</div></div></div></div>';
   if (D.warn.length) h += '<div class="set"><div class="st" style="color:var(--gold)">⚠ Archivos con avisos (' + D.warn.length + ')</div>' + D.warn.slice(0, 25).map(function (w) { return '<div class="sr" style="font-size:11px;color:var(--dim)">' + esc(w) + '</div>'; }).join('') + '</div>';
@@ -2459,6 +2467,8 @@ document.getElementById('content').addEventListener('change', function (ev) {
   if (p0 && ev.target.id === 'pfName') { p0.name = ev.target.value.trim() || p0.name; pfTouch(p0); render(); return; }
   if (p0 && ev.target.id === 'pfBase') { var b = +String(ev.target.value).replace(',', '.'); if (b > 0) { p0.base = b; pfTouch(p0); } return; }
   if (ev.target.id === 'fondW' || ev.target.id === 'fondR') { var fv = Math.min(90, Math.max(1, parseInt(ev.target.value) || (ev.target.id === 'fondW' ? 20 : 25))); if (ev.target.id === 'fondW') { FOND_W = fv; lsSet('tm_fond_w', fv); } else { FOND_R = fv; lsSet('tm_fond_r', fv); } fondBadges(); toast('✅ ' + fv + ' días'); }
+  if (ev.target.id === 'examW' || ev.target.id === 'examR') { var xv = Math.min(90, Math.max(1, parseInt(ev.target.value) || (ev.target.id === 'examW' ? 15 : 20))); if (ev.target.id === 'examW') { EXAM_W = xv; lsSet('tm_exam_w', xv); } else { EXAM_R = xv; lsSet('tm_exam_r', xv); } fondBadges(); toast('✅ ' + xv + ' días'); }
+  if (ev.target.id === 'examK') { EXAM_KW = ev.target.value; lsSet('tm_exam_kw', EXAM_KW); fondBadges(); toast('✅ Guardado'); }
   if (ev.target.id === 'fondS') { FOND_SKIP = ev.target.value; lsSet('tm_fond_skip', FOND_SKIP); fondBadges(); toast('✅ Guardado'); }
   if (ev.target.id === 'alertIn') { ALERT_DAYS = Math.min(90, Math.max(1, parseInt(ev.target.value) || 7)); lsSet('tm_alert_days', ALERT_DAYS); toast('✅ ' + ALERT_DAYS + ' días'); }
 });
