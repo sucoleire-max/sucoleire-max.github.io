@@ -1,4 +1,7 @@
-FGX Trading Monitor v1.12.1 (app móvil)
+FGX Trading Monitor v1.13.0 (app móvil)
+
+NOVEDADES v1.13.0
+- Tarjetas de cuenta (Cuentas y Demo): curva de equity (P&L acumulado) y tarjeta algo más grande (letras, cuadros y espacios).
 
 NOVEDADES v1.12.1
 - Pestaña Cuentas (VPS): selector Todas | ⭐ Mi vista (elige las cuentas que quieras ver; se guarda en el móvil). Sin MT4/MT5 aquí.

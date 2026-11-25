@@ -80,6 +80,13 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 .nm{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nm.wrap{white-space:normal;overflow:visible;word-break:break-word;line-height:1.25}
 .sub{font-size:10px;letter-spacing:.14em;color:var(--dimmer);text-transform:uppercase;margin-bottom:2px}
+.card.acx{padding:18px 18px 16px;border-radius:18px;margin-bottom:16px}
+.card.acx .nm{font-size:18px}.card.acx .sub{font-size:10.5px}
+.card.acx .big{font-size:26px!important}
+.card.acx .eqs{margin:12px 0 2px;border:1px solid rgba(120,170,230,.16);border-radius:13px;background:rgba(0,0,0,.25);padding:9px 10px 4px}
+.card.acx .eqs .lbl{font-size:9.5px;display:flex;justify-content:space-between;margin-bottom:3px}
+.card.acx .grid3{gap:10px;margin-top:14px}.card.acx .m{padding:12px 12px}.card.acx .m .v{font-size:17px}
+.card.acx .chips{margin-top:14px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .m{border-radius:10px;border:1px solid var(--line);background:var(--bg3);padding:8px 9px;min-width:0}
@@ -241,7 +248,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.12.1';
+var VERSION = '1.13.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -805,6 +812,13 @@ function equity(trades) { var e = [0], s = 0; trades.forEach(function (t) { s +=
 function span(trades) { function f(d) { return d.getDate() + ' ' + MES[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2); } return trades.length ? [f(trades[0].close), f(trades[trades.length - 1].close)] : null; }
 
 /* ---------- pantallas ---------- */
+/* curva de equity (P&L acumulado) para la tarjeta de cuenta, más alta que la mini-curva normal */
+function eqCurve(a) {
+  var t = a.trades.slice().sort(function (x, y) { return x.close - y.close; }), c = 0, pts = [0];
+  t.forEach(function (x) { pts.push(c += x.pnl); });
+  if (pts.length < 3) return '';
+  return '<div class="eqs"><div class="lbl"><span>Equity</span><span>' + a.n + ' trades</span></div>' + spark(pts, c >= 0 ? '#2ee6a0' : '#ff5d78').replace('height:44px', 'height:84px') + '</div>';
+}
 function vKey(a) { return a.src === 'vps' ? 'vps:' + a.name : (a.plat === 'mt5' ? 'mt5:' : 'mt4:') + a.name; }
 function vistaKeys() { try { var v = JSON.parse(ls('tm_vista', '[]')); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
 function vistaSet(v) { lsSet('tm_vista', JSON.stringify(v)); }
@@ -862,8 +876,8 @@ function vAccounts(src) {
     '<div class="chips">' + chip(accs.length + ' cuentas', 'g') + chip(nEA + ' EAs') + chip(nToday + ' operaciones hoy', 'b') + (nIdle ? chip('⚠ ' + nIdle + (nIdle === 1 ? ' cuenta sin operar' : ' cuentas sin operar'), 'a') : '') + '</div></div>';
   accs.forEach(function (a) {
     var d = dayPnl(a.trades, today);
-    h += '<div class="card click" data-a="acc" data-k="' + enc(a.id) + '" style="--ac:' + a.color + '"><div class="row"><div style="min-width:0"><div class="sub">' + (a.number ? 'Cuenta ' + esc(a.number) : esc(a.file)) + ' · ' + a.n + ' trades</div><div class="nm">' + esc(a.name) + '</div></div>' +
-      '<div style="text-align:right"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(a.net) + '" style="font-size:21px">' + money(a.net) + '</div></div></div>' +
+    h += '<div class="card acx click" data-a="acc" data-k="' + enc(a.id) + '" style="--ac:' + a.color + '"><div class="row"><div style="min-width:0"><div class="sub">' + (a.number ? 'Cuenta ' + esc(a.number) : esc(a.file)) + ' · ' + a.n + ' trades</div><div class="nm">' + esc(a.name) + '</div></div>' +
+      '<div style="text-align:right"><div class="lbl">Net P&amp;L</div><div class="big ' + cl(a.net) + '" style="font-size:21px">' + money(a.net) + '</div></div></div>' + eqCurve(a) +
       '<div class="grid3">' + mBox('Balance', a.balance ? money(a.balance, 0, true) : '—') + mBox('Hoy', money(d, 0), cl(d)) + mBox('Max DD', '-$' + fmt(a.maxdd), 'r') + '</div>' +
       '<div class="chips">' + chip('Ret/DD ' + a.rdd.toFixed(2).replace('.', ','), 'a') + chip('WR ' + (a.wr * 100).toFixed(0) + '%') + (a._idle > ALERT_DAYS ? chip('⚠ ' + a._idle + (a._idle === 1 ? ' día' : ' días') + ' sin operar', a._idle >= 3 * ALERT_DAYS ? 'r' : 'a') : '') + fondChip(a) + (a.last && a._idle <= ALERT_DAYS && !fondInfo(a) ? chip('última op. hace ' + (a._idle === 0 ? 'hoy' : a._idle + ' d')) : '') + '</div></div>';
   });
