@@ -241,7 +241,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.10.5';
+var VERSION = '1.12.0';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -249,7 +249,7 @@ var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googlea
 function ls(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
-var F = { vps: ls('tm_folder_id', '14v9ZVOKdgEXjOOto1XvmJxBl7Nq8ewUP'), demo: ls('tm_folder2_id', '1SWfvkkglqVgVSMoNzCIrnAgUbPkD0DlG'), sqx: ls('tm_folder_sqx_id', '1rt6pDQqsMpTiCUzrmyYfv2CMKPKq9h2r'), lib: ls('tm_folder_lib_id', ''), cop: ls('tm_folder_cop_id', '') };
+var F = { vps: ls('tm_folder_id', '14v9ZVOKdgEXjOOto1XvmJxBl7Nq8ewUP'), demo: ls('tm_folder2_id', '1SWfvkkglqVgVSMoNzCIrnAgUbPkD0DlG'), demo5: ls('tm_folder3_id', ''), d5: '', sqx: ls('tm_folder_sqx_id', '1rt6pDQqsMpTiCUzrmyYfv2CMKPKq9h2r'), lib: ls('tm_folder_lib_id', ''), cop: ls('tm_folder_cop_id', '') };
 var ALERT_DAYS = parseInt(ls('tm_alert_days', '')) || 7;
 var token = ls('tm_token', null), tokenExp = +ls('tm_token_exp', 0) || 0;
 var tokenClient = null;
@@ -445,7 +445,7 @@ function sqxIdFromName(name) {
 
 /* ---------- Google Drive (solo lectura) ---------- */
 var D = { vps: [], demo: [], sqx: {}, lib: { files: {}, meta: {}, imgs: {}, snaps: {} }, warn: [], updated: null, fromCache: false, sqxFiles: 0, libPorts: [] };
-var S = { tab: 'cuentas', stack: [], pfSrc: 'demo', pfMode: 'man', pick: {}, pkF: {}, pkQ: '', delArm: '', pfNote: '', libQ: '', libF: 'all', libOpen: {}, rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
+var S = { dp: ls('tm_demo_plat', 'mt4'), vEdit: false, tab: 'cuentas', stack: [], pfSrc: 'demo', pfMode: 'man', pick: {}, pkF: {}, pkQ: '', delArm: '', pfNote: '', libQ: '', libF: 'all', libOpen: {}, rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
 function authErr() { var e = new Error('Sesión caducada'); e.auth = true; return e; }
 function tokenOk() { return !!token && (!tokenExp || Date.now() < tokenExp - 30000); }
 async function dget(url) {
@@ -546,6 +546,18 @@ async function listKids(id) {
   } while (pt);
   return out;
 }
+/* carpeta «Csv demo pc MT5» (cuentas demo MT5): la de Ajustes, o la busco por nombre en tu Drive */
+async function findDemo5(co) {
+  if (F.demo5) return F.demo5;
+  var c = await kvGet('demo5id'); if (c || co) return c || '';
+  try {
+    var q = encodeURIComponent("name='Csv demo pc MT5' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    var r = await dget('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true');
+    var j = await r.json(), f = (j.files || [])[0];
+    if (f) { kvSet('demo5id', f.id); return f.id; }
+  } catch (e) { if (e.auth) throw e; }
+  return '';
+}
 async function findLibRoot() {
   if (F.lib) return F.lib;
   var c = await kvGet('libroot'); if (c) return c;
@@ -643,7 +655,10 @@ async function loadAll(co) {
   if (first) showLoading(co ? 'Abriendo datos guardados…' : 'Conectando con Drive…');
   try {
     var libP = loadLib(co);
-    var r = await Promise.all([loadAccounts('vps', co), loadAccounts('demo', co), loadSqx(co, libP)]);
+    F.d5 = await findDemo5(co);
+    var r = await Promise.all([loadAccounts('vps', co), loadAccounts('demo', co), loadSqx(co, libP), F.d5 ? loadAccounts('d5', co) : Promise.resolve([])]);
+    r[1].forEach(function (a) { a.plat = 'mt4'; }); r[3].forEach(function (a) { a.plat = 'mt5'; });
+    r[1] = r[1].concat(r[3]); r[1].forEach(function (a, i) { a.color = COLORS[i % COLORS.length]; });   /* D.demo = demos MT4 + MT5 (cada cuenta lleva a.plat) */
     D.vps = r[0]; D.demo = r[1]; D.sqx = r[2]; D.lib = await libP; D.lib.imgs = D.lib.imgs || {}; D.lib.snaps = D.lib.snaps || {}; await loadLibPorts(co);
     D.cop = await loadCop(co);
     D.vps.concat(D.demo).forEach(function (a) { buildEAs(a, D.sqx); });
@@ -790,15 +805,42 @@ function equity(trades) { var e = [0], s = 0; trades.forEach(function (t) { s +=
 function span(trades) { function f(d) { return d.getDate() + ' ' + MES[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2); } return trades.length ? [f(trades[0].close), f(trades[trades.length - 1].close)] : null; }
 
 /* ---------- pantallas ---------- */
+function vKey(a) { return (a.plat === 'mt5' ? 'mt5:' : 'mt4:') + a.name; }
+function vistaKeys() { try { var v = JSON.parse(ls('tm_vista', '[]')); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+function vistaSet(v) { lsSet('tm_vista', JSON.stringify(v)); }
 function vAccounts(src) {
   var accs = src === 'vps' ? D.vps : D.demo, title = src === 'vps' ? 'Cuentas VPS' : 'Demo PC';
   if (!accs.length) {
     if (!tokenOk() && !D.fromCache) return '<h1 class="pt">' + title + '</h1>' + emptyHtml('🔌', 'Conecta con Google Drive', 'La app lee los CSV de tus carpetas de Drive y solo escribe su propio archivo de portafolios.', '<button class="btn pri" data-a="connect">Conectar con Google Drive</button>');
     return '<h1 class="pt">' + title + '</h1>' + noteHtml() + emptyHtml('📂', 'Sin cuentas', src === 'vps' ? 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta de cuentas VPS.' : 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta Demo PC. Comprueba que el exportador y la sincronización con Drive estén activos.');
   }
+  var vtop = '';
+  if (src === 'demo') {
+    var n4 = D.demo.filter(function (a) { return a.plat !== 'mt5'; }).length, n5 = D.demo.length - n4, vk = vistaKeys(), nv = D.demo.filter(function (a) { return vk.indexOf(vKey(a)) >= 0; }).length;
+    if (S.dp !== 'mt4' && S.dp !== 'mt5' && S.dp !== 'vista') S.dp = 'mt4';
+    vtop = segHtml([['mt4', 'MT4 · ' + n4], ['mt5', 'MT5 · ' + n5], ['vista', '⭐ Mi vista · ' + nv]], S.dp, 'dplat');
+    if (S.dp === 'vista') {
+      var editing = S.vEdit || !nv;
+      vtop += '<div class="row" style="margin:0 4px 10px;align-items:center"><div class="lbl" style="text-transform:none;letter-spacing:.02em;line-height:1.4;flex:1">' + (editing ? 'Marca las cuentas que quieras ver juntas y pulsa Listo.' : 'Mostrando solo las cuentas de tu vista.') + '</div><button class="btn sm" data-a="' + (editing ? 'vdone' : 'vedit') + '">' + (editing ? 'Listo' : '✎ Elegir cuentas') + '</button></div>';
+      if (editing) {
+        var hv = '<h1 class="pt">' + title + '</h1>' + noteHtml() + vtop;
+        [['mt4', 'MT4'], ['mt5', 'MT5']].forEach(function (pl) {
+          var L = D.demo.filter(function (a) { return (a.plat === 'mt5' ? 'mt5' : 'mt4') === pl[0]; });
+          if (!L.length) return;
+          hv += '<div class="sec" style="margin:14px 4px 6px">' + pl[1] + '</div>';
+          L.forEach(function (a) { var on = vk.indexOf(vKey(a)) >= 0; hv += '<div class="card click" data-a="vtog" data-k="' + enc(vKey(a)) + '" style="--ac:' + a.color + ';padding:12px 14px"><div class="row" style="align-items:center"><div class="nm" style="display:flex;align-items:center;gap:10px"><span style="font-size:18px;color:' + (on ? 'var(--blue)' : 'var(--dimmer)') + '">' + (on ? '☑' : '☐') + '</span>' + esc(a.name) + '</div><span class="mono d" style="font-size:11px">' + (a.number ? esc(a.number) : '') + '</span></div></div>'; });
+        });
+        return hv;
+      }
+      accs = D.demo.filter(function (a) { return vk.indexOf(vKey(a)) >= 0; });
+    } else {
+      accs = D.demo.filter(function (a) { return (a.plat === 'mt5' ? 'mt5' : 'mt4') === S.dp; });
+      if (!accs.length) return '<h1 class="pt">' + title + '</h1>' + noteHtml() + vtop + emptyHtml('📂', 'Sin cuentas ' + S.dp.toUpperCase(), S.dp === 'mt5' ? 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta <b>Csv demo pc MT5</b>. Si está con otro nombre, ponla en Ajustes › Demo PC MT5.' : 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta Demo PC.');
+    }
+  }
   var today = new Date(), net = 0, day = 0, nEA = 0, nIdle = 0;
   accs.forEach(function (a) { net += a.net; day += dayPnl(a.trades, today); nEA += a.eas.length; a._idle = a.last ? Math.floor((Date.now() - a.last) / 86400000) : 0; if (a._idle > ALERT_DAYS) nIdle++; });
-  var h = '<h1 class="pt">' + title + '</h1>' + noteHtml() + fondBanner(accs);
+  var h = '<h1 class="pt">' + title + '</h1>' + noteHtml() + vtop + fondBanner(accs);
   var nToday = 0; accs.forEach(function (a) { a.trades.forEach(function (t) { if (sameDay(t.close, today)) nToday++; }); });
   h += '<div class="card hero' + (day < 0 ? ' neg' : '') + '"><div class="lbl">P&amp;L total de hoy</div><div class="big ' + cl(day) + '" style="font-size:36px;margin:5px 0 2px;text-shadow:0 0 26px ' + (day < 0 ? 'rgba(255,93,120,.4)' : 'rgba(46,230,160,.4)') + '">' + money(day, 2) + '</div>' +
     '<div class="mono" style="font-size:12px;color:var(--dim)">' + DIAS[today.getDay()] + ' ' + today.getDate() + ' ' + MES[today.getMonth()] + ' · Net total <span class="' + cl(net) + '">' + money(net) + '</span></div>' +
@@ -2022,11 +2064,13 @@ function vRanking() {
 /* ---------- Copiador (lee la carpeta FGX Copier de Drive; solo lectura) ---------- */
 D.cop = null;
 function evDate(sec) { var d = new Date(sec * 1000); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()); }
-function parseEvFile(res, name, txt) {
+function parseEvFile(res, name, txt, mt) {
   var m = /^ev_(\d+)_(.+)\.txt$/i.exec(name); if (!m) return;
+  res.hb = res.hb || {}; var hb = res.hb[m[1] + '|' + m[2]] = { m: mt || 0, st: 'RUN', t: 0 };
   res.names = res.names || {}; res.mothers = res.mothers || {};
   String(txt).split(/\r?\n/).forEach(function (ln) {
     var p = ln.split('|');
+    if (p[0] === 'HB') { hb.st = p[2] === 'STOP' ? 'STOP' : 'RUN'; hb.t = +p[1] || 0; return; }
     if (p[0] === 'FGXEV' && p.length >= 4) { res.names[m[1] + '|' + m[2]] = p.slice(3).join('|'); if (m[2] === 'master') res.mothers[m[1]] = { ch: m[1], login: p[2], name: p.slice(3).join('|') }; return; }
     if (p[0] !== 'EV' || p.length < 8) return;
     res.ev.push({ ch: m[1], who: m[2], key: p[1], sev: p[2], cnt: +p[3] || 1, t1: evDate(+p[4]), t2: evDate(+p[5]), tg: +p[6] || 0, txt: p.slice(7).join('|') });
@@ -2060,7 +2104,7 @@ function copBuild(rows, ch) {
   return Object.keys(ops).map(function (k) { return ops[k]; }).sort(function (a, b) { return ((a.tClose || a.tOpen || 0) - (b.tClose || b.tOpen || 0)); });
 }
 async function loadCop(co) {
-  var res = { ev: [], ops: [], files: 0, names: {}, mothers: {} };
+  var res = { ev: [], ops: [], files: 0, names: {}, mothers: {}, hb: {}, live: !co };
   try {
     var id = F.cop;
     if (!id) {
@@ -2078,7 +2122,7 @@ async function loadCop(co) {
     var rows = [];
     await pool(files, 6, async function (f) {
       var t = await fileText(f, co); if (t == null) return;
-      if (/^ev_/i.test(f.name)) parseEvFile(res, f.name, t); else { var hm = /^hist_(\d+)_/i.exec(f.name); rows = rows.concat(parseHistFile(t, hm ? hm[1] : '1')); }
+      if (/^ev_/i.test(f.name)) parseEvFile(res, f.name, t, Date.parse(f.modifiedTime)); else { var hm = /^hist_(\d+)_/i.exec(f.name); rows = rows.concat(parseHistFile(t, hm ? hm[1] : '1')); }
     });
     res.ops = copBuild(rows);
   } catch (e) { if (e.auth) throw e; D.warn.push('Copiador: ' + e.message); }
@@ -2145,7 +2189,21 @@ function copRecvs() {
 }
 function copChannels() { var c = D.cop, s = {}; Object.keys(c.mothers || {}).forEach(function (k) { s[k] = 1; }); c.ops.forEach(function (o) { s[o.ch] = 1; }); Object.keys(c.names || {}).forEach(function (k) { s[k.split('|')[0]] = 1; }); return Object.keys(s).sort(function (a, b) { return (+a - +b) || (a < b ? -1 : 1); }); }
 function copOps() { return D.cop.ops.filter(function (o) { return copSel(o) && copRangeOk(o.tClose || o.tOpen); }); }
+function copHbMin() { return Math.max(2, +ls('tm_cop_hb', '4') || 4); }
+function copHbOff() { return ls('tm_cop_hboff', '0') === '1'; }
+function copHbAge(ch, who) { var h = ((D.cop || {}).hb || {})[ch + '|' + who]; if (!h || !h.t || !h.m || !D.cop.live) return null; return Math.max(0, (Date.now() - h.m) / 60000); }
+function copAgo(m) { return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; }
+function copMotherSt(ch) {
+  if (copHbOff()) return null; var h = ((D.cop || {}).hb || {})[ch + '|master']; if (!h || !h.t) return null; var a = copHbAge(ch, 'master'); if (a == null) return null;
+  if (h.st === 'STOP') return ['er', 'Madre parada hace ' + copAgo(a)];
+  return a > copHbMin() ? ['er', 'Madre sin datos hace ' + copAgo(a)] : null;
+}
 function copRxStatus(r) {
+  if (!copHbOff()) {
+    var ms = copMotherSt(r.ch); if (ms) return ms;
+    var h = ((D.cop || {}).hb || {})[r.ch + '|' + r.login];
+    if (h && h.t) { var a = copHbAge(r.ch, r.login); if (a != null) { if (h.st === 'STOP') return ['er', 'Terminal cerrada hace ' + copAgo(a)]; if (a > copHbMin()) return ['er', 'Sin latido hace ' + copAgo(a)]; } }
+  }
   var c = D.cop, evs = c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && (e.who === r.login || e.key.indexOf('DOWN_' + r.login + '_') === 0 || e.key.indexOf('UP_' + r.login + '_') === 0); });
   var du = evs.filter(function (e) { return /^(DOWN|UP)_/.test(e.key); }).sort(function (a, b) { return b.t2 - a.t2; })[0];
   if (du && /^DOWN_/.test(du.key)) return ['er', 'Sin latido'];
@@ -2205,7 +2263,7 @@ function copRow(o, detail) {
   return h;
 }
 function vCopRes() {
-  var c = D.cop, h = copFilters(false), L = copOps(), dl = L.map(function (o) { return o.delay; }).filter(function (v) { return v != null && v > 0; }), cs = L.map(copCost).filter(function (v) { return v != null; });
+  var c = D.cop, h = copFilters(false) + '<div class="fil"><button data-a="copHb" data-k="' + enc('x') + '">💓 Rojo a los ' + copHbMin() + ' min sin latido</button><button class="' + (copHbOff() ? 'on' : '') + '" data-a="copHbOff" data-k="' + enc('x') + '">' + (copHbOff() ? '🔕 Silenciado' : '🔔 Silenciar') + '</button></div>', L = copOps(), dl = L.map(function (o) { return o.delay; }).filter(function (v) { return v != null && v > 0; }), cs = L.map(copCost).filter(function (v) { return v != null; });
   var rk = L.filter(function (o) { return o.riskM > 0; }), same = rk.length ? rk.filter(copSame).length / rk.length * 100 : null, open = L.filter(function (o) { return !o.tClose; }).length;
   var avs = c.ev.filter(function (e) { return (!S.copCh || e.ch === S.copCh) && e.sev !== 'I' && copEvOpen(e); }), cost = cs.length ? cs.reduce(function (s, v) { return s + v; }, 0) : null, ad = copAvg(dl);
   h += '<div class="grid2">' + copCard('Copias · periodo', L.length, '', open + ' abiertas ahora' + (L.filter(function (o) { return !o.tClose && copMother(o); }).length ? ' · ⚠ ' + L.filter(function (o) { return !o.tClose && copMother(o); }).length + ' con la madre cerrada' : '') + (L.filter(function (o) { return o.nodata; }).length ? ' · ' + L.filter(function (o) { return o.nodata; }).length + ' sin datos' : '')) + copCard('Retraso medio', dl.length ? Math.round(ad) + ' ms' : '—', dl.length && ad < 300 ? 'g' : '', dl.length ? 'máx ' + Math.round(Math.max.apply(null, dl)) + ' ms' : '') +
@@ -2320,6 +2378,7 @@ function vAjustes() {
     '<div class="set"><div class="st">🔁 FGX Copier (avisos y copias)</div><div class="sr"><input id="fCop" value="' + esc(F.cop) + '" placeholder="Vacío = la busco por nombre «FGX Copier» en tu Drive"></div></div>' +
     '<div class="set"><div class="st">☁️ Cuentas VPS</div><div class="sr"><input id="fVps" value="' + esc(F.vps) + '" placeholder="ID o enlace de carpeta"></div></div>' +
     '<div class="set"><div class="st">🖥️ Demo PC</div><div class="sr"><input id="fDemo" value="' + esc(F.demo) + '" placeholder="ID o enlace de carpeta"></div></div>' +
+    '<div class="set"><div class="st">🖥️ Demo PC MT5</div><div class="sr"><input id="fDemo5" value="' + esc(F.demo5) + '" placeholder="Vacío = la busco por nombre «Csv demo pc MT5»"></div></div>' +
     '<button class="btn sec2" data-a="saveF">💾 Guardar carpetas</button>' +
     '<div class="set"><div class="st">Alertas</div><div class="sr"><div><div>Días sin operar</div><div class="ss">Marca "sin operar" a un EA pasado este nº de días</div></div><input class="n" id="alertIn" type="number" min="1" max="90" value="' + ALERT_DAYS + '"></div></div>' +
     '<div class="set"><div class="st">Cuentas fondeadas</div><div class="sr"><div><div>Aviso naranja (días sin operar)</div><div class="ss">Las cuentas con «fondeada» en el nombre</div></div><input class="n" id="fondW" type="number" min="1" max="90" value="' + FOND_W + '"></div><div class="sr"><div><div>Aviso rojo (días sin operar)</div><div class="ss">Las empresas suelen dar de baja a los 30</div></div><input class="n" id="fondR" type="number" min="1" max="90" value="' + FOND_R + '"></div><div class="sr"><input id="fondS" value="' + esc(FOND_SKIP) + '" placeholder="No vigilar (separadas por coma), p. ej. COPY FONDEADAS"></div></div>' +
@@ -2417,6 +2476,8 @@ var ACT = {
   copMore: function () { S.copMore = (S.copMore || 40) + 40; render(); },
   copOpen: function (k) { k = JSON.parse(k); S.copOpen = S.copOpen === k ? '' : k; render(); },
   copSee: function (k) { copSeenSet().add(JSON.parse(k)); copSaveSeen(); render(); },
+  copHb: function () { var v = copHbMin(), n = v === 2 ? 4 : v === 4 ? 10 : v === 10 ? 30 : 2; lsSet('tm_cop_hb', String(n)); render(); toast('💓 Rojo a los ' + n + ' min sin latido'); },
+  copHbOff: function () { lsSet('tm_cop_hboff', copHbOff() ? '0' : '1'); render(); },
   copSeen: function () { lsSet('tm_cop_seen', String(Date.now())); ((D.cop && D.cop.ev) || []).forEach(function (e) { copSeenSet().add(copEvKey(e)); }); copSaveSeen(); render(); toast('✅ Marcado como visto'); },
   pfSrc: function (k) { S.pfSrc = JSON.parse(k); render(); },
   pfSrcD: function (k) { var t = S.stack[S.stack.length - 1], p = pfBy(t.pid); if (p) { p.src = JSON.parse(k); pfLocalSave(); render(); } },
@@ -2436,6 +2497,10 @@ var ACT = {
   srcSet: function (k) { var t = S.stack[S.stack.length - 1]; if (t && t.t === 'sid') { t.src = JSON.parse(k); if (t.tab === 'ops' && t.src === 'sqx') t.tab = 'stats'; S.opsDay = null; render(); } },
   accSet2: function (k) { var t = S.stack[S.stack.length - 1]; if (t && t.t === 'sid') { t.acc = JSON.parse(k); S.opsDay = null; render(); } },
   racha: function (k) { push({ t: 'racha', id: JSON.parse(k) }); },
+  dplat: function (k) { S.dp = JSON.parse(k); S.vEdit = false; lsSet('tm_demo_plat', S.dp); render(); },
+  vedit: function () { S.vEdit = true; render(); },
+  vdone: function () { S.vEdit = false; render(); },
+  vtog: function (k) { var key = JSON.parse(k), v = vistaKeys(), i = v.indexOf(key); if (i >= 0) v.splice(i, 1); else v.push(key); vistaSet(v); S.vEdit = true; render(); },
   accTab: function (k) { S.stack[S.stack.length - 1].tab = JSON.parse(k); S.opsDay = null; render(); },
   eaTab: function (k) { S.stack[S.stack.length - 1].tab = JSON.parse(k); S.opsDay = null; render(); },
   rv: function (k) { S.rachaView = JSON.parse(k); render(); },
@@ -2447,6 +2512,7 @@ var ACT = {
     F.cop = cp || ''; lsSet('tm_folder_cop_id', F.cop); kvSet('copid', null); D.cop = null;
     F.lib = l || ''; lsSet('tm_folder_lib_id', F.lib); kvSet('libroot', null);
     if (a) { F.vps = a; lsSet('tm_folder_id', a); } if (b) { F.demo = b; lsSet('tm_folder2_id', b); } if (c) { F.sqx = c; lsSet('tm_folder_sqx_id', c); }
+    F.demo5 = folderId((document.getElementById('fDemo5') || { value: '' }).value) || ''; lsSet('tm_folder3_id', F.demo5); kvSet('demo5id', null);
     toast('✅ Carpetas guardadas'); D.vps = []; D.demo = []; D.sqx = {}; if (tokenOk()) loadAll(false); else render();
   }
 };

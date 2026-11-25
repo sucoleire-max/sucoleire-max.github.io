@@ -1,4 +1,13 @@
-FGX Trading Monitor v1.10.5 (app móvil)
+FGX Trading Monitor v1.12.0 (app móvil)
+
+NOVEDADES v1.12.0
+- Pestaña Demo: selector MT4 | MT5 | ⭐ Mi vista. Las tarjetas y el resumen son los de siempre.
+- ⭐ Mi vista: pulsa «✎ Elegir cuentas», marca las que quieras y «Listo». Se guarda en el móvil.
+- Carpeta MT5 demo: Ajustes › Demo PC MT5 (vacío = la busca por nombre «Csv demo pc MT5»).
+
+NOVEDADES v1.11.0
+- Copiador: la línea madre → receptores se pinta según el latido del copiador v1.13 (uno por minuto). Terminal cerrada / sin latido / madre sin datos = rojo.
+- Botones «💓 Rojo a los N min» (2/4/10/30) y «🔔 Silenciar» (fines de semana). Sin latido en el archivo (copiador antiguo) = lógica anterior.
 
 NOVEDADES v1.10.5 (= v1.10.4 con los umbrales de examen en 15 y 20 días)
 - Cuentas de EXAMEN (nombre con f1, f2, examen, challenge o verificación; palabras editables en Ajustes): aviso naranja a los 15 días sin operar y rojo a los 20 (configurable), también en el banner de Inicio y en los avisos de las pestañas.
