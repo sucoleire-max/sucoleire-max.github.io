@@ -1,4 +1,7 @@
-FGX Trading Monitor v1.13.0 (app móvil)
+FGX Trading Monitor v1.13.1 (app móvil)
+
+NOVEDADES v1.13.1
+- Arreglo: los números de Balance, Hoy y Max DD ya no se cortan en móviles estrechos.
 
 NOVEDADES v1.13.0
 - Tarjetas de cuenta (Cuentas y Demo): curva de equity (P&L acumulado) y tarjeta algo más grande (letras, cuadros y espacios).
