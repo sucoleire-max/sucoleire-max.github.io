@@ -241,7 +241,7 @@ h1.pt{font-family:var(--wide);font-weight:400;font-size:15px;letter-spacing:.14e
 /* FGX Trading Monitor · v1.0.1 · SOLO LECTURA (Drive readonly)
    Lectura de CSV al estilo FGX Strategy Library: cabecera por nombre, orden por cierre, BOM,
    identificación de estrategia por nombre o comentario, SQX con fecha en el nombre. */
-var VERSION = '1.12.0';
+var VERSION = '1.12.1';
 var CLIENT_ID = '40558411875-ga9v8q1ado8g37fd3r1abbj79p41ervh.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';   /* lectura + escribir SOLO el archivo de portafolios que crea la propia app */
 
@@ -445,7 +445,7 @@ function sqxIdFromName(name) {
 
 /* ---------- Google Drive (solo lectura) ---------- */
 var D = { vps: [], demo: [], sqx: {}, lib: { files: {}, meta: {}, imgs: {}, snaps: {} }, warn: [], updated: null, fromCache: false, sqxFiles: 0, libPorts: [] };
-var S = { dp: ls('tm_demo_plat', 'mt4'), vEdit: false, tab: 'cuentas', stack: [], pfSrc: 'demo', pfMode: 'man', pick: {}, pkF: {}, pkQ: '', delArm: '', pfNote: '', libQ: '', libF: 'all', libOpen: {}, rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
+var S = { vp: ls('tm_vps_view', 'all'), dp: ls('tm_demo_plat', 'mt4'), vEdit: false, tab: 'cuentas', stack: [], pfSrc: 'demo', pfMode: 'man', pick: {}, pkF: {}, pkQ: '', delArm: '', pfNote: '', libQ: '', libF: 'all', libOpen: {}, rachaView: 'cuentas', rankFilter: 'global', opsDay: null, loading: false, live: 'load', prog: '' };
 function authErr() { var e = new Error('Sesión caducada'); e.auth = true; return e; }
 function tokenOk() { return !!token && (!tokenExp || Date.now() < tokenExp - 30000); }
 async function dget(url) {
@@ -805,7 +805,7 @@ function equity(trades) { var e = [0], s = 0; trades.forEach(function (t) { s +=
 function span(trades) { function f(d) { return d.getDate() + ' ' + MES[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2); } return trades.length ? [f(trades[0].close), f(trades[trades.length - 1].close)] : null; }
 
 /* ---------- pantallas ---------- */
-function vKey(a) { return (a.plat === 'mt5' ? 'mt5:' : 'mt4:') + a.name; }
+function vKey(a) { return a.src === 'vps' ? 'vps:' + a.name : (a.plat === 'mt5' ? 'mt5:' : 'mt4:') + a.name; }
 function vistaKeys() { try { var v = JSON.parse(ls('tm_vista', '[]')); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
 function vistaSet(v) { lsSet('tm_vista', JSON.stringify(v)); }
 function vAccounts(src) {
@@ -815,6 +815,21 @@ function vAccounts(src) {
     return '<h1 class="pt">' + title + '</h1>' + noteHtml() + emptyHtml('📂', 'Sin cuentas', src === 'vps' ? 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta de cuentas VPS.' : 'No hay archivos <b>EA_Trades_*.csv</b> en la carpeta Demo PC. Comprueba que el exportador y la sincronización con Drive estén activos.');
   }
   var vtop = '';
+  if (src === 'vps') {
+    var vkv = vistaKeys(), nvv = D.vps.filter(function (a) { return vkv.indexOf(vKey(a)) >= 0; }).length;
+    if (S.vp !== 'all' && S.vp !== 'vista') S.vp = 'all';
+    vtop = segHtml([['all', 'Todas · ' + D.vps.length], ['vista', '⭐ Mi vista · ' + nvv]], S.vp, 'vplat');
+    if (S.vp === 'vista') {
+      var edv = S.vEdit || !nvv;
+      vtop += '<div class="row" style="margin:0 4px 10px;align-items:center"><div class="lbl" style="text-transform:none;letter-spacing:.02em;line-height:1.4;flex:1">' + (edv ? 'Marca las cuentas que quieras ver juntas y pulsa Listo.' : 'Mostrando solo las cuentas de tu vista.') + '</div><button class="btn sm" data-a="' + (edv ? 'vdone' : 'vedit') + '">' + (edv ? 'Listo' : '✎ Elegir cuentas') + '</button></div>';
+      if (edv) {
+        var hq = '<h1 class="pt">' + title + '</h1>' + noteHtml() + vtop;
+        D.vps.forEach(function (a) { var on = vkv.indexOf(vKey(a)) >= 0; hq += '<div class="card click" data-a="vtog" data-k="' + enc(vKey(a)) + '" style="--ac:' + a.color + ';padding:12px 14px"><div class="row" style="align-items:center"><div class="nm" style="display:flex;align-items:center;gap:10px"><span style="font-size:18px;color:' + (on ? 'var(--blue)' : 'var(--dimmer)') + '">' + (on ? '☑' : '☐') + '</span>' + esc(a.name) + '</div><span class="mono d" style="font-size:11px">' + (a.number ? esc(a.number) : '') + '</span></div></div>'; });
+        return hq;
+      }
+      accs = D.vps.filter(function (a) { return vkv.indexOf(vKey(a)) >= 0; });
+    }
+  }
   if (src === 'demo') {
     var n4 = D.demo.filter(function (a) { return a.plat !== 'mt5'; }).length, n5 = D.demo.length - n4, vk = vistaKeys(), nv = D.demo.filter(function (a) { return vk.indexOf(vKey(a)) >= 0; }).length;
     if (S.dp !== 'mt4' && S.dp !== 'mt5' && S.dp !== 'vista') S.dp = 'mt4';
@@ -2497,6 +2512,7 @@ var ACT = {
   srcSet: function (k) { var t = S.stack[S.stack.length - 1]; if (t && t.t === 'sid') { t.src = JSON.parse(k); if (t.tab === 'ops' && t.src === 'sqx') t.tab = 'stats'; S.opsDay = null; render(); } },
   accSet2: function (k) { var t = S.stack[S.stack.length - 1]; if (t && t.t === 'sid') { t.acc = JSON.parse(k); S.opsDay = null; render(); } },
   racha: function (k) { push({ t: 'racha', id: JSON.parse(k) }); },
+  vplat: function (k) { S.vp = JSON.parse(k); S.vEdit = false; lsSet('tm_vps_view', S.vp); render(); },
   dplat: function (k) { S.dp = JSON.parse(k); S.vEdit = false; lsSet('tm_demo_plat', S.dp); render(); },
   vedit: function () { S.vEdit = true; render(); },
   vdone: function () { S.vEdit = false; render(); },

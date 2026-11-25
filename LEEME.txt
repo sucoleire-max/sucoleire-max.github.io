@@ -1,4 +1,7 @@
-FGX Trading Monitor v1.12.0 (app móvil)
+FGX Trading Monitor v1.12.1 (app móvil)
+
+NOVEDADES v1.12.1
+- Pestaña Cuentas (VPS): selector Todas | ⭐ Mi vista (elige las cuentas que quieras ver; se guarda en el móvil). Sin MT4/MT5 aquí.
 
 NOVEDADES v1.12.0
 - Pestaña Demo: selector MT4 | MT5 | ⭐ Mi vista. Las tarjetas y el resumen son los de siempre.
